@@ -14,7 +14,11 @@ from version import FULL_VERSION, SHORT_VERSION, DISPLAY_VERSION
 
 from utils.airport_utils import format_airport_display
 
-from security.server_webauthn import server_webauthn
+_role = os.getenv("AIRTRACK_ROLE", "")
+if _role != "client":
+    from security.server_webauthn import server_webauthn
+else:
+    server_webauthn = None
 
 from utils.stats_utils import get_airtrack_stats, get_all_airlines
 
@@ -209,8 +213,9 @@ app.jinja_env.filters["airport"] = format_airport_display
 # Also make time() available globally
 app.jinja_env.globals["time"] = time
 
-# Register WebAuthn blueprint
-app.register_blueprint(server_webauthn)
+# Register WebAuthn blueprint (server only)
+if server_webauthn is not None:
+    app.register_blueprint(server_webauthn)
 
 # ---------------------------------------------------------------------------
 # Configuration (DB / debug / secrets)
