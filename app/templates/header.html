@@ -51,6 +51,7 @@
     </div>
 
     <!-- ================= SMART ASK DRAWER ================= -->
+    {% if is_server %}
     <div class="smart-ask-drawer" id="smartAskDrawer">
         <div class="smart-ask-drawer-input-row">
             <input type="text" id="headerAskInput" class="smart-ask-drawer-input"
@@ -67,9 +68,11 @@
 <div class="smart-ask-toggle-row">
     <button class="smart-ask-toggle" id="smartAskToggle">✦ Ask AI</button>
 </div>
+    {% endif %}
 
 <script>
 (function () {
+    if (!document.getElementById("smartAskToggle")) return;
     var toggle   = document.getElementById("smartAskToggle");
     var drawer   = document.getElementById("smartAskDrawer");
     var input    = document.getElementById("headerAskInput");
