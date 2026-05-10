@@ -9,7 +9,7 @@ services:
     command: >
       "if [ ! -d /app/.git ];
        then echo 'Cloning ${GIT_REMOTE}…'; git clone --depth=1 ${GIT_REMOTE} /app;
-       else echo 'Updating repo…'; git -C /app fetch --all --tags --prune && git -C /app reset --hard origin/main;
+       else echo 'Updating repo…'; git -C /app fetch --depth=1 origin main && git -C /app reset --hard FETCH_HEAD;
        fi"
 
   airtrack:
