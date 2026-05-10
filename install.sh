@@ -10,9 +10,9 @@ echo ""
 read -p " Press Enter to continue..."
 echo ""
 
-# ── Check for .env.client.example ────────────────────────────────────────────
-if [ ! -f .env.client.example ]; then
-    echo " ERROR: .env.client.example not found."
+# ── Check for env.client.example ─────────────────────────────────────────────
+if [ ! -f env.client.example ]; then
+    echo " ERROR: env.client.example not found."
     echo " Please ensure you have extracted all files correctly."
     echo ""
     exit 1
@@ -33,7 +33,7 @@ if [ ! -f .env.client ]; then
         -e "s|your-secret-key-here|${SECRET_KEY}|" \
         -e "s|DB_PASSWORD=changeme$|DB_PASSWORD=${DB_PASSWORD}|" \
         -e "s|DB_ROOT_PASSWORD=changeme-root|DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}|" \
-        .env.client.example > .env.client
+        env.client.example > .env.client
 
     echo " Configuration generated."
 else
