@@ -14,6 +14,7 @@ from version import FULL_VERSION, SHORT_VERSION, DISPLAY_VERSION
 
 from utils.airport_utils import format_airport_display
 
+import os
 _role = os.getenv("AIRTRACK_ROLE", "")
 if _role != "client":
     from security.server_webauthn import server_webauthn
