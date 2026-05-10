@@ -10,6 +10,30 @@ echo ""
 read -p " Press Enter to continue..."
 echo ""
 
+# ── Check for Docker ──────────────────────────────────────────────────────────
+if ! command -v docker &>/dev/null; then
+    echo " ERROR: Docker is not installed."
+    echo ""
+    echo " Please install Docker first, then run this script again."
+    echo " Installation guide: https://docs.docker.com/engine/install/"
+    echo ""
+    echo " On Raspberry Pi / Debian / Ubuntu you can run:"
+    echo "   curl -fsSL https://get.docker.com | sh"
+    echo "   sudo usermod -aG docker \$USER"
+    echo "   (then log out and back in)"
+    echo ""
+    exit 1
+fi
+
+if ! docker compose version &>/dev/null; then
+    echo " ERROR: Docker Compose is not available."
+    echo ""
+    echo " If you installed Docker recently, try:"
+    echo "   sudo apt-get install docker-compose-plugin"
+    echo ""
+    exit 1
+fi
+
 # ── Bootstrap: clone repo if running via curl rather than from inside it ──────
 # When piped through curl | bash the working directory won't have the repo files.
 # In that case, clone AirTrack-Client into the current directory first.
