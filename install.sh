@@ -10,10 +10,30 @@ echo ""
 read -p " Press Enter to continue..."
 echo ""
 
-# ── Check for env.client.example ─────────────────────────────────────────────
+# ── Bootstrap: clone repo if running via curl rather than from inside it ──────
+# When piped through curl | bash the working directory won't have the repo files.
+# In that case, clone AirTrack-Client into the current directory first.
 if [ ! -f env.client.example ]; then
-    echo " ERROR: env.client.example not found."
-    echo " Please ensure you have extracted all files correctly."
+    echo " Fetching AirTrack..."
+    REPO_URL="https://github.com/Subhuti/AirTrack-Client.git"
+    TMP_DIR=$(mktemp -d)
+    git clone --depth=1 "$REPO_URL" "$TMP_DIR" 2>&1 | grep -v "^$"
+    if [ $? -ne 0 ]; then
+        echo " ERROR: Failed to clone AirTrack-Client from GitHub."
+        echo " Check your internet connection and try again."
+        rm -rf "$TMP_DIR"
+        exit 1
+    fi
+    rsync -a "$TMP_DIR/" .
+    rm -rf "$TMP_DIR"
+    echo " Done."
+    echo ""
+fi
+
+# ── Sanity check ─────────────────────────────────────────────────────────────
+if [ ! -f env.client.example ]; then
+    echo " ERROR: env.client.example not found after clone."
+    echo " Something went wrong — please try again."
     echo ""
     exit 1
 fi
