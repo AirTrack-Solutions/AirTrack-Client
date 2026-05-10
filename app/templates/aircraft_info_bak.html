@@ -1,0 +1,334 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ aircraft['Registration'] }} — {{ aircraft['Aircraft_Type'] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aircraft_info.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}">
+    <style>
+        /* Carousel overrides */
+        .aircraft-carousel {
+            position: relative;
+            max-width: 100%;
+        }
+        .aircraft-carousel .carousel-inner img {
+            width: 100%;
+            max-height: 600px;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 4px;
+        }
+        .aircraft-carousel .carousel-control-prev,
+        .aircraft-carousel .carousel-control-next {
+            width: 10%;
+            opacity: 1;
+            top: auto !important;
+            bottom: 15px !important;
+            height: 50px !important;
+            align-items: center;
+        }
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+            filter: none;
+            background-color: rgba(0,0,0,0.55);
+            background-size: 60% 60%;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            border: 2px solid rgba(255,255,255,0.6);
+        }
+        .carousel-indicators [data-bs-target] {
+            background-color: #888;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .carousel-indicators .active {
+            background-color: #fff;
+        }
+        .image-counter {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 4px;
+        }
+        .carousel-delete-btn {
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+<h1 class="aircraft-info-title">{{ aircraft['Registration'] }} — {{ aircraft['Aircraft_Type'] }}</h1>
+
+<div class="aircraft-info-container">
+
+    <div class="aircraft-details">
+        <p><strong>Airline:</strong> {{ aircraft['AirlineName'] or "—" }}</p>
+        <p><strong>Flight Number:</strong> {{ aircraft['FlightNumber'] or "—" }}</p>
+        <p><strong>ICAO Address:</strong> {{ aircraft['ICAO_Address'] or "—" }}</p>
+        <p><strong>MSN:</strong> {{ aircraft['MSN'] or "—" }}</p>
+        <p><strong>Category:</strong> {{ aircraft['Category'] or "—" }}</p>
+        <p><strong>Country of Registration:</strong> {{ aircraft['Country_of_Reg'] or "—" }}</p>
+        <p><strong>Flag:</strong>
+        {% if aircraft['Country_Flag'] %}
+            <img src="{{ url_for('static', filename='flags/' + aircraft['Country_Flag']) }}" alt="Flag" class="flag-img">
+        {% else %}
+            <span>No Flag</span>
+        {% endif %}
+        </p>
+        <p><strong>Departure:</strong> {{ aircraft['Departure'] | airport_display if aircraft['Departure'] else "—" }}</p>
+        <p><strong>Arrival:</strong> {{ aircraft['Arrival'] | airport_display if aircraft['Arrival'] else "—" }}</p>
+        <p><strong>First Sighted:</strong> {{ aircraft['First_Sighted_Display'] or "—" }}</p>
+        <p><strong>Last Sighted:</strong> {{ aircraft['Last_Sighted_Display'] or "—" }}</p>
+        <p><strong>Times Seen:</strong> {{ aircraft['Times_Seen'] or 0 }}</p>
+        <p><strong>Manufacture Year:</strong> {{ aircraft['Manufacture_Year'] or "—" }}</p>
+        <p><strong>Manufacture Month:</strong> {{ aircraft['Manufacture_Month_Display'] }}</p>
+        <p><strong>Age:</strong> {{ aircraft['Aircraft_Age'] or "—" }}</p>
+    </div>
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Image carousel                                                       -->
+    <!-- ------------------------------------------------------------------ -->
+    <div class="aircraft-image">
+        {% if aircraft['carousel_images'] %}
+            {% if aircraft['image_count'] == 1 %}
+                {# Single image — no carousel needed #}
+                {% set img = aircraft['carousel_images'][0] %}
+                <img src="{{ img['url'] }}" alt="Aircraft Image" class="img-fluid mb-2">
+                <div class="image-counter">Image 1 of 1</div>
+                <form action="{{ url_for('aircraft.delete_image', aircraft_id=aircraft['AircraftID']) }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm btn-danger carousel-delete-btn" onclick="return confirm('Remove this image?');">Delete Image</button>
+                </form>
+
+            {% else %}
+                {# Multiple images — Bootstrap carousel #}
+                <div id="aircraftCarousel" class="carousel slide aircraft-carousel" data-bs-ride="false" data-bs-interval="false" data-image-count="{{ aircraft['image_count'] }}">
+                    <div class="carousel-indicators">
+                        {% for img in aircraft['carousel_images'] %}
+                        <button type="button"
+                                data-bs-target="#aircraftCarousel"
+                                data-bs-slide-to="{{ loop.index0 }}"
+                                {% if loop.first %}class="active" aria-current="true"{% endif %}
+                                aria-label="Image {{ img['image_number'] }}">
+                        </button>
+                        {% endfor %}
+                    </div>
+
+                    <div class="carousel-inner">
+                        {% for img in aircraft['carousel_images'] %}
+                        <div class="carousel-item {% if loop.first %}active{% endif %}" data-image-index="{{ loop.index0 }}">
+                            <img src="{{ img['url'] }}" class="d-block w-100" alt="Aircraft Image {{ img['image_number'] }}">
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <button class="carousel-control-prev" type="button" data-bs-target="#aircraftCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#aircraftCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+
+                {# Dynamic delete button — updates as carousel slides #}
+                <div class="mt-2">
+                    <span id="imageCounter" class="image-counter">Image 1 of {{ aircraft['image_count'] }}</span>
+                </div>
+
+                {# Hidden delete forms — one per image #}
+                {% for img in aircraft['carousel_images'] %}
+                <form id="deleteForm{{ loop.index0 }}"
+                      class="carousel-delete-form"
+                      action="{% if img['image_id'] %}{{ url_for('aircraft.delete_extra_image', image_id=img['image_id']) }}{% else %}{{ url_for('aircraft.delete_image', aircraft_id=aircraft['AircraftID']) }}{% endif %}"
+                      method="POST"
+                      style="display:none; margin-top:6px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm btn-danger" onclick="return confirm('Remove this image?');">Delete Image {{ img['image_number'] }}</button>
+                </form>
+                {% endfor %}
+
+                <div id="activeDeleteForm" style="margin-top:6px;"></div>
+            {% endif %}
+
+        {% else %}
+            <p>No image available for this aircraft.</p>
+        {% endif %}
+
+        {% if aircraft['can_add_image'] %}
+        <div class="mt-2">
+            <a href="{{ url_for('aircraft.quick_add_image', aircraft_id=aircraft['AircraftID']) }}"
+                class="btn btn-sm btn-primary">
+                    {% if aircraft['image_count'] == 0 %}Add Image{% else %}Add Another Image ({{ aircraft['image_count'] }}/5){% endif %}
+                </a>
+            <a href="{{ url_for('aircraft.upload_aircraft_image') }}?registration={{ aircraft['Registration'] }}"
+            class="btn btn-sm btn-secondary">Manual Upload</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="aircraft-notes">
+        <p><strong>Notes:</strong> {{ aircraft['Notes'] or "No notes available." }}</p>
+    </div>
+
+    <!-- Ownership History -->
+    <div class="aircraft-flight-history">
+        <h2>Ownership History</h2>
+        <div class="table-responsive" style="margin: 0 auto; max-width: 99%;">
+            <table class="table table-bordered table-hover" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Airline</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if ownership_history %}
+                        {% for owner in ownership_history %}
+                        <tr>
+                            <td>{{ owner['AirlineName'] or "—" }}</td>
+                            <td>{{ owner['From_Date'] or "—" }}</td>
+                            <td>{{ owner['To_Date'] or "Current" }}</td>
+                            <td>{{ owner['Notes'] or "—" }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center">No ownership history recorded.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-2">
+            <a href="{{ url_for('aircraft.transfer_ownership', aircraft_id=aircraft['AircraftID']) }}" class="btn btn-sm btn-warning">Record Ownership Transfer</a>
+        </div>
+    </div>
+
+    <!-- Flight History -->
+    <div class="aircraft-flight-history">
+        <h2>Flight History</h2>
+        <div class="table-responsive" style="margin: 0 auto; max-width: 99%;">
+            <table class="table table-bordered table-hover" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">Flight Number</th>
+                        <th style="width: 12%;">Departure</th>
+                        <th style="width: 12%;">Arrival</th>
+                        <th style="width: 6%;">Timestamp</th>
+                        <th style="width: 3%;">Spotted At</th>
+                        <th style="width: 5%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if flight_history %}
+                        {% for flight in flight_history %}
+                        <tr>
+                            <td>{{ flight['FlightNumber'] or "—" }}</td>
+                            <td>{{ flight['Departure'] | airport_display if flight['Departure'] else "—" }}</td>
+                            <td>{{ flight['Arrival'] | airport_display if flight['Arrival'] else "—" }}</td>
+                            <td>{{ flight['Timestamp_Display'] or "—" }}</td>
+                            <td>{{ flight['Spotted_At'] or "—" }}</td>
+                            <td style="white-space: nowrap; width: 120px;">
+                                <a href="{{ url_for('edit_flight', flight_id=flight['FlightID']) }}" class="btn btn-warning btn-sm py-0 px-1" style="width: 50px;">Edit</a>
+                                <form action="{{ url_for('delete_flight', flight_id=flight['FlightID']) }}" method="POST" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm py-0 px-1" style="width: 50px;" onclick="return confirm('Delete this flight record?');">Delete</button>
+                                </form>
+                            </td></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No flight history found for this aircraft.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+        <div class="pagination-container">
+            <ul class="pagination justify-content-center">
+                {% if current_page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('aircraft.aircraft_info', aircraft_id=aircraft['AircraftID'], page=current_page-1) }}">Previous</a>
+                    </li>
+                {% endif %}
+                {% for i in range(1, total_pages + 1) %}
+                    <li class="page-item {% if i == current_page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('aircraft.aircraft_info', aircraft_id=aircraft['AircraftID'], page=i) }}">{{ i }}</a>
+                    </li>
+                {% endfor %}
+                {% if current_page < total_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('aircraft.aircraft_info', aircraft_id=aircraft['AircraftID'], page=current_page+1) }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="aircraft-actions d-flex justify-content-between">
+        <a href="{{ url_for('aircraft.aircraft_table') }}" class="btn btn-teal">Back</a>
+    </div>
+
+</div>
+
+{% include 'footer.html' %}
+<script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+
+<script>
+// Update the delete button and counter as the carousel slides
+(function () {
+    const carousel = document.getElementById('aircraftCarousel');
+    if (!carousel) return;
+
+    const totalImages = parseInt(carousel.dataset.imageCount, 10);
+    const counter     = document.getElementById('imageCounter');
+    const deleteTarget = document.getElementById('activeDeleteForm');
+
+    function showDeleteForm(index) {
+        // Remove any currently shown form
+        deleteTarget.innerHTML = '';
+        const form = document.getElementById('deleteForm' + index);
+        if (form) {
+            const clone = form.cloneNode(true);
+            clone.style.display = 'block';
+            deleteTarget.appendChild(clone);
+        }
+        if (counter) {
+            counter.textContent = 'Image ' + (index + 1) + ' of ' + totalImages;
+        }
+    }
+
+    // Show delete form for the first image on load
+    showDeleteForm(0);
+
+    // Update on slide
+    carousel.addEventListener('slid.bs.carousel', function (e) {
+        showDeleteForm(e.to);
+    });
+})();
+</script>
+
+</body>
+</html>

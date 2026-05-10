@@ -1,0 +1,56 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirTrack FAQ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+    <style>
+        body { background-color: #f0f8f9; padding: 20px; font-family: Arial, sans-serif; }
+        .faq-title { text-align: center; margin-bottom: 30px; font-weight: bold; color: #004d4d; }
+        .faq-item { background: #ffffff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 15px; }
+        .faq-item h5 { color: #007373; font-weight: bold; }
+        .search-box { max-width: 500px; margin: 0 auto 30px; }
+    </style>
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+    <h2 class="faq-title">AirTrack Frequently Asked Questions</h2>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" class="form-control" placeholder="Search FAQs...">
+    </div>
+
+    <div id="faqList">
+        <div class="faq-item">
+            <h5>What is the ICAO 24-Bit Address?</h5>
+            <p>The ICAO 24-bit address is a unique identifier permanently assigned to an aircraft. It does not change and should only be stored in the aircraft record, not the flight logs.</p>
+        </div>
+        <div class="faq-item">
+            <h5>Can I edit the First Seen timestamp?</h5>
+            <p>No. The First Seen timestamp is set automatically when the aircraft is added and is not editable to preserve record accuracy.</p>
+        </div>
+        <!-- Add more FAQs below as needed -->
+    </div>
+
+    <script>
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const filter = this.value.toLowerCase();
+            const items = document.querySelectorAll('.faq-item');
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(filter) ? 'block' : 'none';
+            });
+        });
+    </script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

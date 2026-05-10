@@ -1,0 +1,70 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Broken Airport Links</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/broken_links.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+    <div class="container mt-5">
+        <h2 class="aircraft-info-title">Broken Airport Links</h2>
+        {% for entry in broken_links %}
+        <div class="card broken-link-card">
+            <div class="card-body">
+                <h5 class="card-title broken-link-title">[{{ entry.icao }}] {{ entry.name }}</h5>
+
+                {% if entry.label == 'Website' %}
+                    <p class="text-danger">Broken Website: <code>{{ entry.url }}</code></p>
+                    <form action="{{ url_for('admin_tools.whitelist_link') }}" method="post">
+                        <input type="hidden" name="icao" value="{{ entry.icao }}">
+                        <input type="hidden" name="field" value="home_link">
+                        <div class="mb-3">
+                            <label for="home_link_{{ entry.icao }}" class="form-label">New Website URL:</label>
+                            <input type="url" id="home_link_{{ entry.icao }}" name="new_value" class="form-control" placeholder="https://example.com">
+                        </div>
+                        <button type="submit" class="btn broken-link-button">Update Website</button>
+                    </form>
+                {% elif entry.label == 'Wikipedia' %}
+                    <p class="text-danger">Broken Wikipedia: <code>{{ entry.url }}</code></p>
+                    <form action="{{ url_for('admin_tools.whitelist_link') }}" method="post">
+                        <input type="hidden" name="icao" value="{{ entry.icao }}">
+                        <input type="hidden" name="field" value="wikipedia_link">
+                        <div class="mb-3">
+                            <label for="wiki_link_{{ entry.icao }}" class="form-label">New Wikipedia URL:</label>
+                            <input type="url" id="wiki_link_{{ entry.icao }}" name="new_value" class="form-control" placeholder="https://en.wikipedia.org/wiki/...">
+                        </div>
+                        <button type="submit" class="btn broken-link-button">Update Wikipedia</button>
+                    </form>
+                {% endif %}
+
+                <!-- Whitelist button -->
+                <form action="{{ url_for('admin_tools.whitelist_link') }}" method="post" class="mt-2">
+                    <input type="hidden" name="icao" value="{{ entry.icao }}">
+                    <input type="hidden" name="label" value="{{ entry.label }}">
+                    <input type="hidden" name="url" value="{{ entry.url }}">
+                    <button type="submit" class="btn btn-secondary btn-sm">Whitelist This Link</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% include 'footer.html' %}
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

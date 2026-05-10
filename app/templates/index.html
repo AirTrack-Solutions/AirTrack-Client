@@ -1,0 +1,125 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <style>
+        html, body {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main.index-container {
+            flex: 1;
+        }
+
+        footer {
+            background: #222;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body class="{{ selected_theme }}">
+    <div class="background"></div>
+    {% include 'header.html' %}
+    <main class="index-container">
+        {% if not filtered_aircraft or filtered_aircraft|length == 0 %}
+        <div class="index-row">
+            <div class="index-col-md-6">
+                <div class="index-card">
+                    <div class="index-card-body">
+                        <h5 class="index-card-title">
+                            Total number of Airlines: {{ total_airlines or '0' }}
+                        </h5>
+                    </div>
+                </div>
+            </div>
+            <div class="index-col-md-6">
+                <div class="index-card">
+                    <div class="index-card-body">
+                        <h5 class="index-card-title">
+                            Total number of Aircraft: {{ total_aircraft or '0' }}
+                        </h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    
+        <!-- Filter Form -->
+        <div class="index-filter-card">
+            <div class="index-filter-body">
+                <form method="get" action="{{ url_for('aircraft.aircraft_table') }}" id="filterForm" class="index-filter-form">
+                    <div class="index-filter-item index-filter-type">
+                        <select id="filter_type" name="filter_type" class="form-control">
+                            <option value="" disabled selected>-- Filter by --</option>
+                            <option value="airline" {% if filter_type == 'airline' %}selected{% endif %}>By Airline</option>
+                            <option value="registration" {% if filter_type == 'registration' %}selected{% endif %}>By Registration</option>
+                        </select>
+                    </div>
+    
+                    <div class="index-filter-item index-filter-middle" id="filter-container">
+                        <select id="airlineID" name="airlineID" class="form-control {% if filter_type != 'airline' %}d-none{% endif %}">
+                            <option value="" disabled selected>-- Select Airline --</option>
+                            {% for airline in airlines %}
+                                <option value="{{ airline.AirlineID }}" {% if filter_type == 'airline' and airline.AirlineID == selected_airline_id %}selected{% endif %}>
+                                    {{ airline.AirlineName }}
+                                </option>
+                            {% endfor %}
+                        </select>
+    
+                        <input type="text" id="registration_input" name="registration" class="form-control {% if filter_type != 'registration' %}d-none{% endif %}" placeholder="Enter Registration" value="{{ selected_registration }}">
+                    </div>
+    
+                    <div class="index-filter-item index-filter-button">
+                        <button type="submit" class="btn btn-teal">Apply Filter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    
+           <!-- Aircraft Table -->
+           {% if filtered_aircraft %}
+            {% include 'partials/_aircraft_table.html' %}
+        {% endif %}
+    </main>
+
+    {% include 'footer.html' %}
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const filterType = document.getElementById("filter_type");
+            const airlineDropdown = document.getElementById("airlineID");
+            const registrationInput = document.getElementById("registration_input");
+
+            filterType.addEventListener("change", function () {
+                if (this.value === "registration") {
+                    airlineDropdown.classList.add("d-none");
+                    registrationInput.classList.remove("d-none");
+                } else {
+                    airlineDropdown.classList.remove("d-none");
+                    registrationInput.classList.add("d-none");
+                }
+            });
+        });
+    </script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,565 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ aircraft['Registration'] }} — {{ aircraft['Aircraft_Type'] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aircraft_info.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}">
+    <style>
+        /* Carousel overrides */
+        .aircraft-carousel {
+            position: relative;
+            max-width: 100%;
+        }
+        .aircraft-carousel .carousel-inner img {
+            width: 100%;
+            max-height: 600px;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 4px;
+        }
+        .aircraft-carousel .carousel-control-prev,
+        .aircraft-carousel .carousel-control-next {
+            width: 10%;
+            opacity: 1;
+            top: auto !important;
+            bottom: 15px !important;
+            height: 50px !important;
+            align-items: center;
+        }
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+            filter: none;
+            background-color: rgba(0,0,0,0.55);
+            background-size: 60% 60%;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            border: 2px solid rgba(255,255,255,0.6);
+        }
+        .carousel-indicators [data-bs-target] {
+            background-color: #888;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .carousel-indicators .active {
+            background-color: #fff;
+        }
+        .image-counter {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 4px;
+        }
+        .carousel-delete-btn {
+            margin-top: 6px;
+        }
+
+
+        /* CASA / registry accordion polish */
+        .aircraft-info-accordion {
+            margin-bottom: 1rem;
+        }
+        .aircraft-info-accordion .accordion-item {
+            background: rgba(0, 0, 0, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            margin-bottom: 8px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .aircraft-info-accordion .accordion-button {
+            font-weight: 700;
+        }
+        .aircraft-info-accordion .accordion-body p {
+            margin-bottom: 0.45rem;
+        }
+        .registry-source-note {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            margin-top: 0.75rem;
+        }
+    </style>
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+<h1 class="aircraft-info-title">{{ aircraft['Registration'] }} — {{ aircraft['Aircraft_Type'] }}</h1>
+
+<div class="aircraft-info-container">
+
+    <div class="aircraft-details">
+        {% macro show_detail(label, value, suffix='') -%}
+            {% if value is not none and value|string|trim and value|string|trim not in ['-', '—', 'Unknown', 'unknown', 'N/A', 'NA', 'None', '\\N'] %}
+                <p><strong>{{ label }}:</strong> {{ value }}{{ suffix }}</p>
+            {% endif %}
+        {%- endmacro %}
+
+        {% set has_summary = aircraft['AirlineName'] or aircraft['FlightNumber'] or aircraft['ICAO_Address'] or aircraft['MSN'] or aircraft['Category'] or aircraft['Country_of_Reg'] or aircraft['Country_Flag'] or aircraft['Departure'] or aircraft['Arrival'] or aircraft['First_Sighted_Display'] or aircraft['Last_Sighted_Display'] or aircraft['Manufacture_Year'] or aircraft['Manufacture_Month_Display'] or aircraft['Aircraft_Age'] %}
+        {% set has_registry = casa and (casa.aircraftmanufacturer or casa.aircraftmodel or casa.msn or casa.registrationtype or casa.registeredowner or casa.registeredownercountry or casa.operatorname or casa.operatorcountry or casa.firstregistrationdate or casa.countrymanu or casa.yearmanu or casa.icaotypedesig) %}
+        {% set has_technical = casa and (casa.maxtakeoffweight or casa.enginecount or casa.enginemanufacturer or casa.enginetype or casa.enginemodel or casa.fueltype or casa.airframe or casa.propmanu or casa.propmodel or casa.typecert) %}
+        {% set has_route = aircraft['Departure'] or aircraft['Arrival'] or aircraft['First_Sighted_Display'] or aircraft['Last_Sighted_Display'] or aircraft['Times_Seen'] %}
+
+        <div class="accordion aircraft-info-accordion" id="aircraftInfoAccordion">
+            {% if has_summary %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="summaryHeading">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#summarySection" aria-expanded="true" aria-controls="summarySection">
+                        Aircraft Summary
+                    </button>
+                </h2>
+                <div id="summarySection" class="accordion-collapse collapse show" aria-labelledby="summaryHeading" data-bs-parent="#aircraftInfoAccordion">
+                    <div class="accordion-body">
+                        {{ show_detail('Airline', aircraft['AirlineName']) }}
+                        {{ show_detail('Flight Number', aircraft['FlightNumber']) }}
+                        {{ show_detail('ICAO Address', aircraft['ICAO_Address']) }}
+                        {{ show_detail('MSN', aircraft['MSN']) }}
+                        {{ show_detail('Category', aircraft['Category']) }}
+                        {{ show_detail('Country of Registration', aircraft['Country_of_Reg']) }}
+
+                        {% if aircraft['Country_Flag'] %}
+                            <p><strong>Flag:</strong>
+                                <img src="{{ url_for('static', filename='flags/' + aircraft['Country_Flag']) }}" alt="Flag" class="flag-img">
+                            </p>
+                        {% endif %}
+
+                        {{ show_detail('Manufacture Year', aircraft['Manufacture_Year']) }}
+                        {{ show_detail('Manufacture Month', aircraft['Manufacture_Month_Display']) }}
+                        {{ show_detail('Age', aircraft['Aircraft_Age']) }}
+
+                        {% if aircraft['CASA_Matched'] %}
+                            <div class="registry-source-note">Registry data enriched from the Australia lookup table.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if has_registry %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="registryHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#registrySection" aria-expanded="false" aria-controls="registrySection">
+                        CASA Registry Details
+                    </button>
+                </h2>
+                <div id="registrySection" class="accordion-collapse collapse" aria-labelledby="registryHeading" data-bs-parent="#aircraftInfoAccordion">
+                    <div class="accordion-body">
+                        {{ show_detail('Registration', casa.registration) }}
+                        {{ show_detail('Manufacturer', casa.aircraftmanufacturer) }}
+                        {{ show_detail('Model', casa.aircraftmodel) }}
+                        {{ show_detail('MSN', casa.msn) }}
+                        {{ show_detail('Registration Type', casa.registrationtype) }}
+                        {{ show_detail('Registered Owner', casa.registeredowner) }}
+                        {{ show_detail('Owner Country', casa.registeredownercountry) }}
+                        {{ show_detail('Operator', casa.operatorname) }}
+                        {{ show_detail('Operator Country', casa.operatorcountry) }}
+                        {{ show_detail('First Registration Date', casa.firstregistrationdate) }}
+                        {{ show_detail('Country of Manufacture', casa.countrymanu) }}
+                        {{ show_detail('Year Manufactured', casa.yearmanu) }}
+                        {{ show_detail('ICAO Type Designator', casa.icaotypedesig) }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if has_technical %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="technicalHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#technicalSection" aria-expanded="false" aria-controls="technicalSection">
+                        Engine / Technical Details
+                    </button>
+                </h2>
+                <div id="technicalSection" class="accordion-collapse collapse" aria-labelledby="technicalHeading" data-bs-parent="#aircraftInfoAccordion">
+                    <div class="accordion-body">
+                        {{ show_detail('Max Takeoff Weight', casa.maxtakeoffweight, ' kg') }}
+                        {{ show_detail('Engine Count', casa.enginecount) }}
+                        {{ show_detail('Engine Manufacturer', casa.enginemanufacturer) }}
+                        {{ show_detail('Engine Type', casa.enginetype) }}
+                        {{ show_detail('Engine Model', casa.enginemodel) }}
+                        {{ show_detail('Fuel Type', casa.fueltype) }}
+                        {{ show_detail('Airframe', casa.airframe) }}
+                        {{ show_detail('Prop Manufacturer', casa.propmanu) }}
+                        {{ show_detail('Prop Model', casa.propmodel) }}
+                        {{ show_detail('Type Certificate', casa.typecert) }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if us %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="usHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#usSection">
+                        FAA Registry Details
+                    </button>
+                </h2>
+                <div id="usSection" class="accordion-collapse collapse" data-bs-parent="#aircraftInfoAccordion">
+                    <div class="accordion-body">
+
+                        {{ show_detail('Registration', us.display_reg) }}
+
+                        {% if acft %}
+                            {{ show_detail('Manufacturer', acft.mfr) }}
+                            {{ show_detail('Model', acft.model) }}
+                        {% endif %}
+
+                        {{ show_detail('Serial Number', us.serial_number) }}
+                        {{ show_detail('Year Manufactured', us.year_mfr) }}
+                        {{ show_detail('Owner', us.name) }}
+                        {{ show_detail('City', us.city) }}
+                        {{ show_detail('State', us.state) }}
+                        {{ show_detail('Mode S Hex', us.mode_s_code_hex) }}
+
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if nz %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="nzHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#nzSection">
+                        NZ CAA Registry Details
+                    </button>
+                </h2>
+                <div id="nzSection" class="accordion-collapse collapse" data-bs-parent="#aircraftInfoAccordion">
+                    <div class="accordion-body">
+                        {{ show_detail('Registration', nz.registration) }}
+                        {{ show_detail('Category', nz.category) }}
+                        {{ show_detail('Model', nz.model) }}
+                        {{ show_detail('Serial Number', nz.serial) }}
+                        {{ show_detail('Owner', nz.operator) }}
+                        {{ show_detail('Max Takeoff Weight', nz.maxtakeoffweight, ' kg') }}
+                        {{ show_detail('Date of Registration', nz.date_of_registration) }}
+                        {{ show_detail('Mode S Hex', nz.icao_address) }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if ca %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="caHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#caSection">
+                        Transport Canada Registry Details
+                    </button>
+                </h2>
+                <div id="caSection" class="accordion-collapse collapse" data-bs-parent="#aircraftInfoAccordion">
+                    <div class="accordion-body">
+                        {{ show_detail('Registration', ca.registration) }}
+                        {{ show_detail('Manufacturer', ca.aircraftmanufacturer) }}
+                        {{ show_detail('Model', ca.aircraftmodel) }}
+                        {{ show_detail('Serial Number', ca.msn) }}
+                        {{ show_detail('Airframe', ca.airframe) }}
+                        {{ show_detail('Engine Type', ca.enginetype) }}
+                        {{ show_detail('Engine Manufacturer', ca.enginemanufacturer) }}
+                        {{ show_detail('Engine Count', ca.enginecount) }}
+                        {{ show_detail('Max Takeoff Weight', ca.maxtakeoffweight, ' kg') }}
+                        {{ show_detail('Registration Type', ca.registrationtype) }}
+                        {{ show_detail('Registered Owner', ca.registeredowner) }}
+                        {{ show_detail('Owner Country', ca.registeredownercountry) }}
+                        {{ show_detail('First Registration Date', ca.firstregistrationdate) }}
+                        {{ show_detail('Country of Manufacture', ca.countrymanu) }}
+                        {{ show_detail('Year Manufactured', ca.yearmanu) }}
+                        {{ show_detail('Type Certificate', ca.typecert) }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+{% if manual %}
+<div class="accordion-item">
+    <h2 class="accordion-header" id="manualHeading">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#manualSection">
+            Manual Registry Details
+        </button>
+    </h2>
+    <div id="manualSection" class="accordion-collapse collapse" data-bs-parent="#aircraftInfoAccordion">
+        <div class="accordion-body">
+
+            {{ show_detail('Registration', manual.registration) }}
+            {{ show_detail('Manufacturer', manual.manufacturer) }}
+            {{ show_detail('Model', manual.model) }}
+            {{ show_detail('ICAO Type', manual.icao_type) }}
+            {{ show_detail('Serial Number', manual.serial_number) }}
+            {{ show_detail('Year', manual.year) }}
+            {{ show_detail('Engine', manual.engine) }}
+            {{ show_detail('MTOW', manual.mtow_kg, ' kg') }}
+            {{ show_detail('Owner', manual.owner) }}
+            {{ show_detail('Operator', manual.operator) }}
+            {{ show_detail('Country', manual.country) }}
+            {{ show_detail('Notes', manual.notes) }}
+
+        </div>
+    </div>
+</div>
+{% endif %}
+            
+            {% if has_route %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="routeHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#routeSection" aria-expanded="false" aria-controls="routeSection">
+                        Route / Sightings
+                    </button>
+                </h2>
+                <div id="routeSection" class="accordion-collapse collapse" aria-labelledby="routeHeading" data-bs-parent="#aircraftInfoAccordion">
+                    <div class="accordion-body">
+                        {% if aircraft['Departure'] %}
+                            <p><strong>Departure:</strong> {{ aircraft['Departure'] | airport_display }}</p>
+                        {% endif %}
+                        {% if aircraft['Arrival'] %}
+                            <p><strong>Arrival:</strong> {{ aircraft['Arrival'] | airport_display }}</p>
+                        {% endif %}
+                        {{ show_detail('First Sighted', aircraft['First_Sighted_Display']) }}
+                        {{ show_detail('Last Sighted', aircraft['Last_Sighted_Display']) }}
+                        <p><strong>Times Seen:</strong> {{ aircraft['Times_Seen'] or 0 }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Image carousel                                                       -->
+    <!-- ------------------------------------------------------------------ -->
+    <div class="aircraft-image">
+        {% if aircraft['carousel_images'] %}
+            {% if aircraft['image_count'] == 1 %}
+                {# Single image — no carousel needed #}
+                {% set img = aircraft['carousel_images'][0] %}
+                <img src="{{ img['url'] }}" alt="Aircraft Image" class="img-fluid mb-2">
+                <div class="image-counter">Image 1 of 1</div>
+                <form action="{{ url_for('aircraft.delete_image', aircraft_id=aircraft['AircraftID']) }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm btn-danger carousel-delete-btn" onclick="return confirm('Remove this image?');">Delete Image</button>
+                </form>
+
+            {% else %}
+                {# Multiple images — Bootstrap carousel #}
+                <div id="aircraftCarousel" class="carousel slide aircraft-carousel" data-bs-ride="false" data-bs-interval="false" data-image-count="{{ aircraft['image_count'] }}">
+                    <div class="carousel-indicators">
+                        {% for img in aircraft['carousel_images'] %}
+                        <button type="button"
+                                data-bs-target="#aircraftCarousel"
+                                data-bs-slide-to="{{ loop.index0 }}"
+                                {% if loop.first %}class="active" aria-current="true"{% endif %}
+                                aria-label="Image {{ img['image_number'] }}">
+                        </button>
+                        {% endfor %}
+                    </div>
+
+                    <div class="carousel-inner">
+                        {% for img in aircraft['carousel_images'] %}
+                        <div class="carousel-item {% if loop.first %}active{% endif %}" data-image-index="{{ loop.index0 }}">
+                            <img src="{{ img['url'] }}" class="d-block w-100" alt="Aircraft Image {{ img['image_number'] }}">
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <button class="carousel-control-prev" type="button" data-bs-target="#aircraftCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#aircraftCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+
+                {# Dynamic delete button — updates as carousel slides #}
+                <div class="mt-2">
+                    <span id="imageCounter" class="image-counter">Image 1 of {{ aircraft['image_count'] }}</span>
+                </div>
+
+                {# Hidden delete forms — one per image #}
+                {% for img in aircraft['carousel_images'] %}
+                <form id="deleteForm{{ loop.index0 }}"
+                      class="carousel-delete-form"
+                      action="{% if img['image_id'] %}{{ url_for('aircraft.delete_extra_image', image_id=img['image_id']) }}{% else %}{{ url_for('aircraft.delete_image', aircraft_id=aircraft['AircraftID']) }}{% endif %}"
+                      method="POST"
+                      style="display:none; margin-top:6px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm btn-danger" onclick="return confirm('Remove this image?');">Delete Image {{ img['image_number'] }}</button>
+                </form>
+                {% endfor %}
+
+                <div id="activeDeleteForm" style="margin-top:6px;"></div>
+            {% endif %}
+
+        {% else %}
+            <p>No image available for this aircraft.</p>
+        {% endif %}
+
+        {% if aircraft['can_add_image'] %}
+        <div class="mt-2">
+            <a href="{{ url_for('aircraft.quick_add_image', aircraft_id=aircraft['AircraftID']) }}"
+                class="btn btn-sm btn-primary">
+                    {% if aircraft['image_count'] == 0 %}Add Image{% else %}Add Another Image ({{ aircraft['image_count'] }}/5){% endif %}
+                </a>
+            <a href="{{ url_for('aircraft.upload_aircraft_image') }}?registration={{ aircraft['Registration'] }}"
+            class="btn btn-sm btn-secondary">Manual Upload</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="aircraft-notes">
+        <p><strong>Notes:</strong> {{ aircraft['Notes'] or "No notes available." }}</p>
+    </div>
+
+    <!-- Ownership History -->
+    <div class="aircraft-flight-history">
+        <h2>Ownership History</h2>
+        <div class="table-responsive" style="margin: 0 auto; max-width: 99%;">
+            <table class="table table-bordered table-hover" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Airline</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if ownership_history %}
+                        {% for owner in ownership_history %}
+                        <tr>
+                            <td>{{ owner['AirlineName'] or "—" }}</td>
+                            <td>{{ owner['From_Date'] or "—" }}</td>
+                            <td>{{ owner['To_Date'] or "Current" }}</td>
+                            <td>{{ owner['Notes'] or "—" }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center">No ownership history recorded.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-2">
+            <a href="{{ url_for('aircraft.transfer_ownership', aircraft_id=aircraft['AircraftID']) }}" class="btn btn-sm btn-warning">Record Ownership Transfer</a>
+        </div>
+    </div>
+
+    <!-- Flight History -->
+    <div class="aircraft-flight-history">
+        <h2>Flight History</h2>
+        <div class="table-responsive" style="margin: 0 auto; max-width: 99%;">
+            <table class="table table-bordered table-hover" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">Flight Number</th>
+                        <th style="width: 12%;">Departure</th>
+                        <th style="width: 12%;">Arrival</th>
+                        <th style="width: 6%;">Timestamp</th>
+                        <th style="width: 3%;">Spotted At</th>
+                        <th style="width: 5%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if flight_history %}
+                        {% for flight in flight_history %}
+                        <tr>
+                            <td>{{ flight['FlightNumber'] or "—" }}</td>
+                            <td>{{ flight['Departure'] | airport_display if flight['Departure'] else "—" }}</td>
+                            <td>{{ flight['Arrival'] | airport_display if flight['Arrival'] else "—" }}</td>
+                            <td>{{ flight['Timestamp_Display'] or "—" }}</td>
+                            <td>{{ flight['Spotted_At'] or "—" }}</td>
+                            <td style="white-space: nowrap; width: 120px;">
+                                <a href="{{ url_for('edit_flight', flight_id=flight['FlightID']) }}" class="btn btn-warning btn-sm py-0 px-1" style="width: 50px;">Edit</a>
+                                <form action="{{ url_for('delete_flight', flight_id=flight['FlightID']) }}" method="POST" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm py-0 px-1" style="width: 50px;" onclick="return confirm('Delete this flight record?');">Delete</button>
+                                </form>
+                            </td></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No flight history found for this aircraft.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+        <div class="pagination-container">
+            <ul class="pagination justify-content-center">
+                {% if current_page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('aircraft.aircraft_info', aircraft_id=aircraft['AircraftID'], page=current_page-1) }}">Previous</a>
+                    </li>
+                {% endif %}
+                {% for i in range(1, total_pages + 1) %}
+                    <li class="page-item {% if i == current_page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('aircraft.aircraft_info', aircraft_id=aircraft['AircraftID'], page=i) }}">{{ i }}</a>
+                    </li>
+                {% endfor %}
+                {% if current_page < total_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('aircraft.aircraft_info', aircraft_id=aircraft['AircraftID'], page=current_page+1) }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="aircraft-actions d-flex justify-content-between">
+        <a href="{{ url_for('aircraft.aircraft_table') }}" class="btn btn-teal">Back</a>
+    </div>
+
+</div>
+
+{% include 'footer.html' %}
+<script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+
+<script>
+// Update the delete button and counter as the carousel slides
+(function () {
+    const carousel = document.getElementById('aircraftCarousel');
+    if (!carousel) return;
+
+    const totalImages = parseInt(carousel.dataset.imageCount, 10);
+    const counter     = document.getElementById('imageCounter');
+    const deleteTarget = document.getElementById('activeDeleteForm');
+
+    function showDeleteForm(index) {
+        // Remove any currently shown form
+        deleteTarget.innerHTML = '';
+        const form = document.getElementById('deleteForm' + index);
+        if (form) {
+            const clone = form.cloneNode(true);
+            clone.style.display = 'block';
+            deleteTarget.appendChild(clone);
+        }
+        if (counter) {
+            counter.textContent = 'Image ' + (index + 1) + ' of ' + totalImages;
+        }
+    }
+
+    // Show delete form for the first image on load
+    showDeleteForm(0);
+
+    // Update on slide
+    carousel.addEventListener('slid.bs.carousel', function (e) {
+        showDeleteForm(e.to);
+    });
+})();
+</script>
+
+</body>
+</html>

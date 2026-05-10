@@ -1,0 +1,126 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aircraft</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aircraft.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aircraft_table.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+    <main class="aircraft-container">
+        <div class="aircraft-wrapper">
+            <!-- Aircraft Title -->
+            <div class="aircraft-title-container">
+                <h1 class="aircraft-title">Aircraft</h1>
+            </div>
+
+            <!-- Search Bar (Properly Positioned) -->
+            <div class="aircraft-search-container">
+                <form method="GET" action="{{ url_for('aircraft.aircraft_table') }}">
+                    <button type="submit" class="btn btn-teal">Search</button>
+                    <input
+                        type="text"
+                        class="form-control aircraft-search"
+                        placeholder="Search Aircraft"
+                        id="aircraftSearch"
+                        name="search"
+                        value="{{ search_query }}"
+                    />
+                </form>
+            </div>
+
+            <!-- Single Table Wrapper (Ensuring No Duplicates) -->
+            <div class="aircraft-table-wrapper">
+                <table id="aircraftTable" class="aircraft-table">
+                    <thead>
+                        <tr>
+                            <th>Airline</th>
+                            <th>Flight</th>
+                            <th>Registration</th>
+                            <th>Aircraft Type</th>
+                            <th>Times Seen</th>
+                            <th>Departure</th>
+                            <th>Arrival</th>
+                            <th>Country of Reg.</th>
+                            <th>Flag</th>
+                            <th class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for aircraft in aircraft %}
+                        <tr>
+                            <td>{{ aircraft["AirlineName"] }}</td>
+                            <td>{{ aircraft["FlightNumber"] }}</td>
+                            <td>{{ aircraft["Registration"] }}</td>
+                            <td>{{ aircraft["Aircraft_Type"] }}</td>
+                            <td>{{ aircraft["Times_Seen"] }}</td>
+                            <td>{{ aircraft["Departure"] | airport if aircraft["Departure"] else "—" }}</td>
+                            <td>{{ aircraft["Arrival"]   | airport if aircraft["Arrival"]   else "—" }}</td>
+                            <td>{{ aircraft["Country_of_Reg"] }}</td>
+                            <td><img src="{{ aircraft['Country_Flag'] }}" alt="Flag" class="flag-img"></td>
+                            <td class="actions-column">
+                                <a href="{{ url_for('aircraft.aircraft_info', aircraft_id=aircraft['AircraftID']) }}" class="btn btn-primary btn-sm">Info</a>
+                                <a href="{{ url_for('edit_aircraft.edit_aircraft', aircraft_id=aircraft['AircraftID']) }}" class="btn btn-warning btn-sm">Edit</a>
+                                <a href="{{ url_for('delete_aircraft', aircraft_id=aircraft['AircraftID']) }}" class="btn btn-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <nav class="pagination-container">
+                <ul class="pagination">
+                    {% for p in range(start_page, end_page + 1) %}
+                        <li class="page-item {% if p == current_page %}active{% endif %}">
+                            <a class="page-link btn-teal" href="{{ url_for('aircraft.aircraft_table', page=p, search=search_query) }}">{{ p }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+        </div>
+    </main>
+
+    {% include 'footer.html' %}
+
+    <!-- Load JavaScript Dependencies -->
+    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/datatables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+
+    <script>
+        $(document).ready(function () {
+            let table = $('#aircraftTable').DataTable({
+                "paging": true,
+                "ordering": true,
+                "info": true,
+                "searching": true,
+                "pageLength": 10,
+                "lengthChange": false,
+                "dom": "lrt"
+            });
+
+            $('#aircraftSearch').on('keyup', function () {
+                table.search(this.value).draw();
+            });
+        });
+    </script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

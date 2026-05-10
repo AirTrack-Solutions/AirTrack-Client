@@ -1,0 +1,163 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!--
+  AirTrack 1.0.0 'Wilbur' — Release 300
+  Copyright (c) 2025 Trevor (“Subhuti”).
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Aircraft Image</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/upload_image.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+
+<body class="theme-{{ selected_theme }}">
+<div class="background"></div>
+{% include 'header.html' %}
+
+<div class="container mt-4">
+
+<h2 class="text-center mb-4">Upload Aircraft Image</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- ================= MANUAL UPLOAD ================= -->
+<div class="card mb-4">
+<div class="card-body">
+<h5>Manual Upload</h5>
+
+<form method="POST" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <!-- Airline -->
+  <div class="mb-3">
+    <label>Airline</label>
+    <select name="airline" id="airlineSelect" class="form-select" required>
+      <option value="">-- Select Airline --</option>
+      {% for a in airlines %}
+        <option value="{{ a.AirlineID }}" {% if prefill_airline_id and a.AirlineID == prefill_airline_id %}selected{% endif %}>{{ a.AirlineName }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+<!-- Registration (dynamic or pre-filled) -->
+  {% if prefill_registration %}
+  <div class="mb-3">
+    <label>Registration</label>
+    <input type="text" name="registration" class="form-control"
+           value="{{ prefill_registration }}" readonly>
+  </div>
+  {% else %}
+  <div class="mb-3" id="registrationGroup" style="display:none;">
+    <label>Registration</label>
+    <select name="registration" id="registrationSelect" class="form-select" required>
+      <option value="">-- Select Registration --</option>
+    </select>
+  </div>
+  {% endif %}
+
+  <!-- Image -->
+  <div class="mb-3">
+    <label>Image</label>
+    <input type="file" name="image" class="form-control" accept="image/*" required>
+  </div>
+
+  <button class="btn btn-primary">Upload</button>
+</form>
+</div>
+</div>
+
+{% if matched_files is defined and matched_files %}
+<!-- ================= SMART ATTACH ================= -->
+<div class="card">
+<div class="card-body">
+<h5>Existing Images</h5>
+
+<table class="table table-striped">
+<thead>
+<tr>
+  <th>Filename</th>
+  <th>Registration</th>
+  <th>Airline</th>
+  <th></th>
+</tr>
+</thead>
+<tbody>
+{% for f in matched_files %}
+<tr>
+  <td>{{ f.filename }}</td>
+  <td>{{ f.registration }}</td>
+  <td>{{ f.airline }}</td>
+  <td>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="filename" value="{{ f.filename }}">
+      <input type="hidden" name="registration" value="{{ f.registration }}">
+      <button class="btn btn-sm btn-success">Attach</button>
+    </form>
+  </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% else %}
+<p class="text-muted">No matching images found.</p>
+{% endif %}
+</div>
+</div>
+
+</div>
+
+{% include 'footer.html' %}
+
+<script>
+document.getElementById("airlineSelect").addEventListener("change", function () {
+    const airlineId = this.value;
+    const regGroup = document.getElementById("registrationGroup");
+    const regSelect = document.getElementById("registrationSelect");
+
+    regSelect.innerHTML = '<option value="">-- Select Registration --</option>';
+
+    if (!airlineId) {
+        regGroup.style.display = "none";
+        return;
+    }
+
+    fetch(`/get_registrations/${airlineId}`)
+        .then(res => res.json())
+        .then(data => {
+            data.forEach(reg => {
+                const opt = document.createElement("option");
+                opt.value = reg;
+                opt.textContent = reg;
+                regSelect.appendChild(opt);
+            });
+            regGroup.style.display = "block";
+        })
+        .catch(() => {
+            regGroup.style.display = "none";
+        });
+});
+</script>
+
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!-- templates/aircraft_form.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Add Aircraft</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/aircraft_form.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+  <div class="container mt-4">
+    <h2>Add New Aircraft</h2>
+    <form method="POST" action="{{ url_for('add_aircraft.add_aircraft') }}" id="aircraft-form">
+      <div class="row">
+        <div class="col-md-6">
+          <label>Airline</label>
+          <select name="AirlineID" class="form-control" required>
+            <option value="">-- Select Airline --</option>
+            {% for airline in airlines %}
+            <option value="{{ airline['AirlineID'] }}">{{ airline['AirlineName'] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label>Registration</label>
+          <input type="text" name="Registration" class="form-control" required>
+        </div>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-md-6">
+          <label>Aircraft Type</label>
+          <input type="text" name="Aircraft_Type" class="form-control">
+        </div>
+        <div class="col-md-6">
+          <label>Flight Number</label>
+          <input type="text" name="FlightNumber" class="form-control">
+        </div>
+      </div>
+
+      <fieldset class="mt-4">
+        <legend>Departure</legend>
+        <div class="row">
+          <div class="col"><input type="text" name="departure_iata" id="departure_iata" placeholder="IATA" class="form-control"></div>
+          <div class="col"><input type="text" name="departure_icao" id="departure_icao" placeholder="ICAO" class="form-control"></div>
+          <div class="col"><input type="text" name="departure_city" id="departure_city" placeholder="City" class="form-control"></div>
+          <div class="col"><input type="text" name="departure_state" id="departure_state" placeholder="State" class="form-control"></div>
+          <div class="col"><input type="text" name="departure_country" id="departure_country" placeholder="Country" class="form-control"></div>
+        </div>
+      </fieldset>
+
+      <fieldset class="mt-3">
+        <legend>Arrival</legend>
+        <div class="row">
+          <div class="col"><input type="text" name="arrival_iata" id="arrival_iata" placeholder="IATA" class="form-control"></div>
+          <div class="col"><input type="text" name="arrival_icao" id="arrival_icao" placeholder="ICAO" class="form-control"></div>
+          <div class="col"><input type="text" name="arrival_city" id="arrival_city" placeholder="City" class="form-control"></div>
+          <div class="col"><input type="text" name="arrival_state" id="arrival_state" placeholder="State" class="form-control"></div>
+          <div class="col"><input type="text" name="arrival_country" id="arrival_country" placeholder="Country" class="form-control"></div>
+        </div>
+      </fieldset>
+
+      <button type="submit" class="btn btn-primary mt-4">Save Aircraft</button>
+    </form>
+  </div>
+
+  {% include 'footer.html' %}
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      function attachAutocomplete(sectionPrefix) {
+        $("#" + sectionPrefix + "_iata").on("input", function () {
+          const code = $(this).val().trim().toUpperCase();
+          if (code.length === 3) {
+            $.getJSON("{{ url_for('airports.airport_info') }}", { iata: code })
+              .done(function (data) {
+                if (data && data.iata) {
+                  $("#" + sectionPrefix + "_icao").val(data.icao || "");
+                  $("#" + sectionPrefix + "_city").val(data.city || "");
+                  $("#" + sectionPrefix + "_state").val(data.state || "");
+                  $("#" + sectionPrefix + "_country").val(data.country || "");
+                } else {
+                  $("#" + sectionPrefix + "_icao").val("");
+                  $("#" + sectionPrefix + "_city").val("");
+                  $("#" + sectionPrefix + "_state").val("");
+                  $("#" + sectionPrefix + "_country").val("");
+                }
+              });
+          }
+        });
+      }
+      attachAutocomplete("departure");
+      attachAutocomplete("arrival");
+    });
+  </script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

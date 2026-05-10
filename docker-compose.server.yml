@@ -1,0 +1,70 @@
+services:
+  airtrack:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    image: airtrack:server
+    working_dir: /app
+    entrypoint: ["/bin/sh", "/app/wait-for-mariadb.sh"]
+    command:
+      [
+        "/venv/bin/gunicorn",
+        "-w","2",
+        "-k","gthread","--threads","8",
+        "-b","0.0.0.0:5000",
+        "wsgi:app"
+      ]
+
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env.server
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: "/app"
+      FLASK_DEBUG: "0"
+      AIRTRACK_ENABLE_SHUTDOWN: "1"
+      AIRTRACK_SHUTDOWN_TOKEN: "change-me"
+      AIRTRACK_ROLE: "server"
+      AIRTRACK_SYNC_USER: "trevor"
+      AIRTRACK_UPDATE_MODE: "local"
+      AIRTRACK_REPO_DIR: "/workspace/AirTrack1"
+      GIT_SSH_COMMAND: "ssh -i /workspace/AirTrack1/ssh/airtrack_ed25519 -o UserKnownHostsFile=/workspace/AirTrack1/ssh/known_hosts -o StrictHostKeyChecking=yes -F /dev/null"
+      MYSQL_HOST: "airtrack-db"
+      MYSQL_PORT: "3306"
+      WAIT_TIMEOUT: "60"
+      DB_HOST: "airtrack-db"
+      DB_USER: "SirBob"
+      DB_PASSWORD: "ofAirTrack"
+      DB_NAME: "airtrack"
+    stop_signal: SIGTERM
+    stop_grace_period: 20s
+    volumes:
+      - ./data:/app/data
+      - ./:/workspace/AirTrack1:rw   # mount repo into container
+      - ./app/logs:/app/logs:rw          # logs
+      - ./app/static:/app/static:rw  # themes/css assets written by scanner
+      - ./app:/app:rw
+      - ./app/backups:/app/backups:rw
+      - /home/trevor/docker/AirTrack/pics:/home/airtrack/pics:rw
+    user: "${UID:-1000}:${GID:-1000}"
+    depends_on:
+      - airtrack-db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  airtrack-db:
+    image: mariadb:11.4
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: "ofAirTrack"
+      MARIADB_DATABASE: "airtrack"
+      MARIADB_USER: "SirBob"
+      MARIADB_PASSWORD: "ofAirTrack"
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+volumes:
+  db_data:

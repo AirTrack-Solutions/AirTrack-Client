@@ -1,0 +1,80 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Flight</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}">
+</head>
+<body class="theme-{{ selected_theme }}">
+<div class="background"></div>
+{% include 'header.html' %}
+
+<div class="container mt-4" style="max-width: 680px;">
+
+    <h2 class="mb-4">Edit Flight — {{ flight['Registration'] }}</h2>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="mb-3">
+                    <label class="form-label">Flight Number</label>
+                    <input type="text" name="FlightNumber" class="form-control"
+                           value="{{ flight['FlightNumber'] or '' }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Departure (ICAO)</label>
+                    <input type="text" name="Departure" class="form-control"
+                           value="{{ flight['Departure'] or '' }}" maxlength="10">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Arrival (ICAO)</label>
+                    <input type="text" name="Arrival" class="form-control"
+                           value="{{ flight['Arrival'] or '' }}" maxlength="10">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Timestamp</label>
+                    <input type="datetime-local" name="Timestamp" class="form-control"
+                           value="{{ flight['Timestamp'].strftime('%Y-%m-%dT%H:%M') if flight['Timestamp'] else '' }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Spotted At</label>
+                    <input type="text" name="Spotted_At" class="form-control"
+                           value="{{ flight['Spotted_At'] or '' }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Notes</label>
+                    <textarea name="Notes" class="form-control" rows="3">{{ flight['Notes'] or '' }}</textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-warning">Save Changes</button>
+                    <a href="{{ url_for('aircraft.aircraft_info', aircraft_id=aircraft_id) if aircraft_id else url_for('aircraft.aircraft_table') }}"
+                       class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+{% include 'footer.html' %}
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

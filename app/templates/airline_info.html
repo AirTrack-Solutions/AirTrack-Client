@@ -1,0 +1,118 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ airline['AirlineName'] }}</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/airline_info.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+</head>
+
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+  <div class="container airline-info-container">
+
+    <h1 class="airline-title">{{ airline['AirlineName'] }}</h1>
+
+    <div class="info-card">
+      <h2>Airline Details</h2>
+      <table class="info-table">
+
+        <tr>
+          <th>Airline ID</th>
+          <td>{{ airline['AirlineID'] }}</td>
+        </tr>
+
+        <tr>
+          <th>Country</th>
+          <td>{{ airline['Country'] or '—' }}</td>
+        </tr>
+
+        <!-- Airline codes: do NOT use |airport here -->
+        <tr>
+          <th>IATA</th>
+          <td>{{ airline['IATA'] or '—' }}</td>
+        </tr>
+
+        <tr>
+          <th>ICAO</th>
+          <td>{{ airline['ICAO'] or '—' }}</td>
+        </tr>
+
+        <tr>
+          <th>Callsign</th>
+          <td>{{ airline['Callsign'] or '—' }}</td>
+        </tr>
+
+        <tr>
+          <th>Last Updated</th>
+          <td>{{ airline['Last_Updated'] }}</td>
+        </tr>
+
+      </table>
+    </div>
+
+
+    {% if aircraft_list %}
+      <h2 class="mt-4">Aircraft Operated by {{ airline['AirlineName'] }}</h2>
+
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead class="table-dark">
+            <tr>
+              <th>Registration</th>
+              <th>Type</th>
+              <th>Flight</th>
+              <th>Departure</th>
+              <th>Arrival</th>
+              <th>First Sighted</th>
+              <th>Last Updated</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for a in aircraft_list %}
+              <tr>
+                <td>{{ a['Registration'] }}</td>
+                <td>{{ a['Aircraft_Type'] or '—' }}</td>
+                <td>{{ a['FlightNumber'] or '—' }}</td>
+
+                <td>{{ a['Departure'] | airport if a['Departure'] else '—' }}</td>
+                <td>{{ a['Arrival']   | airport if a['Arrival']   else '—' }}</td>
+
+                <td>
+                  {{ a['First_Sighted'] | airport if a['First_Sighted'] else '—' }}
+                </td>
+
+                <td>{{ a['Last_Updated'] or '—' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    {% else %}
+      <p class="text-muted mt-4">No aircraft are currently recorded for this airline.</p>
+    {% endif %}
+
+    <a href="{{ url_for('airlines.airlines_table') }}" class="btn btn-secondary mt-3">← Back to Airlines</a>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+-->
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Filtered Aircraft</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/aircraft_table.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+  
+  </head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+  <!-- Debug Information for Flag Issue -->
+  {% if aircraft_list and aircraft_list|length >
+0 %}
+  <div class="alert alert-info" style="margin: 10px;">
+    <strong>Debug Info:</strong>
+First aircraft Country_Flag: "{{ aircraft_list[0].get('Country_Flag', 'NOT_FOUND') }}" | 
+    Country_of_Reg: "{{ aircraft_list[0].get('Country_of_Reg', 'NOT_FOUND') }}"
+  </div>
+  {% endif %}
+
+  <!-- Title & Search Box Row -->
+  <div class="aircraft-header-row">
+    <h2 class="aircraft-title">Aircraft</h2>
+    <input type="text"
+           id="aircraftSearch"
+           class="form-control search-box"
+           placeholder="Search Aircraft"
+           value="{{ search_query or '' }}" />
+  </div>
+
+  <!-- Add Aircraft Button -->
+  <div id="add-aircraft-wrapper" class="add-aircraft-container" style="display: none;">
+    <a href="{{ url_for('add_aircraft.add_aircraft') }}" class="btn btn-success">➕ Add Aircraft</a>
+  </div>
+
+  {% set aircraft_list = filtered_aircraft %}
+
+  <!-- Aircraft Table Wrapper -->
+  <div class="aircraft-table-wrapper">
+    <table class="table aircraft-table w-100">
+      <thead>
+        <tr>
+          <th>Airline</th>
+          <th>Flight</th>
+          <th>Registration</th>
+          <th>Aircraft Type</th>
+          <th>Departure</th>
+          <th>Arrival</th>
+          <th>Category</th>
+          <th>Country of Reg.</th>
+          <th>Flag</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="aircraft-tbody">
+        {% if aircraft_list %}
+          {% for a in aircraft_list %}
+          <tr>
+            <td>{{ a["AirlineName"] }}</td>
+            <td>{{ a["FlightNumber"] }}</td>
+            <td>{{ a["Registration"] }}</td>
+            <td>{{ a["Aircraft_Type"] }}</td>
+            <td title="{{ a['Departure'] | airport if a['Departure'] else '—' }}">{{ a['Departure'] | airport if a['Departure'] else "—" }}</td>
+            <td title="{{ a['Arrival']   | airport if a['Arrival']   else '—' }}">{{ a['Arrival']   | airport if a['Arrival']   else "—" }}</td>
+            <td>{{ a["Category"] or "N/A" }}</td>
+            <td>{{ a.get("Country_of_Reg", "Unknown") }}</td>
+            <td>
+              <!-- Debug: Show what we're checking -->
+              <!-- DEBUG: Flag value = "{{ a.get('Country_Flag', 'NONE') }}" -->
+              {% if a.get("Country_Flag") and a.get("Country_Flag") != "" %}
+                <img src="{{ url_for('static', filename='flags/' ~ a.Country_Flag) }}" alt="Flag" class="flag-img">
+                <!-- DEBUG: Showing flag for {{ a.Country_Flag }} -->
+              {% else %}
+                <span>No Flag ({{ a.get("Country_Flag", "NULL") }})</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{{ url_for('aircraft.aircraft_info', aircraft_id=a['AircraftID']) }}" class="btn btn-primary btn-sm">Info</a>
+              <a href="{{ url_for('edit_aircraft.edit_aircraft', aircraft_id=a['AircraftID']) }}" class="btn btn-warning btn-sm">Edit</a>
+              <form action="{{ url_for('delete_aircraft', aircraft_id=a['AircraftID']) }}" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="10" class="text-center">
+              ⚠️ No aircraft found matching your filter criteria.
+              <a href="{{ url_for('add_aircraft.add_aircraft') }}" class="btn btn-success btn-sm">+ Add Aircraft</a>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages >
+1 %}
+  <div class="pagination-container">
+    <ul class="pagination">
+      {% if current_page >
+1 %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('aircraft.aircraft_table', page=current_page-1, filter_type=filter_type, airlineID=selected_airline_id, registration=selected_registration) }}">Previous</a>
+        </li>
+      {% endif %}
+      {% for p in range(start_page, end_page + 1) %}
+        <li class="page-item {% if p == current_page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('aircraft.aircraft_table', page=p, filter_type=filter_type, airlineID=selected_airline_id, registration=selected_registration) }}">{{ p }}</a>
+        </li>
+      {% endfor %}
+      {% if current_page <
+total_pages %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('aircraft.aircraft_table', page=current_page+1, filter_type=filter_type, airlineID=selected_airline_id, registration=selected_registration) }}">Next</a>
+        </li>
+      {% endif %}
+    </ul>
+  </div>
+  {% endif %}
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

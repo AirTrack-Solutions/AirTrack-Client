@@ -1,0 +1,74 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Transfer Ownership — {{ aircraft['Registration'] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}">
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+<div class="container mt-4" style="max-width: 600px;">
+    <h1 class="aircraft-info-title">Transfer Ownership</h1>
+    <h5 class="text-muted mb-4">{{ aircraft['Registration'] }} — {{ aircraft['Aircraft_Type'] }}</h5>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <p class="mb-1"><strong>Current Owner:</strong> {{ aircraft['AirlineName'] or "—" }}</p>
+            <p class="mb-0 text-muted" style="font-size: 0.9rem;">Recording a transfer will close the current owner record and open a new one.</p>
+        </div>
+    </div>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="mb-3">
+            <label for="transfer_date" class="form-label"><strong>Transfer Date</strong></label>
+            <input type="date" class="form-control" id="transfer_date" name="transfer_date" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="new_airline_id" class="form-label"><strong>New Owner (Airline)</strong></label>
+            <select class="form-select" id="new_airline_id" name="new_airline_id" required>
+                <option value="">— Select Airline —</option>
+                {% for airline in airlines %}
+                    <option value="{{ airline['AirlineID'] }}">{{ airline['AirlineName'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="notes" class="form-label"><strong>Notes</strong> <span class="text-muted">(optional)</span></label>
+            <input type="text" class="form-control" id="notes" name="notes" placeholder="e.g. Sold to new operator, lease transfer">
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-warning">Record Transfer</button>
+            <a href="{{ url_for('aircraft.aircraft_info', aircraft_id=aircraft['AircraftID']) }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% include 'footer.html' %}
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

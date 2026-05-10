@@ -1,0 +1,57 @@
+services:
+  git-bootstrap:
+    image: alpine/git:latest
+    restart: "no"
+    env_file: .env.client
+    volumes:
+      - repo_data:/app
+    command: >
+      sh -lc "
+        if [ ! -d /app/.git ]; then
+          echo 'Cloning ${GIT_REMOTE}…';
+          git clone --depth=1 ${GIT_REMOTE} /app;
+        else
+          echo 'Updating repo…';
+          git -C /app fetch --all --tags --prune;
+          git -C /app reset --hard origin/main;
+        fi
+      "
+
+  airtrack:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    depends_on:
+      - git-bootstrap
+      - airtrack-db
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file: .env.client
+    environment:
+      - FLASK_DEBUG=0
+      - AIRTRACK_ENABLE_SHUTDOWN=1
+      - AIRTRACK_SHUTDOWN_TOKEN=change-me
+      - AIRTRACK_ROLE=client
+    volumes:
+      - repo_data:/app
+      - ./logs:/app/logs:rw
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  airtrack-db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    env_file: .env.client
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${DB_USER}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./app/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
+volumes:
+  repo_data:
+  db_data:

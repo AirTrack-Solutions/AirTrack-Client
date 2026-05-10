@@ -1,0 +1,363 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manual Aircraft Entry</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/background.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/manual.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+
+<body class="theme-{{ selected_theme }}">
+<div class="background"></div>
+
+{% include 'header.html' %}
+
+<div class="manual-entry-page">
+    <section class="manual-entry-panel">
+
+        <div class="manual-entry-header">
+            <h1>Manual Aircraft Entry</h1>
+            <p>Type a registration to load existing data, or add a new aircraft.</p>
+            <div id="lookup-status" class="manual-status">Waiting for registration...</div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="manual-entry-form" id="manual-aircraft-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="registration">Registration *</label>
+                    <input type="text" id="registration" name="registration" required autocomplete="off">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="hexcode">Hex Code</label>
+                    <input type="text" id="hexcode" name="hexcode" placeholder="e.g. 7C6BCF">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="override_table">Override Table Optional</label>
+                    <input type="text" id="override_table" name="override_table" placeholder="e.g. papua_new_guinea">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="detected_table">Detected Table</label>
+                    <input type="text" id="detected_table" readonly>
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="target_table">Target Table</label>
+                    <input type="text" id="target_table" readonly>
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="aircraftmanufacturer">Manufacturer</label>
+                    <input type="text" id="aircraftmanufacturer" name="aircraftmanufacturer">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="aircraftmodel">Model</label>
+                    <input type="text" id="aircraftmodel" name="aircraftmodel">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="msn">MSN</label>
+                    <input type="text" id="msn" name="msn">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="icaotypedesig">ICAO Type Designator</label>
+                    <input type="text" id="icaotypedesig" name="icaotypedesig">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="maxtakeoffweight">Max Takeoff Weight</label>
+                    <input type="number" id="maxtakeoffweight" name="maxtakeoffweight">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="enginecount">Engine Count</label>
+                    <input type="number" id="enginecount" name="enginecount">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="enginemanufacturer">Engine Manufacturer</label>
+                    <input type="text" id="enginemanufacturer" name="enginemanufacturer">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="enginetype">Engine Type</label>
+                    <input type="text" id="enginetype" name="enginetype">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="enginemodel">Engine Model</label>
+                    <input type="text" id="enginemodel" name="enginemodel">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="fueltype">Fuel Type</label>
+                    <input type="text" id="fueltype" name="fueltype">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="registrationtype">Registration Type</label>
+                    <input type="text" id="registrationtype" name="registrationtype">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="firstregistrationdate">First Registration Date</label>
+                    <input type="date" id="firstregistrationdate" name="firstregistrationdate">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="registeredowner">Registered Owner</label>
+                    <input type="text" id="registeredowner" name="registeredowner">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="registeredownercountry">Registered Owner Country</label>
+                    <input type="text" id="registeredownercountry" name="registeredownercountry">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="operatorname">Operator Name</label>
+                    <input type="text" id="operatorname" name="operatorname">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="operatorcountry">Operator Country</label>
+                    <input type="text" id="operatorcountry" name="operatorcountry">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="airframe">Airframe</label>
+                    <input type="text" id="airframe" name="airframe">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="typecert">Type Certificate</label>
+                    <input type="text" id="typecert" name="typecert">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="propmanu">Prop Manufacturer</label>
+                    <input type="text" id="propmanu" name="propmanu">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="propmodel">Prop Model</label>
+                    <input type="text" id="propmodel" name="propmodel">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="countrymanu">Country Manufactured</label>
+                    <input type="text" id="countrymanu" name="countrymanu">
+                </div>
+            </div>
+
+            <div class="manual-form-row">
+                <div class="manual-form-group">
+                    <label for="yearmanu">Year Manufactured</label>
+                    <input type="number" id="yearmanu" name="yearmanu">
+                </div>
+
+                <div class="manual-form-group">
+                    <label for="monthmanu">Month Manufactured</label>
+                    <input type="number" id="monthmanu" name="monthmanu" min="1" max="12">
+                </div>
+            </div>
+
+            <div class="manual-form-actions">
+                <button type="submit" class="cockpit-hud-button">Save Aircraft</button>
+                <button type="button" class="cockpit-hud-button" id="clear-form-button">Clear</button>
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="cockpit-hud-button">Back to Admin</a>
+            </div>
+
+        </form>
+
+    </section>
+</div>
+
+{% include 'footer.html' %}
+
+<script>
+(function () {
+    const fieldNames = [
+        "hexcode",
+        "aircraftmanufacturer",
+        "aircraftmodel",
+        "msn",
+        "maxtakeoffweight",
+        "enginecount",
+        "enginemanufacturer",
+        "enginetype",
+        "enginemodel",
+        "fueltype",
+        "registrationtype",
+        "registeredowner",
+        "registeredownercountry",
+        "operatorname",
+        "operatorcountry",
+        "firstregistrationdate",
+        "airframe",
+        "propmanu",
+        "propmodel",
+        "typecert",
+        "countrymanu",
+        "yearmanu",
+        "monthmanu",
+        "icaotypedesig"
+    ];
+
+    const registrationInput = document.getElementById("registration");
+    const overrideInput = document.getElementById("override_table");
+    const detectedTableInput = document.getElementById("detected_table");
+    const targetTableInput = document.getElementById("target_table");
+    const statusBox = document.getElementById("lookup-status");
+    const clearButton = document.getElementById("clear-form-button");
+
+    let lookupTimer = null;
+
+    function setStatus(message, mode) {
+        statusBox.textContent = message;
+        statusBox.className = "manual-status";
+
+        if (mode) {
+            statusBox.classList.add("manual-status-" + mode);
+        }
+    }
+
+    function clearDataFields() {
+        fieldNames.forEach(function (name) {
+            const el = document.getElementById(name);
+            if (el) {
+                el.value = "";
+            }
+        });
+    }
+
+    function fillFields(data) {
+        fieldNames.forEach(function (name) {
+            const el = document.getElementById(name);
+            if (el) {
+                el.value = data[name] || "";
+            }
+        });
+    }
+
+    async function lookupRegistration() {
+        const reg = registrationInput.value.trim().toUpperCase();
+        const overrideTable = overrideInput.value.trim();
+
+        if (!reg) {
+            detectedTableInput.value = "";
+            targetTableInput.value = "";
+            clearDataFields();
+            setStatus("Waiting for registration...", "idle");
+            return;
+        }
+
+        const params = new URLSearchParams();
+        params.set("registration", reg);
+
+        if (overrideTable) {
+            params.set("table", overrideTable);
+        }
+
+        try {
+            const response = await fetch(
+                "{{ url_for('manual_entry.lookup_aircraft') }}?" + params.toString()
+            );
+
+            const payload = await response.json();
+
+            if (!payload.ok) {
+                setStatus(payload.error || "Lookup failed.", "error");
+                return;
+            }
+
+            detectedTableInput.value = payload.detected_table || "";
+            targetTableInput.value = payload.target_table || "";
+
+            if (payload.found) {
+                fillFields(payload.data || {});
+                setStatus("Existing aircraft loaded from " + payload.target_table + ".", "found");
+            } else {
+                clearDataFields();
+                setStatus("New aircraft. Target table: " + payload.target_table + ".", "new");
+            }
+
+        } catch (err) {
+            setStatus("Lookup error: " + err, "error");
+        }
+    }
+
+    function scheduleLookup() {
+        window.clearTimeout(lookupTimer);
+        lookupTimer = window.setTimeout(lookupRegistration, 350);
+    }
+
+    registrationInput.addEventListener("input", scheduleLookup);
+    registrationInput.addEventListener("blur", lookupRegistration);
+    overrideInput.addEventListener("input", scheduleLookup);
+
+    clearButton.addEventListener("click", function () {
+        registrationInput.value = "";
+        overrideInput.value = "";
+        detectedTableInput.value = "";
+        targetTableInput.value = "";
+        clearDataFields();
+        setStatus("Waiting for registration...", "idle");
+        registrationInput.focus();
+    });
+})();
+</script>
+
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

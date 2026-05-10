@@ -1,0 +1,226 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aircraft Table</title>
+
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aircraft_table.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+
+<body class="theme-{{ selected_theme }}">
+<div class="background"></div>
+
+{% include 'header.html' %}
+
+<div class="aircraft-header-row">
+    <h2 class="aircraft-title">Aircraft</h2>
+    <input type="text"
+           id="aircraftSearch"
+           class="form-control search-box"
+           placeholder="Search Aircraft"
+           value="{{ search_query }}"
+           />
+</div>
+
+<div class="aircraft-table-wrapper">
+    <table class="table aircraft-table w-100">
+        <thead>
+            <tr>
+                <th>Airline</th>
+                <th>Flight</th>
+                <th>Registration</th>
+                <th>Aircraft Type</th>
+                <th>Departure</th>
+                <th>Arrival</th>
+                <th>First Sighted</th>
+                <th>Last Seen</th>
+                <th>Flag</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody id="aircraft-tbody">
+        {% if aircraft_list %}
+            {% for a in aircraft_list %}
+            <tr>
+                <td title="{{ a['AirlineName'] or '' }}">{{ a['AirlineName'] or '—' }}</td>
+                <td title="{{ a['FlightNumber'] or '' }}">{{ a['FlightNumber'] or '—' }}</td>
+                <td title="{{ a['Registration'] or '' }}">{{ a['Registration'] or '—' }}</td>
+                <td title="{{ a['Aircraft_Type'] or '' }}">{{ a['Aircraft_Type'] or '—' }}</td>
+                <td title="{{ a['Departure'] | airport if a['Departure'] else '' }}">{{ a['Departure'] | airport if a['Departure'] else '—' }}</td>
+                <td title="{{ a['Arrival'] | airport if a['Arrival'] else '' }}">{{ a['Arrival'] | airport if a['Arrival'] else '—' }}</td>
+                <td>{{ a['First_Sighted_Display'] or '—' }}</td>
+                <td>{{ a['Aircraft_Updated_Display'] or '—' }}</td>
+
+                <td>
+                    {% if a['Country_Flag'] %}
+                        <img src="{{ url_for('static', filename='flags/' + a['Country_Flag']) }}"
+                            alt="Flag" class="flag-img"
+                            title="{{ a['Country_of_Reg'] or '' }}">
+                    {% else %}
+                        <span>No Flag</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    <a href="{{ url_for('aircraft.aircraft_info', aircraft_id=a['AircraftID']) }}"
+                       class="btn btn-primary btn-sm">Info</a>
+
+                    <a href="{{ url_for('edit_aircraft.edit_aircraft', aircraft_id=a['AircraftID']) }}"
+                       class="btn btn-warning btn-sm">Edit</a>
+
+                    <form action="{{ url_for('delete_aircraft', aircraft_id=a['AircraftID']) }}"
+                          method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit"
+                                class="btn btn-danger btn-sm"
+                                onclick="return confirm('Delete this aircraft?');">
+                            Delete
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="10" class="text-center">
+                    ⚠️ No aircraft found.<br><br>
+                    <a href="{{ url_for('add_aircraft.add_aircraft', registration=selected_registration) }}"
+                       class="btn btn-teal" id="fallback-add-btn">
+                        Add Aircraft
+                    </a>
+                </td>
+            </tr>
+        {% endif %}
+        </tbody>
+    </table>
+</div>
+
+{% if aircraft_list and total_pages is defined and total_pages > 1 %}
+<div class="pagination-container">
+    <ul class="pagination justify-content-center">
+
+        {% if prev_block_page is defined and prev_block_page is not none and prev_block_page >= 1 %}
+        <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('aircraft.aircraft_table',
+                                page=prev_block_page,
+                                filter_type=filter_type,
+                                airlineID=selected_airline_id,
+                                registration=selected_registration) }}">
+                &laquo; Prev 10
+            </a>
+        </li>
+        {% endif %}
+
+        {% if current_page > 1 %}
+        <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('aircraft.aircraft_table',
+                                page=current_page - 1,
+                                filter_type=filter_type,
+                                airlineID=selected_airline_id,
+                                registration=selected_registration) }}">
+                &lsaquo; Prev
+            </a>
+        </li>
+        {% endif %}
+
+        {% for i in range(start_page, end_page + 1) %}
+        <li class="page-item {% if i == current_page %}active{% endif %}">
+            <a class="page-link"
+               href="{{ url_for('aircraft.aircraft_table',
+                                page=i,
+                                filter_type=filter_type,
+                                airlineID=selected_airline_id,
+                                registration=selected_registration) }}">
+                {{ i }}
+            </a>
+        </li>
+        {% endfor %}
+
+        {% if current_page < total_pages %}
+        <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('aircraft.aircraft_table',
+                                page=current_page + 1,
+                                filter_type=filter_type,
+                                airlineID=selected_airline_id,
+                                registration=selected_registration) }}">
+                Next &rsaquo;
+            </a>
+        </li>
+        {% endif %}
+
+        {% if next_block_page is defined and next_block_page is not none and next_block_page <= total_pages %}
+        <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('aircraft.aircraft_table',
+                                page=next_block_page,
+                                filter_type=filter_type,
+                                airlineID=selected_airline_id,
+                                registration=selected_registration) }}">
+                Next 10 &raquo;
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+
+<script>
+$(document).ready(function () {
+  $("#aircraftSearch").on("input", function () {
+    const query = $(this).val().trim();
+
+    if (query.length === 0) {
+      $.get("/aircraft/table", { page: 1 })
+        .done(function (response) {
+          const tbody = $(response).find("#aircraft-tbody");
+          const pagination = $(response).find(".pagination-container");
+          if (tbody.length) $("#aircraft-tbody").html(tbody.html());
+          if (pagination.length) $(".pagination-container").html(pagination.html());
+        });
+      return;
+    }
+
+    $.get("/search_unified", { type: "aircraft", search: query, page: 1 })
+      .done(function (response) {
+        const tbody = $(response).find("#aircraft-tbody");
+        const pagination = $(response).find(".pagination-container");
+
+        if (tbody.length) $("#aircraft-tbody").html(tbody.html());
+        if (pagination.length) $(".pagination-container").html(pagination.html());
+
+        // Update fallback "Add aircraft" link after DOM update
+        $("#fallback-add-btn").each(function() {
+          const baseUrl = $(this).attr("href").split("?")[0];
+          $(this).attr("href", baseUrl + "?registration=" + encodeURIComponent(query));
+        });
+      });
+  });
+});
+</script>
+
+{% include 'footer.html' %}
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+
+</body>
+</html>

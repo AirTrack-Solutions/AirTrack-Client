@@ -1,0 +1,49 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Airline</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/add_airline.css') }}?v={{ time() }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+  </head>
+
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+  <div class="add-airline-container">
+    <div class="add-airline-card">
+      <div class="add-airline-card-body">
+        <h1 class="add-airline-title">Add Airline</h1>     
+        <form method="POST" action="{{ url_for('airlines.add_airline') }}">
+          <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <input type="text" id="AirlineName" name="AirlineName" value="{{ AirlineName }}" class="form-control" placeholder="Enter Airline Name">
+          </div>
+
+          <div class="add-airline-buttons">
+            <button type="submit" class="teal-button">Add Airline</button>
+            <a href="{{ url_for('airlines.airlines_table') }}" class="btn btn-secondary">Cancel</a>
+
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% include 'footer.html' %}
+  <script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

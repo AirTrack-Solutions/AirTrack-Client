@@ -1,0 +1,35 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Flights</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/flightradar24.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+    <div class="container mt-4">
+        <h2 class="text-center">✈️ Live Flights</h2>
+        <p class="text-center text-muted">Real-time aircraft tracking powered by Flightradar24.</p>
+
+        <div class="map-container">
+            <iframe src="https://www.flightradar24.com/simple_map/{{ api_key }}" 
+                    frameborder="0" 
+                    allowfullscreen>
+            </iframe>
+        </div>
+    </div>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

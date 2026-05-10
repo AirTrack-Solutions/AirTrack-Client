@@ -1,0 +1,174 @@
+# ---------------------------------------------------------
+
+# AirTrack .gitignore
+
+# ---------------------------------------------------------
+
+# ---------------------------
+
+# Environment / configuration
+
+# ---------------------------
+
+.env
+.env.*
+!.env.example
+.env.client
+.env.server
+
+# Local workspace files
+
+AirTrack1.code-workspace
+.vscode/
+.idea/
+
+# ---------------------------
+
+# SSH material
+
+# ---------------------------
+
+ssh/
+ssh/*
+
+# ---------------------------
+
+# Keys (server only)
+
+# ---------------------------
+
+keys/
+keys/*
+!keys/airtrack_public.pem
+
+# ---------------------------
+
+# Python artifacts
+
+# ---------------------------
+
+**pycache**/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+*.coverage
+.mypy_cache/
+
+# Virtual environments
+
+venv/
+.venv/
+env/
+
+# ---------------------------
+
+# Logs / backups
+
+# ---------------------------
+
+logs/
+logs/*
+*.log
+
+backups/
+app/backup.sql
+
+# ---------------------------
+
+# Databases
+
+# ---------------------------
+
+*.db
+*.sqlite
+*.sqlite3
+
+# ---------------------------
+
+# OS junk
+
+# ---------------------------
+
+.DS_Store
+Thumbs.db
+
+# ---------------------------
+
+# Development junk
+
+# ---------------------------
+
+MASTER.txt
+*.bak
+*.patch
+*.csv
+*audit*
+tree.txt
+update_headers.py
+
+# ---------------------------
+
+# Docker overrides
+
+# ---------------------------
+
+docker-compose.override.yml
+
+# ---------------------------
+
+# Local runtime data
+
+# ---------------------------
+
+app/app_data/
+# Config — exclude licence files only
+*.lic
+!app/config/license.lic
+app_data/
+
+# ---------------------------
+
+# Update system cache
+
+# ---------------------------
+
+app/static/updates/
+
+# ---------------------------
+
+# Scripts not for clients
+
+# ---------------------------
+
+app/scripts/
+
+# ---------------------------
+
+# Large aircraft registries
+
+# ---------------------------
+
+app/registries/
+app/routes/VH-VXA_*
+
+# ---------------------------
+
+# Temporary exports
+
+# ---------------------------
+
+exports/
+tmp/
+*.tmp
+
+app/static/uploads/
+static/
+logs/
+app_data/
+
+# Loose data files in app root
+app/*.sql
+app/*.zip
+app/*_bak.html
+app/*_backup*.sql

@@ -1,0 +1,76 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<table class="table aircraft-table w-100">
+  <tbody id="aircraft-tbody">
+    {% if filtered_aircraft %}
+        {% for a in filtered_aircraft %}
+        <tr>
+            <td title="{{ a['AirlineName'] or '—' }}">{{ a['AirlineName'] or '—' }}</td>
+            <td title="{{ a['FlightNumber'] or '—' }}">{{ a['FlightNumber'] or '—' }}</td>
+            <td title="{{ a['Registration'] or '—' }}">{{ a['Registration'] or '—' }}</td>
+            <td title="{{ a['Aircraft_Type'] or '—' }}">{{ a['Aircraft_Type'] or '—' }}</td>
+
+            <!-- Departure -->
+            <td title="{{ a['Departure'] | airport if a['Departure'] else '—' }}">
+                {{ a['Departure'] | airport if a['Departure'] else "—" }}
+            </td>
+
+            <!-- Arrival -->
+            <td title="{{ a['Arrival'] | airport if a['Arrival'] else '—' }}">
+                {{ a['Arrival'] | airport if a['Arrival'] else "—" }}
+            </td>
+
+            <!-- First Sighted -->
+            <td title="{{ a['First_Sighted'] if a['First_Sighted'] else '—' }}">
+                {{ a['First_Sighted'] if a['First_Sighted'] else "—" }}
+            </td>
+
+            <!-- Last Sighted -->
+            <td title="{{ a['Last_Sighted'] or '—' }}">
+                {{ a['Last_Sighted'] or "—" }}
+            </td>
+
+            <!-- Country flag -->
+            <td>
+                {% if a['Country_Flag'] %}
+                    <img src="{{ url_for('static', filename='flags/' + a['Country_Flag']) }}"
+                        alt="Flag" class="flag-img"
+                        title="{{ a['Country_of_Reg'] or '' }}">
+                {% else %}
+                    <span>No Flag</span>
+                {% endif %}
+            </td>
+
+            <!-- Actions -->
+            <td>
+                <a href="{{ url_for('aircraft.aircraft_info', aircraft_id=a['AircraftID']) }}"
+                   class="btn btn-primary btn-sm">Info</a>
+
+                <a href="{{ url_for('edit_aircraft.edit_aircraft', aircraft_id=a['AircraftID']) }}"
+                   class="btn btn-warning btn-sm">Edit</a>
+
+                <form action="{{ url_for('delete_aircraft', aircraft_id=a['AircraftID']) }}"
+                    method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger btn-sm"
+                    onclick="return confirm('Delete this aircraft?');">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    {% else %}
+        <tr>
+            <td colspan="10" class="text-center">
+                ⚠️ No aircraft found.<br><br>
+                <a id="fallback-add-btn"
+                   href="{{ url_for('add_aircraft.add_aircraft', registration=search_query) }}"
+                   class="btn btn-teal">Add Aircraft</a>
+            </td>
+        </tr>
+    {% endif %}
+  </tbody>
+</table>

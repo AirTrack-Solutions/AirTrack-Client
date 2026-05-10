@@ -1,0 +1,145 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airlines</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/airlines.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+    <main class="airlines-container">
+    <!-- Title Section -->
+    <div class="airlines-title-container">
+        <h1 class="airlines-title-text">Airlines</h1>
+    
+        <div class="search-container">
+            <a href="{{ url_for('airlines.add_airline') }}" 
+               id="addAirlineButton" 
+               class="btn btn-burgundy btn-sm"
+               style="display: none;">
+                Add Airline
+            </a>
+    
+            <input
+                type="text"
+                class="form-control airlines-search-box"
+                placeholder="Search Airlines"
+                id="airlinesSearch"
+                onkeyup="filterAirlinesTable()"
+            />
+        </div>
+    </div>
+    
+    <!-- Table Wrapper -->
+    <div class="airlines-table-wrapper">
+        <table id="airlinesTable" class="airlines-table">
+            <thead>
+                <tr>
+                    <th class="airline-logo-column">Airline Logo</th>
+                    <th class="airline-name-column">Airline Name</th>
+                    <th class="last-updated-column">Last Updated</th>
+                    <th class="actions-column">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for airline in airlines %}
+                <tr>
+                <td class="airline-logo-cell">
+                    {% if airline["Logo"] %}
+                    <img src="{{ url_for('static', filename='logos/' + airline["Logo"]) }}"
+                        alt="Logo for {{ airline['AirlineName'] }}"
+                        class="airline-logo-img">
+                    {% else %}
+                    <span class="text-muted">No logo</span>
+                    {% endif %}
+                </td>
+                <td>{{ airline["AirlineName"] }}</td>
+                <td>{{ airline["Last_Updated"] }}</td>
+                <td>
+                    <div class="button-group">
+                    <a href="{{ url_for('edit_airline', airline_id=airline['AirlineID']) }}" class="btn btn-teal btn-sm">
+                        Edit
+                    </a>
+                    <a href="{{ url_for('add_aircraft.add_aircraft', airline_id=airline['AirlineID']) }}" class="btn btn-burgundy btn-sm">
+                        Add Aircraft
+                    </a>
+                    </div>
+                </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+    <!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="pagination-container">
+    <ul class="pagination">
+        {% if current_page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('airlines.airlines_table', page=current_page - 1, per_page=per_page, search=search_query, airline=airline_filter) }}">Previous</a>
+            </li>
+        {% endif %}
+
+        {% for i in range(1, total_pages + 1) %}
+            <li class="page-item {% if i == current_page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('airlines.airlines_table', page=i, per_page=per_page, search=search_query, airline=airline_filter) }}">{{ i }}</a>
+            </li>
+        {% endfor %}
+
+        {% if current_page < total_pages %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('airlines.airlines_table', page=current_page + 1, per_page=per_page, search=search_query, airline=airline_filter) }}">Next</a>
+            </li>
+        {% endif %}
+    </ul>
+</div>
+{% endif %}
+
+</main>
+
+    <script>
+        function filterAirlinesTable() {
+            const searchInput = document.getElementById("airlinesSearch").value.toLowerCase();
+            const table = document.getElementById("airlinesTable");
+            const rows = table.getElementsByTagName("tr");
+            let found = false;
+    
+            for (let i = 1; i < rows.length; i++) { // Skip the header row
+                const cells = rows[i].getElementsByTagName("td");
+                let matchFound = false;
+    
+                for (let j = 0; j < cells.length - 1; j++) { // Exclude actions column
+                    if (cells[j] && cells[j].innerText.toLowerCase().includes(searchInput)) {
+                        matchFound = true;
+                        break;
+                    }
+                }
+    
+                rows[i].style.display = matchFound ? "" : "none";
+                if (matchFound) found = true;
+            }
+    
+            // Show "Add Airline" button only if no results are found
+            document.getElementById("addAirlineButton").style.display = found ? "none" : "block";
+        }
+    </script>
+
+    {% include 'footer.html' %}
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

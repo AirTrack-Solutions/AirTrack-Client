@@ -1,0 +1,289 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Aircraft - {{ aircraft['Registration'] }}</title>
+
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/edit_aircraft.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+
+<body class="theme-{{ selected_theme }}">
+<div class="background"></div>
+
+{% include 'header.html' %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div id="flashes">
+    {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="container mt-4">
+    <h2>Edit Aircraft</h2>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Registration Row -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label>Registration</label>
+                <input type="text" name="Registration" class="form-control uppercase-input" required
+                       value="{{ aircraft['Registration'] }}">
+            </div>
+
+            <div class="col-md-4">
+                <label>Flight Number</label>
+                <input type="text" name="FlightNumber" class="form-control uppercase-input" required
+                       value="{{ aircraft['FlightNumber'] }}">
+            </div>
+
+            <div class="col-md-4">
+                <label>Aircraft Type</label>
+                <input type="text" name="Aircraft_Type" class="form-control" required
+                       value="{{ aircraft['Aircraft_Type'] }}">
+            </div>
+        </div>
+
+        <!-- Airline Row -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label>MSN</label>
+                <input type="text" name="MSN" class="form-control"
+                       value="{{ aircraft['MSN'] }}">
+            </div>
+
+            <div class="col-md-4">
+                <label>Airline</label>
+                <select name="AirlineID" class="form-control">
+                    <option value="">— Select an airline —</option>
+                    {% for airline in airlines %}
+                        <option value="{{ airline.AirlineID }}"
+                            {% if aircraft['AirlineID']|string == airline.AirlineID|string %}selected{% endif %}>
+                            {{ airline.AirlineName }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label>Spotted At</label>
+                <input type="text" name="Spotted_At" class="form-control"
+                       value="{{ aircraft['Spotted_At'] }}">
+            </div>
+        </div>
+
+        <!-- Category / Country / Times Seen -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label>Category</label>
+                <input type="text" name="Category" class="form-control"
+                       value="{{ aircraft['Category'] }}">
+            </div>
+
+            <div class="col-md-4">
+                <label>Country of Registration</label>
+                <input type="text" name="Country_of_Reg" class="form-control"
+                       value="{{ aircraft['Country_of_Reg'] }}">
+            </div>
+
+        </div>
+
+        <!-- Manufacture / ICAO -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label>Manufacture Year</label>
+                <input type="number" name="Manufacture_Year" class="form-control"
+                       value="{{ aircraft['Manufacture_Year'] }}">
+            </div>
+
+            <div class="col-md-4">
+                <label for="Manufacture_Month">Manufacture Month:</label>
+                <select name="Manufacture_Month" id="Manufacture_Month" class="form-control">
+                    {% set months = ['Not Given','January','February','March','April','May','June','July','August','September','October','November','December'] %}
+                    {% for name in months %}
+                        <option value="{{ loop.index0 }}"
+                          {% if aircraft['Manufacture_Month']|int == loop.index0 %}selected{% endif %}>
+                            {{ name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label>ICAO Address</label>
+                <input type="text" name="ICAO_Address" class="form-control uppercase-input"
+                       value="{{ aircraft['ICAO_Address'] }}">
+            </div>
+        </div>
+
+        <!-- Departure / Arrival -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Departure</label>
+                <div class="airport-autocomplete">
+                    <input type="text" name="Departure_display" id="departure-input"
+                           class="form-control airport-input"
+                           value="{{ aircraft['Departure'] | airport if aircraft['Departure'] else '' }}"
+                           placeholder="e.g. YSSY or Sydney" autocomplete="off">
+                    <input type="hidden" name="Departure" id="departure-hidden"
+                           value="{{ aircraft['Departure'] }}">
+                    <div class="airport-suggestions" id="departure-suggestions"></div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <label>Arrival</label>
+                <div class="airport-autocomplete">
+                    <input type="text" name="Arrival_display" id="arrival-input"
+                           class="form-control airport-input"
+                           value="{{ aircraft['Arrival'] | airport if aircraft['Arrival'] else '' }}"
+                           placeholder="e.g. YMML or Melbourne" autocomplete="off">
+                    <input type="hidden" name="Arrival" id="arrival-hidden"
+                           value="{{ aircraft['Arrival'] }}">
+                    <div class="airport-suggestions" id="arrival-suggestions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="mb-3 mt-4">
+            <label>Notes</label>
+            <textarea name="Notes" class="form-control" rows="3">{{ aircraft['Notes'] }}</textarea>
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{{ url_for('aircraft.aircraft_table') }}" class="btn btn-secondary">
+                Cancel
+            </a>
+
+            <button type="submit" name="save_mode" value="new" class="btn btn-success">New Flight</button>
+
+            <button type="submit" name="save_mode" value="edit" class="btn btn-primary">
+                Save Changes
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+
+<script>
+/* (Autocomplete JS preserved exactly as-is) */
+$(document).ready(function() {
+    let currentIndex = -1;
+    let currentInput = null;
+
+    $('.airport-input').on('input', function() {
+        const input = $(this);
+        currentInput = input;
+        const query = input.val().trim();
+        const suggestionsDiv = input.siblings('.airport-suggestions');
+        currentIndex = -1;
+
+        if (query.length < 1) {
+            suggestionsDiv.hide();
+            return;
+        }
+
+        $.get('/airports/search', { q: query })
+        .done(function(airports) {
+            suggestionsDiv.empty();
+
+            airports.forEach(airport => {
+                const suggestion = $('<div class="airport-suggestion" data-icao="' + airport.ICAO + '" data-display="' + airport.display_name + '"><div class="airport-name">' + airport.display_name + '</div></div>');
+
+                suggestion.on('click', function() {
+                    input.val($(this).data('display'));
+                    if (input.attr('id') === 'departure-input') {
+                        $('#departure-hidden').val($(this).data('icao'));
+                    } else if (input.attr('id') === 'arrival-input') {
+                        $('#arrival-hidden').val($(this).data('icao'));
+                    }
+                    suggestionsDiv.hide();
+                });
+
+                suggestionsDiv.append(suggestion);
+            });
+
+            suggestionsDiv.show();
+        });
+    });
+
+    $('.airport-input').on('keydown', function(e) {
+        const input = $(this);
+        const suggestionsDiv = input.siblings('.airport-suggestions');
+        const suggestions = suggestionsDiv.find('.airport-suggestion');
+
+        if (suggestions.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            currentIndex++;
+            if (currentIndex >= suggestions.length) currentIndex = 0;
+            updateHighlight(suggestions);
+        }
+        else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            currentIndex--;
+            if (currentIndex < 0) currentIndex = suggestions.length - 1;
+            updateHighlight(suggestions);
+        }
+        else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (currentIndex >= 0) {
+                const selected = $(suggestions[currentIndex]);
+                input.val(selected.data('display'));
+                if (input.attr('id') === 'departure-input') {
+                    $('#departure-hidden').val(selected.data('icao'));
+                } else if (input.attr('id') === 'arrival-input') {
+                    $('#arrival-hidden').val(selected.data('icao'));
+                }
+                suggestionsDiv.hide();
+                currentIndex = -1;
+            }
+        }
+        else if (e.key === 'Escape') {
+            suggestionsDiv.hide();
+            currentIndex = -1;
+        }
+    });
+
+    function updateHighlight(suggestions) {
+        suggestions.removeClass('selected');
+        if (currentIndex >= 0) {
+            $(suggestions[currentIndex]).addClass('selected');
+        }
+    }
+
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.airport-autocomplete').length) {
+            $('.airport-suggestions').hide();
+            currentIndex = -1;
+        }
+    });
+});
+</script>
+
+{% include 'footer.html' %}
+</body>
+</html>

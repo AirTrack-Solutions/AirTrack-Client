@@ -1,0 +1,99 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!-- templates/upload_image.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Aircraft Image</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/upload_image.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+    <div class="container mt-5 upload-image-container">
+        <h2 class="mb-4 text-center title-text">Upload Aircraft Image</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="airline" class="form-label">Select Airline</label>
+                <select id="airline" name="airline" class="form-select" required>
+                    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+                    <option value="">-- Choose an airline --</option>
+                    {% for airline in airlines %}
+                        <option value="{{ airline['AirlineID'] }}">{{ airline['AirlineName'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="registration" class="form-label">Select Registration</label>
+                <select id="registration" name="registration" class="form-select" required>
+                    <option value="">-- Choose registration --</option>
+                    <!-- Options will be populated dynamically -->
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="image" class="form-label">Select Image</label>
+                <input type="file" class="form-control" name="image" id="image" accept="image/*" required>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('aircraft.aircraft_table') }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Upload</button>
+            </div>
+        </form>
+    </div>
+
+    {% include 'footer.html' %}
+
+    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+    <script>
+        $(document).ready(function () {
+            $('#airline').on('change', function () {
+                const airlineID = $(this).val();
+                $('#registration').empty().append('<option value="">Loading...</option>');
+
+                if (airlineID) {
+                    $.getJSON(`/get_registrations/${airlineID}`, function (data) {
+                        $('#registration').empty().append('<option value="">-- Choose registration --</option>');
+                        $.each(data, function (index, item) {
+                            $('#registration').append(
+                                $('<option>', {
+                                    value: item.Registration,
+                                    text: item.Registration
+                                })
+                            );
+                        });
+                    });
+                } else {
+                    $('#registration').empty().append('<option value="">-- Choose registration --</option>');
+                }
+            });
+        });
+    </script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>
+

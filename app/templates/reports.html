@@ -1,0 +1,257 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 AirTrack Solutions (ABN 70 472 536 433). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <script src="{{ url_for('static', filename='js/reports.js') }}"></script>
+</head>
+
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+    <h1 class="airtrack-section-title">Reports</h1>
+
+    <!-- Welcome / Disclaimer Modal -->
+    {% if show_disclaimer %}
+    <div id="disclaimerModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Welcome to Reports</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        These reports are generated only from data manually entered.
+                        They do not represent real-world flight activity beyond your logged sightings
+                        and will differ between users of AirTrack.
+                    </p>
+                    {% if not license or license.edition == 'lite' %}
+                    <hr>
+                    <p>
+                        <strong>Running in Lite mode.</strong> To unlock all features, copy your
+                        <code>license.lic</code> file into the <code>app/config/</code> folder
+                        inside your AirTrack directory and restart.
+                        If you don't have a license, visit
+                        <a href="https://www.airtracksolutions.com" target="_blank" rel="noopener">airtracksolutions.com</a>.
+                    </p>
+                    {% endif %}
+                    <hr>
+                    {% if is_server and has_api_key %}
+                    <p>
+                        <strong>Smart Ask</strong> lets you ask natural language questions about your logbook,
+                        powered by Claude AI. For example: <em>"Which airline have I seen the most?"</em>
+                        or <em>"How many 737s have I logged?"</em>
+                        It appears below the report buttons.
+                    </p>
+                    <div class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input" id="hideSmartAsk">
+                        <label class="form-check-label" for="hideSmartAsk">Hide Smart Ask — I don't need it</label>
+                    </div>
+                    {% elif is_server and not has_api_key %}
+                    <p>
+                        <strong>Smart Ask</strong> is available but requires an Anthropic API key.
+                        Add <code>ANTHROPIC_API_KEY=your-key-here</code> to the <code>.env</code> file
+                        in your AirTrack folder and restart.
+                        Get a key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.
+                    </p>
+                    {% elif not is_server %}
+                    <p>
+                        <strong>Smart Ask</strong> is a server feature that lets you query your logbook using plain English,
+                        powered by Claude AI. It is available on server installations with an Anthropic API key.
+                        Get a key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.
+                    </p>
+                    {% endif %}
+                    <hr>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="hideDisclaimer">
+                        <label class="form-check-label" for="hideDisclaimer">Don't show this again</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="acceptDisclaimer">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Report Buttons -->
+    <div class="reports-button-group text-center">
+        <a href="#" class="btn btn-default report-link" data-report="most_seen_aircraft">Most Seen Aircraft</a>
+        <a href="#" class="btn btn-default report-link" data-report="top_airlines">Top Airlines</a>
+        <a href="#" class="btn btn-default report-link" data-report="most_frequent_routes">Most Frequent Routes</a>
+        <a href="#" class="btn btn-default report-link" data-report="top_countries">Top Countries of Registration</a>
+        <a href="#" class="btn btn-default report-link" data-report="most_common_models">Most Common Models Per Country</a>
+        <a href="#" class="btn btn-default report-link" data-report="top_10_busiest_airports">Top 10 Busiest Airports</a>
+        <a href="#" class="btn btn-default report-link" data-report="first_time_sightings">First-Time Sightings</a>
+        <a href="#" class="btn btn-default report-link" data-report="oldest_aircraft">Oldest Aircraft Still in Service</a>
+        <a href="#" class="btn btn-default report-link" data-report="rare_airlines">Rare Airline Sightings</a>
+        <a href="#" class="btn btn-default report-link" data-report="logged_airports">Logged Airports</a>
+        <a href="#" class="btn btn-default report-link" data-report="different_aircraft">Different Aircraft Types</a>
+        <a href="#" class="btn btn-default report-link" data-report="orphaned_aircraft">Orphaned Aircraft</a>
+    </div>
+
+    <!-- Smart Ask Box (server + API key only) -->
+    {% if is_server and has_api_key %}
+    <div class="smart-ask-container" id="smartAskContainer">
+        <div class="smart-ask-inner">
+            <div class="smart-ask-label">Ask about your logbook</div>
+            <div class="smart-ask-input-row">
+                <input type="text" id="smartAskInput" class="smart-ask-input"
+                    placeholder="e.g. Which airline have I logged the most? or How many 737s have I seen?"
+                    autocomplete="off" />
+                <button id="smartAskBtn" class="smart-ask-btn">Ask</button>
+            </div>
+            <div id="smartAskResult" class="smart-ask-result" style="display:none;"></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Report Results Container -->
+    <div id="reportResults" class="report-results-area">
+        <p id="defaultReportText" class="report-info-text pulse-text">Select a report to view data.</p>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        // ── Report buttons ──
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".report-link").forEach(button => {
+                button.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    let reportType = this.dataset.report;
+                    let loadingTimer = setTimeout(function() {
+                        document.getElementById("reportResults").innerHTML = "<p class='report-info-text'>Loading...</p>";
+                    }, 250);
+                    fetch(`/reports/${reportType}`)
+                        .then(response => response.text())
+                        .then(data => {
+                            clearTimeout(loadingTimer);
+                            document.getElementById("reportResults").innerHTML = data;
+                        })
+                        .catch(error => {
+                            clearTimeout(loadingTimer);
+                            document.getElementById("reportResults").innerHTML = "<p style='color: red;'>Error loading report.</p>";
+                            console.error("❌ Fetch Error:", error);
+                        });
+                });
+            });
+        });
+
+        // ── Smart Ask ──
+        const askInput  = document.getElementById("smartAskInput");
+        const askBtn    = document.getElementById("smartAskBtn");
+        const askResult = document.getElementById("smartAskResult");
+        const smartAskContainer = document.getElementById("smartAskContainer");
+
+        // Apply stored preference immediately
+        if (smartAskContainer && localStorage.getItem("smartAskHidden") === "1") {
+            smartAskContainer.style.display = "none";
+        }
+
+        function buildResultTable(columns, rows) {
+            if (!rows.length) return "<p class='smart-ask-no-results'>No results found.</p>";
+            let html = '<div class="report-table-card"><table class="table table-sm table-hover mb-0"><thead class="report-table-header"><tr>';
+            columns.forEach(col => { html += `<th>${col}</th>`; });
+            html += "</tr></thead><tbody>";
+            rows.forEach(row => {
+                html += "<tr>";
+                columns.forEach(col => { html += `<td>${row[col] ?? ""}</td>`; });
+                html += "</tr>";
+            });
+            html += "</tbody></table></div>";
+            return html;
+        }
+
+        async function doAsk() {
+            if (!askInput) return;
+            const question = askInput.value.trim();
+            if (!question) return;
+
+            askBtn.disabled = true;
+            askBtn.textContent = "Thinking...";
+            askResult.style.display = "block";
+            askResult.className = "smart-ask-result smart-ask-loading";
+            askResult.innerHTML = "Asking AirTrack Intelligence...";
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || "";
+                const resp = await fetch("/reports/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+                    body: JSON.stringify({ question })
+                });
+                const data = await resp.json();
+                askResult.className = "smart-ask-result";
+
+                if (data.type === "answer") {
+                    askResult.innerHTML = `<div class="smart-ask-answer">${data.text}</div>`;
+                } else if (data.type === "query") {
+                    let html = data.explanation ? `<div class="smart-ask-explanation">${data.explanation}</div>` : "";
+                    html += buildResultTable(data.columns, data.rows);
+                    askResult.innerHTML = html;
+                } else {
+                    askResult.className = "smart-ask-result smart-ask-error";
+                    askResult.innerHTML = `<div class="smart-ask-answer">⚠️ ${data.text || "Something went wrong."}</div>`;
+                }
+            } catch (err) {
+                askResult.className = "smart-ask-result smart-ask-error";
+                askResult.innerHTML = `<div class="smart-ask-answer">⚠️ Failed to reach the server. Please try again.</div>`;
+            }
+
+            askBtn.disabled = false;
+            askBtn.textContent = "Ask";
+        }
+
+        if (askBtn)   askBtn.addEventListener("click", doAsk);
+        if (askInput) askInput.addEventListener("keydown", e => { if (e.key === "Enter") doAsk(); });
+
+        // ── Welcome / Disclaimer modal ──
+        const disclaimerModal = document.getElementById("disclaimerModal");
+        const acceptBtn = document.getElementById("acceptDisclaimer");
+
+        if (disclaimerModal && typeof bootstrap !== "undefined") {
+            // Only show if not already dismissed in localStorage
+            if (localStorage.getItem("disclaimerDismissed") !== "1") {
+                const modal = new bootstrap.Modal(disclaimerModal);
+                modal.show();
+
+                if (acceptBtn) {
+                    acceptBtn.addEventListener("click", function() {
+                        if (document.getElementById("hideDisclaimer")?.checked) {
+                            localStorage.setItem("disclaimerDismissed", "1");
+                            // Also tell the server if possible
+                            fetch("/hide_disclaimer", { method: "POST" }).catch(() => {});
+                        }
+                        const hideSmartAsk = document.getElementById("hideSmartAsk");
+                        if (hideSmartAsk?.checked) {
+                            localStorage.setItem("smartAskHidden", "1");
+                            if (smartAskContainer) smartAskContainer.style.display = "none";
+                        }
+                        modal.hide();
+                    });
+                }
+            }
+        }
+    </script>
+
+    {% include 'footer.html' %}
+    <script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

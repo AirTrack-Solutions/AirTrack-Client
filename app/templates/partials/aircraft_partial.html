@@ -1,0 +1,29 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+-->
+
+-->
+
+{% for a in filtered_aircraft %}
+<tr>
+    <td>{{ a['AirlineID'] }}</td>
+    <td>{{ a['FlightNumber'] }}</td>
+    <td>{{ a['Registration'] }}</td>
+    <td>{{ a['Aircraft_Type'] }}</td>
+    <td>{{ a['Departure'] | airport if a['Departure'] else '—' }}</td>
+    <td>{{ a['Arrival']   | airport if a['Arrival']   else '—' }}</td>
+    <td>{{ a['Country_of_Reg'] }}</td>
+    <td><img src="{{ a['Country_Flag'] }}" alt="Flag" class="flag-img" /></td>
+    <td>
+        <a href="{{ url_for('aircraft.aircraft_info', aircraft_id=a['AircraftID']) }}" class="btn btn-primary btn-sm">Info</a>
+        <a href="{{ url_for('edit_aircraft.edit_aircraft', aircraft_id=a['AircraftID']) }}" class="btn btn-warning btn-sm">Edit</a>
+        <form action="{{ url_for('delete_aircraft', aircraft_id=a['AircraftID']) }}" method="POST" style="display:inline;">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+    </td>
+</tr>
+{% endfor %}

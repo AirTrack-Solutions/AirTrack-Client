@@ -1,0 +1,296 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/support.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const collapsibles = document.querySelectorAll('[data-bs-toggle="collapse"]');
+
+        collapsibles.forEach(trigger => {
+          trigger.addEventListener("click", function () {
+            const targetId = trigger.getAttribute("data-bs-target").replace('#', '');
+            const target = document.getElementById(targetId);
+
+            document.querySelectorAll(".collapse").forEach(section => {
+              if (section.id !== targetId) {
+                new bootstrap.Collapse(section, { toggle: false }).hide();
+              }
+            });
+          });
+        });
+      });
+    </script>
+</head>
+
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+  <div class="container mt-5">
+    <h2 class="airtrack-section-title">User Guide</h2>
+
+    <!-- Home Section -->
+    <div class="card mb-3">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#homeSection" style="cursor: pointer;">
+        <h5 class="mb-0 text-center">Home</h5>
+      </div>
+      <div id="homeSection" class="collapse">
+        <div class="card-body">
+          <p>The Home page shows the Total number of Airlines and Total number of Aircraft. It also has a dropdown to choose between filtering by Registration or Airlines.</p>
+          <ul>
+            <li>If <strong>Registration</strong> is selected, you can enter full or partial registrations to search.</li>
+            <li>If <strong>Airlines</strong> is selected, a dropdown appears to let you choose an airline. Submitting will display all aircraft for that airline.</li>
+            <li>The <strong>Apply</strong> button will trigger the chosen search filter and update the results accordingly.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Airlines Section -->
+    <div class="card mb-3">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#airlinesSection" style="cursor: pointer;">
+        <h5 class="mb-0 text-center">Airlines</h5>
+      </div>
+      <div id="airlinesSection" class="collapse">
+        <div class="card-body">
+          <p>The Airlines page shows a full list of all airlines in your database.</p>
+          <ul>
+            <li>Airline names are listed in a table sorted alphabetically.</li>
+            <li>The list is static — airline names are not links and do not redirect.</li>
+            <li>You can <strong>edit</strong> or <strong>delete</strong> airlines using the action buttons on the right.</li>
+            <li>Airlines with no linked aircraft can still be added or modified.</li>
+            <li>This page is primarily for managing airline entries used throughout the system.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Airline Section -->
+    <div class="card mb-3">
+    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#addAirlineSection" style="cursor: pointer;">
+        <h5 class="mb-0 text-center">Add Airline</h5>
+    </div>
+    <div id="addAirlineSection" class="collapse">
+        <div class="card-body">
+        <p>This page allows you to add a new airline to the system’s database.</p>
+        <ul>
+            <li>Enter the full airline name and (optionally) a short ICAO or IATA code if known.</li>
+            <li>Click <strong>Add Airline</strong> to save the entry.</li>
+            <li>Once added, the new airline will appear on the Airlines page and will be available in the dropdown when adding or editing aircraft.</li>
+            <li>Airlines can be added ahead of time even if you haven't logged any aircraft yet.</li>
+        </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aircraft Section -->
+    <div class="card mb-3">
+    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#aircraftSection" style="cursor: pointer;">
+        <h5 class="mb-0 text-center">Aircraft</h5>
+    </div>
+    <div id="aircraftSection" class="collapse">
+        <div class="card-body">
+        <p>The Aircraft page displays a full table of all aircraft currently in your database.</p>
+        <ul>
+            <li>Each row includes the Registration, Flight Number, Type, Airline, Departure, Arrival, and Country of Registration.</li>
+            <li>You can edit or delete any aircraft using the buttons on the far right.</li>
+            <li>The page may support pagination for long lists of aircraft.</li>
+            <li>This view gives you a complete picture of your tracked aircraft.</li>
+        </ul>
+        </div>
+    </div>
+    </div>
+
+    <!-- Add Aircraft Section -->
+    <div class="card mb-3">
+    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#addAircraftSection" style="cursor: pointer;">
+        <h5 class="mb-0 text-center">Add Aircraft</h5>
+    </div>
+    <div id="addAircraftSection" class="collapse">
+        <div class="card-body">
+        <p>This page lets you add a new aircraft to your database.</p>
+        <ul>
+            <li>Fill in the <strong>Registration</strong>, <strong>Flight Number</strong>, <strong>Aircraft Type</strong>, and <strong>Airline</strong> at a minimum.</li>
+            <li>You can optionally add the <strong>MSN</strong>, <strong>Category</strong>, <strong>Country of Registration</strong>, <strong>Times Seen</strong>, <strong>Manufacture Year/Month</strong>, <strong>ICAO Address</strong>, and any notes.</li>
+            <li>The <strong>Spotted At</strong>, <strong>Departure</strong>, and <strong>Arrival</strong> fields track recent flight info.</li>
+            <li>Once submitted, the aircraft and an initial flight entry are both created in the system.</li>
+        </ul>
+        </div>
+    </div>
+    </div>
+
+    <!-- Reports Section -->
+    <div class="card mb-3">
+    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#reportsSection" style="cursor: pointer;">
+        <h5 class="mb-0 text-center">Reports</h5>
+    </div>
+    <div id="reportsSection" class="collapse">
+        <div class="card-body">
+        <p>The Reports page offers a variety of prebuilt summaries and statistics:</p>
+        <ul>
+            <li><strong>Logged Airports:</strong> All airports seen in Departure or Arrival fields.</li>
+            <li><strong>Most Seen Aircraft:</strong> Top 20 registrations with the most sightings.</li>
+            <li><strong>Top Airlines:</strong> Most frequently seen airlines by total flights.</li>
+            <li><strong>Most Frequent Routes:</strong> The busiest route combinations.</li>
+            <li><strong>Top 10 Busiest Airports:</strong> Combined total of Departures and Arrivals.</li>
+            <li><strong>First-Time Sightings:</strong> Most recent aircraft to appear for the first time.</li>
+            <li><strong>Rare Airlines:</strong> Carriers with 2 or fewer appearances in your logs.</li>
+            <li><strong>Top Countries:</strong> Based on Country of Registration.</li>
+            <li><strong>Most Common Models:</strong> Aircraft types grouped by country.</li>
+            <li><strong>Oldest Aircraft:</strong> Based on manufacture year.</li>
+        </ul>
+        <p>You can explore any of these reports by clicking their name in the dropdown on the Reports page. All data is generated from your local database.</p>
+        </div>
+    </div>
+    </div>
+
+    <!-- Upload Aircraft Image Section -->
+    <div class="card mb-3">
+    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#uploadImageSection" style="cursor: pointer;">
+        <h5 class="mb-0 text-center">Upload Aircraft Image</h5>
+    </div>
+    <div id="uploadImageSection" class="collapse">
+        <div class="card-body">
+        <p>This page allows you to upload an image for a specific aircraft already in your database.</p>
+        <ul>
+            <li>Choose an <strong>airline</strong> from the dropdown. The list is sorted alphabetically.</li>
+            <li>Once selected, a second dropdown will populate with aircraft registrations for that airline.</li>
+            <li>Select the image you want to upload. Supported formats include JPG and PNG.</li>
+            <li>Click <strong>Upload</strong> to save the image to the server.</li>
+        </ul>
+        <p>Note: If the registration is not already in your database, you’ll need to add it first using the <em>Add Aircraft</em> form.</p>
+        </div>
+    </div>
+    </div>
+
+    <!-- Live Flights Section -->
+    <div class="card mb-3">
+    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#liveFlightsSection" style="cursor: pointer;">
+        <h5 class="mb-0 text-center">Live Flights</h5>
+    </div>
+    <div id="liveFlightsSection" class="collapse">
+        <div class="card-body">
+        <p>The Live Flights link opens an external live aircraft tracking site (typically FlightRadar24) in a new browser tab.</p>
+        <ul>
+            <li>The feature is provided as a convenience for real-time aircraft observation.</li>
+            <li>The external site is not affiliated with AirTrack, and access is subject to regional availability and external restrictions.</li>
+            <li>If the page fails to load, it may be due to location-based access limitations from your ISP or government.</li>
+            <li>The link opens with default coordinates (e.g., Western Sydney) and can be changed manually within the external site once opened.</li>
+        </ul>
+        <p>If the site is blocked in your region, consider using a different tracking provider or check back later.</p>
+        </div>
+    </div>
+    </div>
+
+        <!-- Mobile Export Section -->
+        <div class="card mb-3">
+
+            <div class="card-header" data-bs-toggle="collapse" data-bs-target="#mobileExportSection" style="cursor: pointer;">
+                <h5 class="mb-0 text-center">Export for Mobile</h5>
+            </div>
+
+            <div id="mobileExportSection" class="collapse">
+
+                <div class="card-body">
+
+                    <p>
+                        The Mobile Export feature generates a compact SQLite database
+                        (<code>airtrack_mobile.db</code>) for use with the AirTrack Mobile Android application.
+                    </p>
+
+                    <ul>
+                        <li>
+                            <strong>What it exports:</strong>
+                            A mobile-optimised subset of your main AirTrack database.
+                        </li>
+
+                        <li>
+                            <strong>Where it comes from:</strong>
+                            The file is generated on your server using the
+                            <em>Export Mobile DB</em> tool in Admin Tools.
+                        </li>
+
+                        <li>
+                            <strong>Typical contents:</strong>
+                            Tables such as <strong>aircraft</strong>,
+                            <strong>reports</strong>,
+                            <strong>airlines</strong>,
+                            and <strong>airports</strong>.
+                        </li>
+                    </ul>
+
+                    <p><strong>How to use it with AirTrack Mobile:</strong></p>
+
+                    <ol>
+                        <li>Download the generated <code>airtrack_mobile.db</code> file.</li>
+                        <li>Copy the file to your phone (for example into the <strong>Downloads</strong> folder).</li>
+                        <li>Open the AirTrack Mobile app.</li>
+                        <li>The app will automatically detect the file and ask if you want to import it.</li>
+                    </ol>
+
+                    <p><strong>Notes:</strong></p>
+
+                    <ul>
+                        <li>
+                            If the mobile app reports <code>no such table</code>, the export may be incomplete
+                            or outdated. Generate a new export and try again.
+                        </li>
+
+                        <li>
+                            The database contains your personal logged sightings and will differ between users.
+                        </li>
+                    </ul>
+
+                </div>
+            </div>
+
+        </div>
+
+    <!-- Admin Section -->
+    <div class="card mb-3">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#adminSection" style="cursor: pointer;">
+        <h5 class="mb-0 text-center">Admin</h5>
+      </div>
+      <div id="adminSection" class="collapse">
+        <div class="card-body">
+          <p>The Admin page includes tools for advanced management of the system and database. These actions affect stored data and should be used carefully.</p>
+          <ul>
+            <li><strong>Backup Database:</strong> Save a snapshot of the current database state.</li>
+            <li><strong>Restore Backup:</strong> Restore a database backup file.</li>
+            <li><strong>Flush Backups:</strong> Delete all existing backup files.</li>
+            <li><strong>Flush Logs:</strong> Remove system log files.</li>
+            <li><strong>Flush Database:</strong> Clear all aircraft, airline, and flight data.</li>
+            <li><strong>Settings:</strong> Manage app-wide configuration (not available in Lite).</li>
+            <li><strong>Launch Bug Tracker:</strong> Open the integrated bug reporting tool.</li>
+            <li><strong>Find Aircraft Images:</strong> Trigger automatic search for missing aircraft images.</li>
+            <li><strong>Check Airport Links:</strong> Scan airport entries for broken or outdated website and Wikipedia links.</li>
+            <li><strong>Check Whitelist Links:</strong> Verify saved whitelist links for availability.</li>
+            <li><strong>Clear Whitelist:</strong> Remove all custom whitelist entries from the database.</li>
+          </ul>
+          <p class="text-danger">Please double-check actions like flushing data. They are irreversible.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  {% include 'footer.html' %}
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

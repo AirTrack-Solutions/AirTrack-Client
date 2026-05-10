@@ -1,0 +1,706 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Admin Cockpit</title>
+
+  <!-- CSRF for JS fetch() -->
+
+  <!-- Apply saved theme ASAP so backgrounds don't flash -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('airtrack-theme') || 'default';
+        document.documentElement.classList.add('theme-' + t);
+        if (document.body) {
+          document.body.classList.add('theme-' + t);
+        } else {
+          document.addEventListener('DOMContentLoaded', function () {
+            document.body.classList.add('theme-' + t);
+          });
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ time() }}-s1">
+
+  {% set is_server = is_server|default(false) %}
+
+  <style>
+    /* Modal + settings (same look you had, tidied) */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; justify-content:center; align-items:center; z-index:9999;}
+    .modal-message{background:#111; color:#0f0; padding:1.5rem 2rem; border-radius:10px; font-size:1.2rem; font-family:monospace; box-shadow:0 0 15px #0f0;}
+
+    .settings-card{width:520px; max-width:92vw; background:#111; color:#e6e6e6; border-radius:12px; box-shadow:0 0 18px rgba(0,255,0,.25); border:1px solid #2a2a2a; font-family:system-ui,sans-serif;}
+    .settings-header{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #222;}
+    .settings-title{font-weight:600; letter-spacing:.2px;}
+    .settings-close{background:transparent; border:0; color:#aaa; font-size:18px; cursor:pointer;}
+    .settings-close:hover{color:#fff;}
+
+    .settings-tabs{display:flex; gap:6px; padding:10px 12px; border-bottom:1px solid #1e1e1e;}
+    .tab-btn{background:#1b1b1b; color:#cfcfcf; border:1px solid #2a2a2a; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:13px;}
+    .tab-btn.active{background:#0f0; color:#111; border-color:#0f0;}
+
+    .settings-body{padding:14px;}
+    .settings-pane{display:none;}
+    .settings-pane.active{display:block;}
+
+    .form-label{display:block; margin-bottom:6px; color:#bbb; font-size:13px;}
+    .form-control,.form-select{width:100%; box-sizing:border-box; padding:10px 12px; border-radius:8px; border:1px solid #2c2c2c; background:#0f0f0f; color:#e6e6e6; outline:none;}
+    .form-control:focus,.form-select:focus{border-color:#0f0; box-shadow:0 0 0 2px rgba(0,255,0,.15);}
+    .help{color:#8a8a8a; font-size:12px; display:block; margin-top:6px;}
+
+    /* Theme picker */
+    .theme-grid{
+      display:grid;
+      grid-template-columns: repeat( auto-fill, minmax(120px,1fr) );
+      gap:12px;
+      margin-top:6px;
+    }
+    .theme-card{
+      position:relative; display:flex; flex-direction:column; align-items:center;
+      background:#151515; border:1px solid #2a2a2a; border-radius:10px;
+      overflow:hidden; cursor:pointer; user-select:none;
+      transition:transform .08s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .theme-card:hover{ transform:translateY(-1px); box-shadow:0 4px 16px rgba(0,0,0,.35); }
+    .theme-card.active{ border-color:#0f0; box-shadow:0 0 0 2px rgba(0,255,0,.18) inset; }
+    .theme-card input{ display:none; }
+    .theme-thumb{ width:100%; aspect-ratio: 16/10; object-fit:cover; display:block; }
+    .theme-name{ width:100%; text-align:center; padding:8px 10px; font-size:13px; color:#ddd; background:linear-gradient(180deg,#171717, #141414); }
+
+    .settings-footer{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #1e1e1e;}
+    .btn-row{display:flex; gap:8px;}
+    .btn{padding:8px 14px; border-radius:8px; border:1px solid transparent; cursor:pointer; font-weight:600;}
+    .btn.ghost{background:transparent; color:#cfcfcf; border-color:#2a2a2a;}
+    .btn.ghost:hover{border-color:#555;}
+    .btn.primary{background:#0f0; color:#111;}
+    .btn.primary:hover{filter:brightness(.95);}
+    .status{min-height:18px; font-size:12px; color:#aaa;}
+    .status.ok{color:#7dff7d;}
+    .status.err{color:#ff6b6b;}
+  </style>
+</head>
+
+<body class="theme-{{ selected_theme or 'default' }}">
+  <div class="admin-background"></div>
+
+  <!-- Gauges -->
+  <div class="gauge gauge-airlines"  data-count="{{ stats.total_airlines  or '0' }}"><div class="needle"></div><div class="gauge-value">0</div><div class="gauge-label">Total Airlines</div></div>
+  <div class="gauge gauge-aircraft"  data-count="{{ stats.total_aircraft  or '0' }}"><div class="needle"></div><div class="gauge-value">0</div><div class="gauge-label">Total Aircraft</div></div>
+  <div class="gauge gauge-flights"   data-count="{{ stats.total_flights   or '0' }}"><div class="needle"></div><div class="gauge-value">0</div><div class="gauge-label">Total Flights</div></div>
+  <div class="gauge gauge-models"    data-count="{{ stats.models_seen     or '0' }}"><div class="needle"></div><div class="gauge-value">0</div><div class="gauge-label">Models Seen</div></div>
+  <div class="gauge gauge-photos"    data-count="{{ stats.photos_logged   or '0' }}"><div class="needle"></div><div class="gauge-value">0</div><div class="gauge-label">Images</div></div>
+  <div class="gauge gauge-orphaned"  data-count="{{ stats.orphaned_aircraft or '0' }}"><div class="needle"></div><div class="gauge-value">0</div><div class="gauge-label">Orphaned Aircraft</div></div>
+  <div class="gauge gauge-countries" data-count="{{ stats.total_countries or '0' }}"><div class="needle"></div><div class="gauge-value">0</div><div class="gauge-label">Countries</div></div>
+  <div class="gauge gauge-airports"  data-count="{{ stats.airports_logged or '0' }}"><div class="needle"></div><div class="gauge-value">0</div><div class="gauge-label">Airports</div></div>
+
+  <!-- Center radar / confirmation display -->
+  <div id="cockpit-center-display">
+    <div id="radar-content">{{ settings.get('Callsign', '') if settings else '' }}</div>
+    <div id="action-confirmation"></div>
+  </div>
+
+  <!-- HUD buttons (left) -->
+  <div class="hud-left-wrapper">
+    <div class="cockpit-hud-column hud-left">
+      <a href="{{ url_for('index') }}"><button type="button" class="cockpit-hud-button" title="Fasten your seat belts and trays in the upright position.">Home</button></a>
+
+      <button class="cockpit-hud-button"
+          onclick="window.location.href='/admin/manual_aircraft';"
+          title="Do some of the work for yourself, add an aircraft manually.">
+        Manual Aircraft Entry
+      </button>
+
+      <form class="cockpit-hud-form" action="{{ url_for('backup_database') }}" method="post" onsubmit="showCockpitConfirmation('Backup completed');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="cockpit-hud-button" title="For safe keeping, back it up.">Backup DB</button>
+      </form>
+
+      <form class="cockpit-hud-form" action="{{ url_for('admin_tools.export_db_mobile') }}" method="get">
+        <button type="submit" class="cockpit-hud-button" title="Download a copy of your data for use on your mobile device.">Export for Mobile</button>
+      </form>
+
+      <form class="cockpit-hud-form" action="{{ url_for('flush_backups') }}" method="post" onsubmit="showCockpitConfirmation('Backups flushed');">
+        <button class="cockpit-hud-button" title="Make some room in the hold.">Flush Backups</button>
+      </form>
+
+      <form class="cockpit-hud-form"
+            action="{{ url_for('flush_database') }}"
+            method="post"
+            onsubmit="return confirmFlush();">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="confirm_flush" id="confirm_flush">
+
+        <button class="cockpit-hud-button"
+                title="Empty the database, import or start again.">
+          Flush Database
+        </button>
+
+      </form>
+
+      <form class="cockpit-hud-form" action="{{ url_for('restore_database') }}" method="post" onsubmit="showCockpitConfirmation('Restore completed');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="cockpit-hud-button">Restore Backup</button>
+      </form>
+
+      <a href="https://bugs.airtracksolutions.com" target="_blank"><button type="button" class="cockpit-hud-button">Launch Bug Tracker</button></a>
+    </div>
+  </div>
+
+  <!-- HUD buttons (right) -->
+  <div class="cockpit-hud-column hud-right">
+    {% if is_server %}
+    <button class="cockpit-hud-button" onclick="openLogsOverlay()">View Logs</button>
+    {% endif %}
+    <a href="{{ url_for('airline_logo_linker.link_airline_logos') }}"><button type="button" class="cockpit-hud-button">Logos</button></a>
+
+    {% if is_server %}
+    <form class="cockpit-hud-form" action="{{ url_for('admin_tools.broken_links') }}" method="get">
+      <button class="cockpit-hud-button">Check Airport Links</button>
+    </form>
+
+    <form class="cockpit-hud-form" action="{{ url_for('admin_tools.check_aircraft_images') }}" method="post" onsubmit="showCockpitConfirmation('Image check complete');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="cockpit-hud-button">Check Images</button>
+    </form>
+    {% endif %}
+
+    <button class="cockpit-hud-button" onclick="openSettings()">Settings</button>
+    <button class="cockpit-hud-button" onclick="openMunicipalityModal()" title="Set city name for an airport">Set Municipality</button>
+
+    {% if is_server and show_commit_push %}
+    <button class="cockpit-hud-button" onclick="openGit()">Git / Updates</button>
+    {% elif not is_server %}
+    <button type="button" class="cockpit-hud-button" onclick="openCleanupModal()" title="Remove old backups, exports and rotate logs.">Clean Up</button>
+    <button class="cockpit-hud-button" onclick="openGit()">Update</button>
+    {% endif %}
+  </div>
+
+  <!-- Reusable iframe modal for Logs / external pages -->
+  <div id="logViewerWrapper"
+       style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999;">
+    <button type="button"
+            onclick="closeLogsOverlay()"
+            style="position:absolute; top:10px; right:10px; z-index:10000;">
+      ✕
+    </button>
+    <iframe id="logViewer"
+            src=""
+            style="width:80%; height:80%; margin:5% auto; display:block; border:2px solid white; background:white;">
+    </iframe>
+  </div>
+
+  <!-- Toast-style modal -->
+  <div id="modal" style="display:none;" class="modal-backdrop">
+    <div class="modal-message" id="modalMessage"></div>
+  </div>
+
+  <!-- Municipality Editor Modal -->
+  <div id="municipalityModal" style="display:none;" class="modal-backdrop">
+    <div class="modal-message" style="background:#222; color:white; padding:2rem; border-radius:8px; text-align:center;">
+      <h3>Set Municipality</h3>
+      <input id="icaoInput" type="text" placeholder="ICAO Code" style="margin:1rem 0; width:80%; padding:0.5rem;" />
+      <input id="cityInput" type="text" placeholder="City Name" style="margin-bottom:1rem; width:80%; padding:0.5rem;" />
+      <div>
+        <button onclick="submitMunicipality()" style="margin-right:1rem;">Update</button>
+        <button onclick="closeMunicipalityModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cleanup Modal -->
+  <div id="cleanupModal" style="display:none;" class="modal-backdrop">
+    <div class="modal-message" style="background:#222; color:white; padding:2rem; border-radius:8px; text-align:center; min-width:320px;">
+      <h3 style="margin-top:0;">🧹 Clean Up</h3>
+      <p style="font-size:0.9rem; color:#aaa; margin-bottom:1rem;">
+        Removes old backups, exports and rotates logs older than the retention period.
+      </p>
+      <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:#bbb;">Retention (days)</label>
+      <input id="cleanupDays" type="number" value="30" min="7"
+             style="width:80px; padding:0.4rem; text-align:center; margin-bottom:1.2rem; border-radius:4px; border:1px solid #555; background:#111; color:#fff;" />
+      <div style="display:flex; gap:1rem; justify-content:center;">
+        <button onclick="runCleanup(true)"  style="padding:0.5rem 1rem; background:#333; color:#fff; border:1px solid #555; border-radius:4px; cursor:pointer;">Dry Run</button>
+        <button onclick="runCleanup(false)" style="padding:0.5rem 1rem; background:#c0392b; color:#fff; border:none; border-radius:4px; cursor:pointer;">Run Now</button>
+        <button onclick="closeCleanupModal()" style="padding:0.5rem 1rem; background:transparent; color:#aaa; border:1px solid #444; border-radius:4px; cursor:pointer;">Cancel</button>
+      </div>
+      <div id="cleanupStatus" style="margin-top:1rem; font-size:0.85rem; color:#7dff7d; min-height:1.2rem;"></div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-backdrop" style="display:none;">
+    <div class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="settings-header">
+        <div id="settingsTitle" class="settings-title">Settings</div>
+        <button class="settings-close" onclick="closeSettings()" aria-label="Close">✕</button>
+      </div>
+
+      <div class="settings-tabs">
+        <button type="button" class="tab-btn active" data-tab="callsign">Callsign</button>
+        <button type="button" class="tab-btn" data-tab="timezone">Timezone</button>
+        <button type="button" class="tab-btn" data-tab="theme">Theme</button>
+      </div>
+
+      <div class="settings-body">
+        <div class="settings-pane active" data-pane="callsign">
+          <label class="form-label" for="set-callsign">Callsign</label>
+          <input type="text" class="form-control" id="set-callsign"
+                 value="{{ (settings.get('Callsign') or '') if settings else '' }}"
+                 placeholder="e.g., SIRBOB">
+        </div>
+
+        <div class="settings-pane" data-pane="timezone">
+          <label class="form-label" for="set-timezone">Timezone</label>
+          {% set tz_current = (settings.get('timezone') if settings else 'UTC') or 'UTC' %}
+          <select class="form-select" id="set-timezone">
+            {% for tz in [
+              'UTC','Australia/Sydney','Australia/Brisbane','Australia/Melbourne',
+              'Pacific/Auckland','Asia/Singapore','Europe/London','Europe/Paris',
+              'America/New_York','America/Los_Angeles'
+            ] %}
+              <option value="{{ tz }}" {% if tz == tz_current %}selected{% endif %}>{{ tz }}</option>
+            {% endfor %}
+          </select>
+          <small class="help">We can add more zones later.</small>
+        </div>
+
+        <div class="settings-pane" data-pane="theme">
+          <label class="form-label">Theme</label>
+          <div id="theme-grid" class="theme-grid"></div>
+          <small class="help">Click a card to preview. Saves when you press <b>Save</b>.</small>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <div id="settingsStatus" class="status"></div>
+        <div class="btn-row">
+          <button class="btn ghost" onclick="closeSettings()">Close</button>
+          <button id="saveSettingsBtn" class="btn primary" onclick="saveSettings()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% set HAS_GIT = is_server and show_commit_push and airtrack_urls is defined and ('git_commit' in airtrack_urls) and ('git_push' in airtrack_urls) %}
+  {% set HAS_UPDATE = airtrack_urls is defined and ('check_updates' in airtrack_urls) and ('run_updater' in airtrack_urls) %}
+
+  <!-- BEGIN Git / Updates modal -->
+  <div id="gitModal" class="modal-backdrop" style="display:none;">
+    <div class="settings-card" role="dialog" aria-modal="true" aria-labelledby="gitTitle">
+      <div class="settings-header">
+        <div id="gitTitle" class="settings-title">{% if HAS_GIT %}Git / Updates{% else %}Updates{% endif %}</div>
+        <button class="settings-close" onclick="closeGit()" aria-label="Close">✕</button>
+      </div>
+
+      <div class="settings-body">
+        {% if HAS_GIT %}
+        <section style="margin-bottom:12px;">
+          <label class="form-label" for="gitMessage">Commit message</label>
+          <input id="gitMessage" class="form-control" placeholder="e.g., fix: correct ICAO lookup"/>
+          <div class="btn-row" style="margin-top:8px;">
+            <button class="btn primary" onclick="gitCommit()">Commit</button>
+            <button class="btn ghost" onclick="gitPush()">Push</button>
+          </div>
+          <div id="gitStatus" class="status" style="margin-top:6px;"></div>
+        </section>
+        {% endif %}
+
+        {% if HAS_UPDATE %}
+        {% if HAS_GIT %}
+        <hr style="border:0;border-top:1px solid #1e1e1e;margin:12px 0;">
+        {% endif %}
+        <section>
+          <div class="btn-row">
+            <button class="btn ghost" onclick="checkUpdates()">Check for Updates</button>
+            <button class="btn primary" onclick="runUpdater()">Update Now</button>
+          </div>
+          <div id="gitAheadBehind" class="help" style="margin-top:6px;"></div>
+          <div id="updateStatus" class="status" style="margin-top:6px;"></div>
+        </section>
+        {% endif %}
+      </div>
+
+      <div class="settings-footer">
+        <div class="btn-row">
+          <button class="btn ghost" onclick="closeGit()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- END Git / Updates modal -->
+
+  <!-- Admin URLs for JS -->
+  <div id="airtrack-data"
+       data-airtrack='{{ airtrack_urls | tojson | safe }}'
+       data-allow-git="{{ 'true' if show_commit_push else 'false' }}"
+       data-is-server="{{ 'true' if is_server else 'false' }}"></div>
+
+  <script>
+    const el = document.getElementById('airtrack-data');
+    window.AIRTRACK = el ? JSON.parse(el.dataset.airtrack) : {};
+    window.AIRTRACK_FLAGS = {
+      allowGit: el ? el.dataset.allowGit === 'true' : false,
+      isServer: el ? el.dataset.isServer === 'true' : false,
+    };
+  </script>
+
+  <!-- Your cockpit JS -->
+  <script src="{{ url_for('static', filename='js/admin.js') }}?v={{ time() }}-s1"></script>
+
+  <!-- CSRF + Git/Updates + Settings/Municipality helpers -->
+  <script>
+    function getCSRF() {
+      const m = document.querySelector('meta[name="csrf-token"]');
+      return m ? m.getAttribute('content') : '';
+    }
+
+    function setStatus(id, msg, ok = true) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = msg;
+      el.className = ok ? 'status ok' : 'status err';
+    }
+
+    async function postJSON(url, payload, statusId) {
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF(), 'Accept': 'application/json' },
+          body: JSON.stringify(payload || {})
+        });
+        const raw = await resp.text();
+        let data;
+        try { data = JSON.parse(raw); } catch { data = {}; }
+
+        if (!resp.ok) {
+          const msg = data.detail || data.message || data.error || resp.statusText || `HTTP ${resp.status}`;
+          throw new Error(msg);
+        }
+        if (statusId) setStatus(statusId, data.detail || data.message || 'Done', true);
+        return data;
+      } catch (err) {
+        if (statusId) setStatus(statusId, `Error: ${err.message}`, false);
+        throw err;
+      }
+    }
+
+    async function getJSON(url) {
+      const resp = await fetch(url, { method: 'GET', credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+      const raw = await resp.text();
+      try { return { ok: resp.ok, status: resp.status, data: JSON.parse(raw) }; }
+      catch { return { ok: resp.ok, status: resp.status, data: {} }; }
+    }
+
+    function openLogsOverlay() {
+      const w = document.getElementById("logViewerWrapper");
+      const f = document.getElementById("logViewer");
+
+      if (!w || !f) {
+        console.error("Log viewer elements not found (logViewerWrapper / logViewer).");
+        return;
+      }
+
+      f.src = "/admin_tools/logs";
+      w.style.display = "block";
+    }
+
+    function closeLogsOverlay() {
+      const w = document.getElementById("logViewerWrapper");
+      const f = document.getElementById("logViewer");
+
+      if (w) w.style.display = "none";
+      if (f) f.src = "";
+    }
+
+    function openMunicipalityModal() {
+      document.getElementById('municipalityModal').style.display = 'flex';
+    }
+
+    function closeMunicipalityModal() {
+      document.getElementById('municipalityModal').style.display = 'none';
+      document.getElementById('icaoInput').value = '';
+      document.getElementById('cityInput').value = '';
+    }
+
+    function submitMunicipality() {
+      const icao = (document.getElementById('icaoInput').value || '').trim().toUpperCase();
+      const city = (document.getElementById('cityInput').value || '').trim();
+      if (!icao || !city) { showModal("❌ ICAO and City are required"); return; }
+
+      fetch('/admin_tools/update_municipality', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
+        credentials: 'same-origin',
+        body: JSON.stringify({ icao, city })
+      })
+      .then(r => r.json().catch(() => ({})))
+      .then(d => {
+        (d && (d.success || d.ok))
+          ? showModal(`✅ Updated ${icao} with city "${city}"`)
+          : showModal(`❌ Failed: ${(d && (d.message || d.detail)) || 'Unknown error'}`);
+        closeMunicipalityModal();
+      })
+      .catch(() => { showModal("❌ Request failed"); closeMunicipalityModal(); });
+    }
+
+    function showModal(message) {
+      const m = document.getElementById("modal");
+      const msg = document.getElementById("modalMessage");
+      msg.innerText = message;
+      m.style.display = "flex";
+      setTimeout(() => { m.style.display = "none"; }, 2500);
+    }
+
+    function confirmFlush() {
+      const input = prompt("⚠️ Type CONFIRM to erase all data.");
+      if (input === "CONFIRM") {
+        document.getElementById("confirm_flush").value = "CONFIRM";
+        showModal('Database flushed');
+        return true;
+      }
+      alert("Flush cancelled.");
+      return false;
+    }
+
+    function openSettings() {
+      fetch("/admin_tools/rescan_themes", { method: "POST" }).catch(() => {});
+      document.getElementById('settingsModal').style.display = 'flex';
+      activateSettingsTab('callsign');
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsModal').style.display = 'none';
+    }
+
+    document.addEventListener('click', (e) => {
+      const modal = document.getElementById('settingsModal');
+      if (e.target === modal) closeSettings();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeSettings();
+    });
+
+    function activateSettingsTab(name) {
+      document.querySelectorAll('#settingsModal .tab-btn')
+        .forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === name));
+      document.querySelectorAll('#settingsModal .settings-pane')
+        .forEach(p => p.classList.toggle('active', p.getAttribute('data-pane') === name));
+    }
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('#settingsModal .tab-btn');
+      if (!btn) return;
+      const name = btn.getAttribute('data-tab');
+      if (name) activateSettingsTab(name);
+    });
+
+    // ---------- Theme grid setup -------------------------------------------
+    (function () {
+      const grid = document.getElementById('theme-grid');
+      const current = localStorage.getItem('airtrack-theme') || 'default';
+
+      function applyTheme(t) {
+        [document.documentElement, document.body].forEach(el => {
+          el.className = el.className.replace(/\btheme-\S+/g, '').trim();
+          el.classList.add('theme-' + t);
+        });
+        localStorage.setItem('airtrack-theme', t);
+      }
+      window._applyTheme = applyTheme;
+
+      if (grid) {
+        fetch('/static/themes/themes.json?v=' + Date.now())
+          .then(r => r.json())
+          .then(list => {
+            grid.innerHTML = list.map(t => `
+              <label class="theme-card ${t.value === current ? 'active' : ''}" data-theme="${t.value}" title="${t.name}">
+                <input type="radio" name="set-theme" value="${t.value}" ${t.value === current ? 'checked' : ''}>
+                <img class="theme-thumb" src="${t.thumb_url}" alt="${t.name} thumbnail" loading="lazy">
+                <div class="theme-name">${t.name}</div>
+              </label>
+            `).join('');
+            grid.addEventListener('click', e => {
+              const card = e.target.closest('.theme-card');
+              if (!card) return;
+              const t = card.dataset.theme;
+              grid.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c === card));
+              grid.querySelectorAll('input[name="set-theme"]').forEach(i => i.checked = (i.value === t));
+              applyTheme(t);
+            });
+          })
+          .catch(() => { grid.innerHTML = '<p style="opacity:.7">Could not load themes.</p>'; });
+      }
+    })();
+
+    // ---------- Save Settings (global so onclick= works) --------------------
+    window.saveSettings = async function saveSettings() {
+      const callsign = (document.getElementById('set-callsign')?.value || '').trim();
+      const timezone = (document.getElementById('set-timezone')?.value || 'UTC').trim();
+      const theme = (document.querySelector('input[name="set-theme"]:checked')?.value || 'default');
+      const statusEl = document.getElementById('settingsStatus');
+      const saveBtn = document.getElementById('saveSettingsBtn');
+
+      function setStatusBar(msg, ok) {
+        if (!statusEl) return;
+        statusEl.textContent = msg || '';
+        statusEl.className = (ok !== false) ? 'status ok' : 'status err';
+      }
+
+      setStatusBar('Saving…', true);
+      if (saveBtn) saveBtn.disabled = true;
+
+      try {
+        const r1 = await postJSON('{{ url_for("admin.save_settings") }}', { callsign, first_name: '', last_name: '' });
+        if (!r1 || !r1.success) throw new Error((r1 && r1.error) || 'save_settings failed');
+        const r2 = await postJSON('{{ url_for("admin.update_app_settings") }}', { timezone, theme });
+        if (!r2 || !r2.success) throw new Error((r2 && r2.error) || 'update_app_settings failed');
+        if (window._applyTheme) window._applyTheme(theme);
+        setStatusBar('Saved.', true);
+        setTimeout(() => location.reload(), 600);
+      } catch (e) {
+        console.error('saveSettings error:', e);
+        setStatusBar('Failed to save settings.', false);
+      } finally {
+        if (saveBtn) saveBtn.disabled = false;
+      }
+    }
+
+    const API = (window.AIRTRACK || {});
+
+    function openGit() { document.getElementById('gitModal').style.display = 'flex'; }
+    function closeGit() { document.getElementById('gitModal').style.display = 'none'; }
+
+    async function isElevated() {
+      try {
+        const r = await fetch('/admin_tools/admin/protected/ping', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+        if (!r.ok) return false;
+        const j = await r.json().catch(() => ({}));
+        return !!j.protected;
+      } catch { return false; }
+    }
+
+    function explain403(which, statusId) {
+      setStatus(statusId, `❌ ${which}: forbidden. This action requires server elevation (YubiKey). Press Ctrl+Alt+S or run with AIRTRACK_ROLE=server.`, false);
+    }
+
+    async function gitCommit() {
+      if (!API.git_commit) return setStatus('gitStatus', 'Git commit endpoint not configured.', false);
+      const msg = (document.getElementById('gitMessage').value || '').trim();
+      if (!msg) return setStatus('gitStatus', 'Commit message required.', false);
+      if (!(await isElevated())) return explain403('Commit', 'gitStatus');
+
+      setStatus('gitStatus', 'Committing…', true);
+      const r = await postJSON(API.git_commit, { message: msg }, 'gitStatus').catch(() => null);
+      if (r && r.status === 'noop') setStatus('gitStatus', 'ℹ️ Nothing to commit.', true);
+    }
+
+    async function gitPush() {
+      if (!API.git_push) return setStatus('gitStatus', 'Git push endpoint not configured.', false);
+      if (!(await isElevated())) return explain403('Push', 'gitStatus');
+
+      setStatus('gitStatus', 'Pushing…', true);
+      await postJSON(API.git_push, {}, 'gitStatus').catch(() => null);
+    }
+
+    async function checkUpdates() {
+      if (!API.check_updates) return setStatus('updateStatus', 'Check updates endpoint not configured.', false);
+
+      setStatus('updateStatus', 'Checking…', true);
+      const r = await getJSON(API.check_updates);
+      if (!r.ok) {
+        if (r.status === 405) setStatus('updateStatus', '❌ METHOD NOT ALLOWED — endpoint expects GET.', false);
+        else setStatus('updateStatus', `❌ Error: HTTP ${r.status}`, false);
+        return;
+      }
+
+      const d = r.data || {};
+      const behind = d.behind || 0;
+      const ahead = d.ahead || 0;
+      document.getElementById('gitAheadBehind').textContent =
+        (behind || ahead) ? `Ahead ${ahead}, behind ${behind}.` : 'Up to date.';
+
+      if ((Array.isArray(d.files_needing_update) && d.files_needing_update.length) || d.emergency_update) {
+        setStatus('updateStatus', '⬆️ Updates available.', true);
+      } else {
+        setStatus('updateStatus', '✅ Up to date.', true);
+      }
+    }
+
+    async function runUpdater() {
+      if (!API.run_updater) return setStatus('updateStatus', 'Updater endpoint not configured.', false);
+
+      // Git elevation only required on server. Clients update via HTTPS, no elevation needed.
+      if (window.AIRTRACK_FLAGS.isServer) {
+        if (!(await isElevated())) return explain403('Update', 'updateStatus');
+      }
+
+      setStatus('updateStatus', 'Updating…', true);
+      const d = await postJSON(API.run_updater, {}, 'updateStatus').catch(() => null);
+      if (d && d.status === 'success') {
+        if (d.restart_required) {
+            const banner = document.createElement('div');
+            banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#f0a500;color:#0a1628;text-align:center;padding:1rem;font-weight:bold;z-index:9999;font-size:1.1rem;';
+            banner.innerHTML = '⚠ Update applied. Please restart your AirTrack container to complete the update: <code>docker compose down && docker compose up -d</code>';
+            document.body.prepend(banner);
+        } else {
+            setTimeout(() => location.reload(), 1200);
+        }
+      }
+    }
+
+    async function runCleanup(dryRun) {
+      const url = (window.AIRTRACK || {}).housekeeping;
+      const statusEl = document.getElementById('cleanupStatus');
+
+      if (!url) {
+        statusEl.style.color = '#ff6b6b';
+        statusEl.textContent = '❌ Housekeeping endpoint not available.';
+        return;
+      }
+
+      const days = parseInt(document.getElementById('cleanupDays').value) || 30;
+      statusEl.style.color = '#7dff7d';
+      statusEl.textContent = dryRun ? 'Running dry run…' : 'Cleaning up…';
+
+      try {
+        const d = await postJSON(url, { dry_run: dryRun, retention_days: days });
+        const b = d.deleted_backups || {};
+        const e = d.deleted_exports || {};
+        const l = d.rotated_logs || {};
+        const prefix = dryRun ? '[Dry run] Would remove' : 'Removed';
+        statusEl.textContent =
+          `${prefix} ${b.files || 0} backup(s), ${e.files || 0} export(s). ` +
+          `Logs: ${l.compressed || 0} compressed, ${l.deleted || 0} deleted.`;
+        if (!dryRun) showModal('✅ Clean Up complete.');
+      } catch (err) {
+        statusEl.style.color = '#ff6b6b';
+        statusEl.textContent = `❌ ${err.message}`;
+      }
+    }
+
+    function openCleanupModal() {
+      document.getElementById('cleanupStatus').textContent = '';
+      document.getElementById('cleanupDays').value = 30;
+      document.getElementById('cleanupModal').style.display = 'flex';
+    }
+
+    function closeCleanupModal() {
+      document.getElementById('cleanupModal').style.display = 'none';
+    }
+
+  </script>
+</body>
+</html>

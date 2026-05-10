@@ -1,0 +1,48 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+<head>
+    <meta charset="UTF-8">
+    <title>Device Status</title>
+    <style>
+        .led-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-family: "Segoe UI", sans-serif;
+            color: #f0f0f0;
+        }
+        .led {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+            background-color: #ccc;
+        }
+        .led.green { background-color: #4CAF50; }
+        .led.yellow { background-color: #FFEB3B; }
+        .led.red { background-color: #F44336; }
+
+        body {
+            background-color: #1f1f1f;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    {% for name, color in statuses.items() %}
+        <div class="led-status">
+            <span class="led {{ color }}"></span>
+            <span>{{ name }}</span>
+        </div>
+    {% endfor %}
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

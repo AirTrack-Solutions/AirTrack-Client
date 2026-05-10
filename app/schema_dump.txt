@@ -1,0 +1,935 @@
+
+============================================================
+TABLE: aircraft
+============================================================
+  AircraftID                     int(11) [PRI] NOT NULL auto_increment
+  AirlineID                      int(11) [MUL]
+  FlightNumber                   varchar(255)
+  Registration                   varchar(255)
+  Aircraft_Type                  varchar(255)
+  MSN                            varchar(100)
+  Times_Seen                     int(11)
+  Departure                      varchar(255)
+  Arrival                        varchar(255)
+  Country_of_Reg                 varchar(255)
+  Country_Flag                   varchar(255)
+  Aircraft_Image                 varchar(255)
+  Notes                          text
+  Age                            int(11)
+  First_Sighted                  datetime
+  Sightings                      int(11) DEFAULT=1
+  Timestamp                      datetime DEFAULT=current_timestamp()
+  Manufacture_Year               year(4)
+  Manufacture_Month              tinyint(4)
+  Category                       varchar(100)
+  Engine_Type                    varchar(50)
+  Orphaned                       tinyint(4) DEFAULT=0
+  Aircraft_Updated               timestamp NOT NULL DEFAULT=current_timestamp()
+  Spotted_At                     varchar(255)
+  ICAO_Address                   varchar(255) [UNI]
+
+============================================================
+TABLE: aircraft_images
+============================================================
+  ImageID                        int(11) [PRI] NOT NULL auto_increment
+  AircraftID                     int(11) [MUL] NOT NULL
+  Registration                   varchar(20) [MUL] NOT NULL
+  Filename                       varchar(255) NOT NULL
+  Image_Number                   tinyint(4) NOT NULL DEFAULT=2
+  Uploaded_At                    datetime NOT NULL DEFAULT=current_timestamp()
+
+============================================================
+TABLE: aircraft_owners
+============================================================
+  OwnerID                        int(11) [PRI] NOT NULL auto_increment
+  AircraftID                     int(11) [MUL] NOT NULL
+  AirlineID                      int(11) [MUL] NOT NULL
+  From_Date                      date NOT NULL
+  To_Date                        date
+  Notes                          varchar(255)
+
+============================================================
+TABLE: airlines
+============================================================
+  AirlineID                      int(11) [PRI] NOT NULL auto_increment
+  AirlineName                    varchar(255) [UNI] NOT NULL
+  Last_Updated                   timestamp DEFAULT=current_timestamp() on update current_timestamp()
+  Logo                           varchar(255)
+  Country                        varchar(100)
+  IATA                           varchar(10)
+  ICAO                           varchar(10)
+  Callsign                       varchar(50)
+
+============================================================
+TABLE: airports
+============================================================
+  ICAO                           varchar(10) [MUL] NOT NULL
+  IATA                           varchar(3)
+  AirportName                    varchar(255) NOT NULL
+  Country                        varchar(50) NOT NULL
+  id                             int(11) [PRI] NOT NULL
+  ident                          varchar(10)
+  type                           varchar(50)
+  latitude_deg                   decimal(10,8)
+  longitude_deg                  decimal(11,8)
+  elevation_ft                   int(11)
+  continent                      varchar(2)
+  iso_country                    varchar(2)
+  iso_region                     varchar(10)
+  municipality                   varchar(100)
+  scheduled_service              varchar(3)
+  gps_code                       varchar(10)
+  local_code                     varchar(10)
+  home_link                      text
+  wikipedia_link                 text
+  keywords                       text
+
+============================================================
+TABLE: app_settings
+============================================================
+  SettingKey                     varchar(100) [PRI] NOT NULL
+  SettingValue                   varchar(200)
+
+============================================================
+TABLE: argentina
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: armenia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  airline                        varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: audit_country_updates
+============================================================
+  AircraftID                     int(11) [PRI] NOT NULL
+  Registration                   varchar(255)
+  Existing_Country_of_Reg        varchar(255)
+  Suggested_Country_of_Reg       varchar(255)
+  Status                         enum('Pending','Approved','Rejected') DEFAULT=Pending
+
+============================================================
+TABLE: australia
+============================================================
+  registration                   varchar(10) [PRI] NOT NULL
+  aircraftmanufacturer           varchar(100)
+  aircraftmodel                  varchar(50)
+  msn                            varchar(50)
+  maxtakeoffweight               int(11)
+  enginecount                    int(11)
+  enginemanufacturer             varchar(100)
+  enginetype                     varchar(50)
+  enginemodel                    varchar(50)
+  fueltype                       varchar(50)
+  registrationtype               varchar(50)
+  registeredowner                varchar(150)
+  registeredownercountry         varchar(50)
+  operatorname                   varchar(150)
+  operatorcountry                varchar(50)
+  firstregistrationdate          date
+  airframe                       varchar(100)
+  propmanu                       varchar(100)
+  propmodel                      varchar(50)
+  typecert                       varchar(50)
+  countrymanu                    varchar(50)
+  yearmanu                       int(11)
+  icaotypedesig                  varchar(10)
+
+============================================================
+TABLE: austria
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: bahamas
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: belgium
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: bhutan
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: bolivia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: brazil
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: canada
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: cayman_islands
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: chile
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: china
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: costa_rica
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: croatia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: cuba
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: customers
+============================================================
+  id                             int(11) [PRI] NOT NULL auto_increment
+  email                          varchar(255) [UNI] NOT NULL
+  stripe_customer_id             varchar(255)
+  name                           varchar(255)
+  country                        varchar(120)
+  phone                          varchar(50)
+  created_at                     timestamp DEFAULT=current_timestamp()
+
+============================================================
+TABLE: cyprus
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: czech_republic
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: denmark
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: egypt
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: estonia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: ethiopia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: flights
+============================================================
+  FlightID                       int(11) [PRI] NOT NULL auto_increment
+  AircraftID                     int(11)
+  AirlineID                      int(11) [MUL]
+  FlightNumber                   varchar(255)
+  Registration                   varchar(255)
+  MSN                            varchar(50)
+  Aircraft_Type                  varchar(255)
+  Times_Seen                     int(11)
+  Departure                      varchar(255)
+  Arrival                        varchar(255)
+  Country_of_Reg                 varchar(255)
+  Country_Flag                   varchar(255)
+  Flight_Image                   varchar(255)
+  Notes                          text
+  Flight_Updated                 timestamp DEFAULT=current_timestamp() on update current_timestamp()
+  Timestamp                      datetime DEFAULT=current_timestamp()
+  Spotted_At                     varchar(100)
+
+============================================================
+TABLE: france
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: georgia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: germany
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: greece
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: guernsey
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: hungary
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: iceland
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: indonesia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: iran
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: ireland
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: italy
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: japan
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: liberia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: license_activity
+============================================================
+  ActivityID                     int(11) [PRI] NOT NULL auto_increment
+  LicenseID                      int(11) [MUL] NOT NULL
+  EventType                      varchar(100) NOT NULL
+  EventDetails                   text
+  CreatedAt                      datetime
+
+============================================================
+TABLE: licenses
+============================================================
+  id                             int(11) [PRI] NOT NULL auto_increment
+  customer_id                    int(11) [MUL] NOT NULL
+  license_type                   enum('standard','professional','institutional') NOT NULL
+  license_key                    varchar(64) [UNI] NOT NULL
+  stripe_session_id              varchar(255)
+  stripe_payment_intent          varchar(255)
+  purchase_amount                decimal(10,2)
+  purchase_currency              varchar(10) DEFAULT=AUD
+  active                         tinyint(1) DEFAULT=1
+  created_at                     timestamp DEFAULT=current_timestamp()
+  expires_at                     timestamp
+
+============================================================
+TABLE: lithuania
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: luxembourg
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: migrations
+============================================================
+  id                             int(11) [PRI] NOT NULL auto_increment
+  migration                      varchar(255) [UNI] NOT NULL
+  applied_at                     datetime NOT NULL DEFAULT=current_timestamp()
+
+============================================================
+TABLE: morocco
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: netherlands
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: new_zealand
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: norway
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: pakistan
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: panama
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: poland
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: prefixes
+============================================================
+  id                             int(11) [PRI] NOT NULL auto_increment
+  country                        varchar(100)
+  last_registry_update           date
+
+============================================================
+TABLE: qatar
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: registration_prefixes
+============================================================
+  Reg_Prefix                     varchar(10) [PRI] NOT NULL
+  Country_of_Reg                 varchar(255) NOT NULL
+
+============================================================
+TABLE: romania
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: russia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: san_marino
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: saudi_arabia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: settings
+============================================================
+  id                             int(11) [PRI] NOT NULL DEFAULT=1
+  show_disclaimer                tinyint(1) DEFAULT=1
+
+============================================================
+TABLE: slovakia
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: south_africa
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: south_korea
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: spain
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: suriname
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: switzerland
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: thailand
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: turkey
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: united_arab_emirates
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: united_kingdom
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date
+
+============================================================
+TABLE: united_states
+============================================================
+  n_number                       varchar(10)
+  serial_number                  varchar(50)
+  mfr_mdl_code                   varchar(10)
+  eng_mfr_mdl                    varchar(50)
+  year_mfr                       varchar(4)
+  type_aircraft                  varchar(2)
+  type_engine                    varchar(2)
+  certification                  varchar(10)
+  status_code                    varchar(2)
+  mode_s_code                    varchar(15)
+  mode_s_hex                     varchar(10)
+  air_worth_date                 varchar(10)
+  expiration_date                varchar(10)
+  unique_id                      varchar(20)
+
+============================================================
+TABLE: uruguay
+============================================================
+  registration                   varchar(20) [PRI] NOT NULL
+  model                          varchar(100)
+  operator                       varchar(100)
+  serial                         varchar(50)
+  age                            varchar(20)
+  icao_address                   varchar(6)
+  date_of_registration           date
+  valid_until                    date

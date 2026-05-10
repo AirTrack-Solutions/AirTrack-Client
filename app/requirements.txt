@@ -1,0 +1,32 @@
+# AirTrack 1.0.0 'Wilbur' — Release 300
+# Requirements file for production builds
+
+# Core
+Flask==3.0.3
+Werkzeug==3.0.3
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.32
+MarkupSafe==2.1.5
+requests==2.32.3
+python-dotenv==1.0.1
+pytz==2024.1
+flask-wtf==1.2.1
+stripe==10.9.0
+
+# DB driver (pure Python; no compile step)
+PyMySQL==1.1.1
+
+# Security / WebAuthn (unchanged)
+webauthn==2.1.0
+cryptography==45.0.7
+pyOpenSSL==25.1.0
+cbor2==5.7.0
+asn1crypto==1.5.1
+itsdangerous==2.2.0
+
+# SSH tools
+paramiko==3.4.0
+
+# Prod server
+gunicorn==21.2.0
+nano

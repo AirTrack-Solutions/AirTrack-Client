@@ -1,0 +1,156 @@
+Hi [Name],
+
+Thank you for purchasing AirTrack. Your license file is attached to this email.
+
+Follow the steps below to get up and running.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━
+BEFORE YOU START
+━━━━━━━━━━━━━━━━━━━━━━━
+
+AirTrack runs inside Docker, which you will need to install first if you haven't already.
+
+Windows: https://www.docker.com/products/docker-desktop
+Linux: Install via your package manager: sudo apt install docker.io docker-compose-plugin
+
+Once Docker is installed and running, you are ready to proceed.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — DOWNLOAD AIRTRACK
+━━━━━━━━━━━━━━━━━━━━━━━
+
+Click the link below to download AirTrack as a ZIP file — no tools or accounts required.
+
+https://github.com/Subhuti/AirTrack-Client/archive/refs/heads/main.zip
+
+── WINDOWS ──
+
+1. Create a folder for your Docker apps, e.g. C:\docker\AirTrack
+2. Click the link above to download the ZIP
+3. Right-click the downloaded file and select "Extract All"
+4. Extract the contents into C:\docker\AirTrack
+
+── LINUX / RASPBERRY PI ──
+
+1. Create a folder for your Docker apps:
+   mkdir -p ~/docker/AirTrack
+   cd ~/docker/AirTrack
+
+2. Download the ZIP using wget:
+   wget -O airtrack.zip https://github.com/Subhuti/AirTrack-Client/archive/refs/heads/main.zip
+
+3. Extract it:
+   unzip airtrack.zip
+
+4. Move the contents into place:
+   mv AirTrack-Client-main/* .
+   rm -rf AirTrack-Client-main airtrack.zip
+
+
+━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — INSTALL YOUR LICENSE
+━━━━━━━━━━━━━━━━━━━━━━━
+
+Copy the attached license.lic file into the app/config/ folder inside your AirTrack directory.
+
+Windows example: C:\docker\AirTrack\app\config\license.lic
+Linux example:   ~/docker/AirTrack/app/config/license.lic
+
+Linux one-liner:
+   cp license.lic ~/docker/AirTrack/app/config/
+
+
+━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — FIRST TIME SETUP
+━━━━━━━━━━━━━━━━━━━━━━━
+
+── WINDOWS ──
+
+1. Open the AirTrack folder
+2. Right-click setup-airtrack.ps1 and select "Run with PowerShell"
+3. If prompted about execution policy, type Y and press Enter
+4. Wait for the build to complete — this may take a few minutes the first time
+5. Your browser will open automatically at http://localhost:5000 when ready
+
+── LINUX / RASPBERRY PI ──
+
+1. Open a terminal and navigate to your AirTrack folder:
+   cd ~/docker/AirTrack
+
+2. Make the scripts executable:
+   chmod +x install.sh start.sh stop.sh
+
+3. Run the installer:
+   ./install.sh
+
+4. AirTrack will be available at http://localhost:5000 when ready
+
+
+━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4 — STARTING AND STOPPING
+━━━━━━━━━━━━━━━━━━━━━━━
+
+After the first install, use these scripts to start and stop AirTrack:
+
+── WINDOWS ──
+start.bat  — Starts AirTrack and opens your browser
+stop.bat   — Stops AirTrack
+
+── LINUX / RASPBERRY PI ──
+./start.sh — Starts AirTrack
+./stop.sh  — Stops AirTrack
+
+
+━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5 — CREATE A DESKTOP SHORTCUT (OPTIONAL)
+━━━━━━━━━━━━━━━━━━━━━━━
+
+── WINDOWS ──
+
+1. Right-click start.bat and select "Send to" → "Desktop (create shortcut)"
+2. Right-click the shortcut and select "Properties"
+3. Click "Change Icon" to personalise it
+4. Double-clicking the shortcut will start AirTrack and open your browser
+
+── LINUX ──
+
+1. Create a file called AirTrack.desktop on your Desktop
+2. Paste the following (adjust the path to match your install location):
+
+[Desktop Entry]
+Name=AirTrack
+Exec=/home/yourusername/docker/AirTrack/start.sh
+Icon=/home/yourusername/docker/AirTrack/app/static/images/favicon.ico
+Terminal=true
+Type=Application
+
+3. Right-click the file and select "Allow Launching"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━
+ADVANCED — FOR DEVELOPERS ONLY
+━━━━━━━━━━━━━━━━━━━━━━━
+
+If you prefer to clone the repository rather than download the ZIP:
+
+HTTPS:  https://github.com/Subhuti/AirTrack-Client.git
+SSH:    git@github.com:Subhuti/AirTrack-Client.git
+
+
+━━━━━━━━━━━━━━━━━━━━━━━
+NEED HELP?
+━━━━━━━━━━━━━━━━━━━━━━━
+
+Full documentation and FAQs are available at:
+https://www.airtracksolutions.com/faqs.html
+
+Or contact us directly at:
+https://www.airtracksolutions.com/contact.html
+
+Welcome aboard, and happy spotting.
+
+Trevor
+AirTrack Solutions
+https://www.airtracksolutions.com

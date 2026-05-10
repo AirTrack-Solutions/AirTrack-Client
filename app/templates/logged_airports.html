@@ -1,0 +1,62 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow p-4">
+        <h2 class="text-center mb-3">Logged Airports</h2>
+
+        {% if airports %}
+            <table class="table table-bordered table-hover table-striped align-middle">
+                <thead class="table-dark">
+                <tr>
+                    <th><a href="?sort=ICAO" class="text-white">ICAO</a></th>
+                    <th><a href="?sort=AirportName" class="text-white">Airport Name</a></th>
+                    <th><a href="?sort=Country" class="text-white">Country</a></th>
+                    <th>Links</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                    {% for airport in airports %}
+                    <tr>
+
+                        <!-- ICAO with link + airport display -->
+                        <td>
+                            <a href="{{ url_for('airports.airport_info', icao=airport.ICAO) }}">
+                                {{ airport.ICAO | airport }}
+                            </a>
+                        </td>
+
+                        <!-- Raw name (correct) -->
+                        <td>{{ airport.AirportName }}</td>
+
+                        <!-- Country with flag -->
+                        <td>
+                            <img src="{{ url_for('static', filename='flags/' + get_country_flag(airport.Country)) }}"
+                                 alt="{{ airport.Country }}" width="24" height="16" class="me-1">
+                            {{ airport.Country }}
+                        </td>
+
+                        <!-- External links -->
+                        <td>
+                            <a href="https://www.google.com/search?q={{ airport.AirportName | urlencode }}"
+                               target="_blank" class="btn btn-sm btn-primary">Website</a>
+
+                            <a href="https://en.wikipedia.org/wiki/{{ airport.AirportName | replace(' ', '_') }}"
+                               target="_blank" class="btn btn-sm btn-secondary">Wikipedia</a>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-center">No airports logged yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

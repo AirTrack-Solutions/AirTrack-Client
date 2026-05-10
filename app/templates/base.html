@@ -1,0 +1,94 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AirTrack{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/datatables.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/background.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+    {% block extra_styles %}{% endblock %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body class="theme-{{ selected_theme }}">
+    {% include 'header.html' %}
+
+    <main class="container-fluid mt-3">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/datatables.min.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      if (!token) return;
+      document.querySelectorAll('form').forEach(function (form) {
+        const method = (form.getAttribute('method') || 'get').toLowerCase();
+        if (method !== 'post') return;
+        if (!form.querySelector('input[name="csrf_token"]')) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'csrf_token';
+          input.value = token;
+          form.appendChild(input);
+        }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (!token) return;
+
+    // ---- Inject hidden input into POST forms ----
+    document.querySelectorAll('form').forEach(function (form) {
+        const method = (form.getAttribute('method') || 'get').toLowerCase();
+        if (method !== 'post') return;
+        if (!form.querySelector('input[name="csrf_token"]')) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'csrf_token';
+        input.value = token;
+        form.appendChild(input);
+        }
+    });
+
+    // ---- jQuery AJAX CSRF header ----
+    if (window.jQuery) {
+        $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+            xhr.setRequestHeader("X-CSRFToken", token);
+            }
+        }
+        });
+    }
+
+    // ---- fetch() wrapper for CSRF ----
+    const origFetch = window.fetch;
+    window.fetch = function(input, init = {}) {
+        init.headers = init.headers || {};
+        if (!init.method || !/^(GET|HEAD|OPTIONS|TRACE)$/i.test(init.method)) {
+        init.headers["X-CSRFToken"] = token;
+        }
+        return origFetch(input, init);
+    };
+    });
+    </script>
+
+</body>
+</html>

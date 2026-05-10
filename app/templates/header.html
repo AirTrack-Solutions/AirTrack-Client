@@ -1,0 +1,219 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+<!-- AirTrack Header — Corrected Layout -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<div class="header-container">
+
+    <!-- ================= TOP ROW ================= -->
+    <div class="header-top">
+
+        <!-- Left: Title -->
+        <div class="header-left">
+            <h1 class="header-title">AirTrack Logbook</h1>
+            <div class="header-version">Ver 1.0.0 (Wilbur - R300)</div>
+        </div>
+
+        <div class="callsign-banner">
+            {{ settings.get('Callsign','') if settings else '' }}
+        </div>
+
+        <!-- Right: Cockpit -->
+        <div class="header-right">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-link">🛠 Cockpit</a>
+        </div>
+
+    </div>
+
+    <!-- ================= SECOND ROW ================= -->
+    <div class="header-second-row">
+
+        <!-- Left: Subtitle -->
+        <div class="header-subline">
+            A Hobbyist Aircraft Database by AirTrack Solutions
+        </div>
+
+        <!-- Right: Navigation links -->
+        <div class="header-links">
+            <a href="{{ url_for('index') }}">Home</a>
+            <a href="{{ url_for('airlines.airlines_table') }}">Airlines</a>
+            <a href="{{ url_for('airlines.add_airline') }}">Add Airline</a>
+            <a href="{{ url_for('aircraft.aircraft_table') }}">Aircraft</a>
+            <a href="{{ url_for('add_aircraft.add_aircraft') }}">Add Aircraft</a>
+            <a href="{{ url_for('reports') }}">Reports</a>
+            <a href="{{ url_for('aircraft.upload_aircraft_image') }}">Upload Aircraft Image</a>
+            <a href="https://www.flightradar24.com/" target="_blank" rel="noopener noreferrer">Live Flights</a>
+            <a href="{{ url_for('admin.user_guide') }}">User Guide</a>
+        </div>
+
+    </div>
+
+    <!-- ================= SMART ASK DRAWER ================= -->
+    <div class="smart-ask-drawer" id="smartAskDrawer">
+        <div class="smart-ask-drawer-input-row">
+            <input type="text" id="headerAskInput" class="smart-ask-drawer-input"
+                placeholder="Ask about your logbook or find a page…" autocomplete="off">
+            <button id="headerAskBtn" class="smart-ask-drawer-btn">Ask</button>
+            <button class="smart-ask-drawer-close" id="headerAskClose" aria-label="Close">✕</button>
+        </div>
+        <div id="headerAskResult" class="smart-ask-drawer-result" style="display:none;"></div>
+    </div>
+
+</div>
+
+<!-- Smart Ask toggle — sits just below the header container -->
+<div class="smart-ask-toggle-row">
+    <button class="smart-ask-toggle" id="smartAskToggle">✦ Ask AI</button>
+</div>
+
+<script>
+(function () {
+    var toggle   = document.getElementById("smartAskToggle");
+    var drawer   = document.getElementById("smartAskDrawer");
+    var input    = document.getElementById("headerAskInput");
+    var btn      = document.getElementById("headerAskBtn");
+    var closeBtn = document.getElementById("headerAskClose");
+    var result   = document.getElementById("headerAskResult");
+
+    if (!toggle || !drawer) return;
+
+    toggle.addEventListener("click", function () {
+        var open = drawer.classList.toggle("smart-ask-drawer-open");
+        if (open) { input.focus(); result.style.display = "none"; }
+    });
+
+    if (closeBtn) {
+        closeBtn.addEventListener("click", function () {
+            drawer.classList.remove("smart-ask-drawer-open");
+        });
+    }
+
+    document.addEventListener("click", function (e) {
+        if (!drawer.contains(e.target) && e.target !== toggle) {
+            drawer.classList.remove("smart-ask-drawer-open");
+        }
+    });
+
+    function buildTable(columns, rows) {
+        if (!rows.length) return "<p class='smart-ask-no-results'>No results found.</p>";
+        var html = "<div class='smart-ask-table-wrap'><table class='smart-ask-table'><thead><tr>";
+        columns.forEach(function (c) { html += "<th>" + c + "</th>"; });
+        html += "</tr></thead><tbody>";
+        rows.forEach(function (row) {
+            html += "<tr>";
+            columns.forEach(function (c) { html += "<td>" + (row[c] != null ? row[c] : "") + "</td>"; });
+            html += "</tr>";
+        });
+        return html + "</tbody></table></div>";
+    }
+
+    async function doAsk() {
+        var question = input.value.trim();
+        if (!question) return;
+
+        btn.disabled = true;
+        btn.textContent = "Thinking…";
+        result.style.display = "block";
+        result.className = "smart-ask-drawer-result smart-ask-loading";
+        result.innerHTML = "Asking AirTrack Intelligence…";
+
+        try {
+            var csrf = document.querySelector('meta[name="csrf-token"]');
+            var csrfToken = csrf ? csrf.getAttribute("content") : "";
+            var resp = await fetch("/reports/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+                body: JSON.stringify({ question: question })
+            });
+            var data = await resp.json();
+            result.className = "smart-ask-drawer-result";
+
+            if (data.type === "answer") {
+                result.innerHTML = "<div class='smart-ask-answer'>" + data.text + "</div>";
+            } else if (data.type === "navigate") {
+                var linkHtml = data.url
+                    ? " <a href='" + data.url + "' class='smart-ask-nav-link'>Go there →</a>"
+                    : "";
+                result.innerHTML = "<div class='smart-ask-answer'>" + data.text + linkHtml + "</div>";
+            } else if (data.type === "query") {
+                var html = data.explanation ? "<div class='smart-ask-explanation'>" + data.explanation + "</div>" : "";
+                html += buildTable(data.columns, data.rows);
+                result.innerHTML = html;
+            } else {
+                result.className = "smart-ask-drawer-result smart-ask-error";
+                result.innerHTML = "<div class='smart-ask-answer'>⚠️ " + (data.text || "Something went wrong.") + "</div>";
+            }
+        } catch (err) {
+            result.className = "smart-ask-drawer-result smart-ask-error";
+            result.innerHTML = "<div class='smart-ask-answer'>⚠️ Could not reach the server. Please try again.</div>";
+        }
+
+        btn.disabled = false;
+        btn.textContent = "Ask";
+    }
+
+    btn.addEventListener("click", doAsk);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") doAsk(); });
+})();
+</script>
+
+<!-- ================= TOAST NOTIFICATIONS ================= -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div id="airtrack-toast-container" aria-live="polite" aria-atomic="true">
+    {% for category, message in messages %}
+    <div class="airtrack-toast airtrack-toast-{{ category }}" role="alert">
+        <span class="airtrack-toast-message">{{ message }}</span>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+#airtrack-toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.airtrack-toast {
+    min-width: 280px;
+    max-width: 420px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    pointer-events: auto;
+}
+
+.airtrack-toast-success  { background: #1a7a4a; color: #fff; border-left: 4px solid #2ecc71; }
+.airtrack-toast-danger   { background: #7a1a1a; color: #fff; border-left: 4px solid #e74c3c; }
+.airtrack-toast-warning  { background: #7a5a00; color: #fff; border-left: 4px solid #f39c12; }
+.airtrack-toast-info     { background: #1a4a7a; color: #fff; border-left: 4px solid #3498db; }
+.airtrack-toast-message  { display: block; }
+</style>
+
+<script>
+(function () {
+    var toasts = document.querySelectorAll('.airtrack-toast');
+    toasts.forEach(function (toast) {
+        setTimeout(function () {
+            toast.style.opacity = '0';
+            setTimeout(function () {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 500);
+        }, 3000);
+    });
+})();
+</script>
+{% endif %}
+{% endwith %}

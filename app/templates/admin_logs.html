@@ -1,0 +1,156 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AirTrack Logs</title>
+  <style>
+    body {
+      background: #0a0a0a;
+      color: #e6e6e6;
+      font-family: monospace;
+      padding: 20px;
+    }
+    h2 {
+      color: #00ff66;
+      margin-bottom: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #222;
+    }
+    th {
+      text-align: left;
+      color: #00ff66;
+      background: #111;
+    }
+    tr:hover {
+      background: #1a1a1a;
+    }
+    a {
+      color: #00ff66;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .btn {
+      display: inline-block;
+      padding: 4px 8px;
+      border: 1px solid #00ff66;
+      border-radius: 4px;
+      background: transparent;
+      color: #00ff66;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn:hover {
+      background: #00ff66;
+      color: #000;
+    }
+    .empty {
+      color: #999;
+      margin-top: 20px;
+    }
+    #logContent {
+      white-space: pre-wrap;
+      font-size: 12px;
+      background: #111;
+      color: #eee;
+      padding: 10px;
+      border-radius: 8px;
+      overflow-y: auto;
+      max-height: 80vh;
+      display: none;
+    }
+    #backButton {
+      margin-bottom: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>📜 AirTrack Log Files</h2>
+
+  <div id="logTable">
+    {% if logs %}
+    <table>
+      <thead>
+        <tr>
+          <th>Filename</th>
+          <th>Size</th>
+          <th>Last Modified</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td><a onclick="viewLog('{{ log.name }}')">{{ log.name }}</a></td>
+          <td>{{ log.size }}</td>
+          <td>{{ log.modified }}</td>
+          <td>
+            <button class="btn" onclick="viewLog('{{ log.name }}')">View</button>
+            <a class="btn" href="{{ url_for('admin_tools.logs_download', filename=log.name) }}">Download</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No log files found in <code>/logs</code>.</p>
+    {% endif %}
+  </div>
+
+  <button id="backButton" class="btn" onclick="showList()">← Back to List</button>
+  <div id="logContent"></div>
+
+  <script>
+    async function viewLog(filename) {
+      const table = document.getElementById('logTable');
+      const content = document.getElementById('logContent');
+      const back = document.getElementById('backButton');
+
+      table.style.display = 'none';
+      back.style.display = 'inline-block';
+      content.style.display = 'block';
+      content.textContent = 'Loading ' + filename + '...';
+
+      try {
+        const resp = await fetch(`/admin_tools/logs_view/${encodeURIComponent(filename)}`);
+        if (!resp.ok) {
+          content.textContent = `❌ Failed to load ${filename} (${resp.status})`;
+          return;
+        }
+        const html = await resp.text();
+        // Extract the <pre> contents if present
+        const match = html.match(/<pre[^>]*>([\s\S]*)<\/pre>/i);
+        content.innerHTML = match ? match[1] : html;
+      } catch (err) {
+        content.textContent = `❌ Error: ${err.message}`;
+      }
+    }
+
+    function showList() {
+      document.getElementById('logContent').style.display = 'none';
+      document.getElementById('backButton').style.display = 'none';
+      document.getElementById('logTable').style.display = 'block';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') showList();
+    });
+  </script>
+</body>
+</html>

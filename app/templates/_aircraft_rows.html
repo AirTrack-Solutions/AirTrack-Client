@@ -1,0 +1,27 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+{% for a in filtered_aircraft %}
+<tr>
+  <td>{{ a[8] }}</td>  <!-- Airline Name -->
+  <td>{{ a[9] }}</td>  <!-- Flight Number -->
+  <td>{{ a[1] }}</td>  <!-- Registration -->
+  <td>{{ a[2] }}</td>  <!-- Aircraft Type -->
+  <td>{{ a[4] | airport if a[4] else '—' }}</td>
+  <td>{{ a[5] | airport if a[5] else '—' }}</td>
+  <td>{{ a[6] }}</td>  <!-- Country of Registration -->
+  <td><img src="{{ a[7] }}" alt="Flag" class="flag-img" /></td>  <!-- Country Flag -->
+  <td>
+    <a href="{{ url_for('aircraft.aircraft_info', aircraft_id=a[0]) }}" class="btn btn-primary btn-sm">Info</a>
+    <a href="{{ url_for('edit_aircraft.edit_aircraft', aircraft_id=a[0]) }}" class="btn btn-warning btn-sm">Edit</a>
+    <a href="{{ url_for('delete_aircraft', aircraft_id=a[0]) }}" class="btn btn-danger btn-sm">Delete</a>
+  </td>
+</tr>
+{% else %}
+<tr>
+  <td colspan="10">❌ No aircraft found</td>
+</tr>
+{% endfor %}

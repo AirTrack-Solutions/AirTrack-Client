@@ -1,0 +1,66 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Orphaned Aircraft</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/datatables.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+</head>
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+    <div class="container mt-4">
+        <h2 class="mb-4">Orphaned Aircraft</h2>
+        
+        {% if orphaned_aircraft %}
+        <table id="orphanedTable" class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Registration</th>
+                    <th>Flight Number</th>
+                    <th>Aircraft Type</th>
+                    <th>Times Seen</th>
+                    <th>Departure</th>
+                    <th>Arrival</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for aircraft in orphaned_aircraft %}
+                <tr>
+                    <td>{{ aircraft['Registration'] }}</td>
+                    <td>{{ aircraft['FlightNumber'] }}</td>
+                    <td>{{ aircraft['Aircraft_Type'] }}</td>
+                    <td>{{ aircraft['Times_Seen'] }}</td>
+                    <td>{{ aircraft['Departure'] | airport if aircraft['Departure'] else '—' }}</td>
+                    <td>{{ aircraft['Arrival']   | airport if aircraft['Arrival']   else '—' }}</td>
+                    <td>{{ aircraft['Notes'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No orphaned aircraft found.</p>
+        {% endif %}
+        
+        <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Back to Home</a>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/datatables.min.js') }}"></script>
+    <script>
+        $(document).ready(function () {
+            $('#orphanedTable').DataTable(); // Initialize the DataTable
+        });
+    </script>
+<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>
