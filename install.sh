@@ -103,3 +103,37 @@ echo "  Open your browser and go to:"
 echo "  http://localhost:5000"
 echo " ================================================"
 echo ""
+
+# ── Desktop shortcut ──────────────────────────────────────────────────────────
+INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
+ICON_PATH="$INSTALL_DIR/app/static/logo.ico"
+DESKTOP_ENTRY="[Desktop Entry]
+Version=1.0
+Type=Application
+Name=AirTrack Logbook
+Comment=Open AirTrack Logbook
+Exec=xdg-open http://localhost:5000
+Icon=$ICON_PATH
+Terminal=false
+Categories=Utility;"
+
+CREATED_SHORTCUT=0
+
+# App menu entry
+if [ -d "$HOME/.local/share/applications" ] || mkdir -p "$HOME/.local/share/applications" 2>/dev/null; then
+    echo "$DESKTOP_ENTRY" > "$HOME/.local/share/applications/airtrack.desktop"
+    chmod +x "$HOME/.local/share/applications/airtrack.desktop"
+    CREATED_SHORTCUT=1
+fi
+
+# Desktop icon (only if ~/Desktop exists — headless installs won't have it)
+if [ -d "$HOME/Desktop" ]; then
+    echo "$DESKTOP_ENTRY" > "$HOME/Desktop/AirTrack.desktop"
+    chmod +x "$HOME/Desktop/AirTrack.desktop"
+    CREATED_SHORTCUT=1
+fi
+
+if [ "$CREATED_SHORTCUT" -eq 1 ]; then
+    echo " Desktop shortcut created."
+    echo ""
+fi
