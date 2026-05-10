@@ -106,7 +106,7 @@ echo ""
 
 # ── Desktop shortcut ──────────────────────────────────────────────────────────
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
-ICON_PATH="$INSTALL_DIR/app/static/logo.ico"
+ICON_PATH="$INSTALL_DIR/app/static/logo.png"
 DESKTOP_ENTRY="[Desktop Entry]
 Version=1.0
 Type=Application
