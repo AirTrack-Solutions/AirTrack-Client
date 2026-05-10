@@ -1,0 +1,90 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* ==============================
+   Background & General Layout
+   ============================== */
+body {
+    background-size: cover !important;
+    background-attachment: fixed !important;
+}
+
+/* Container for Info */
+.airline-info-container {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    margin: 40px auto;
+    max-width: 1000px; /* widened from 600px */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Title */
+.airline-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    color: #1b4f62;
+    margin-bottom: 20px;
+}
+
+/* Info Card */
+.info-card {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Table */
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+/* Table Header */
+.info-table thead th,
+.info-table th {
+    text-align: left;
+    padding: 8px;
+    font-weight: bold;
+    color: white !important;
+    background-color: #1b4f62 !important; /* force match with button */
+    border-bottom: 2px solid #ddd;
+}
+
+/* Table Cells */
+.info-table td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    color: #1b4f62;
+}
+
+/* Back Button */
+.btn-secondary {
+    display: block;
+    width: 120px;
+    margin: 20px auto;
+    text-align: center;
+    background-color: #1b4f62;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 0;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background-color: #163f52;
+    color: white;
+}
+
+/* Force override of Bootstrap .table-dark color */
+.table-dark th {
+    background-color: #1b4f62 !important;
+    color: white !important;
+}

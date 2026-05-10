@@ -1,0 +1,56 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* ==============================
+   Flight History Page Styling
+   ============================== */
+
+   body.info-background {
+    background-size: cover;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.card {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+h2 {
+    font-family: 'Times New Roman', serif;
+    font-weight: bold;
+    color: #003a3a;
+    text-shadow: 1px 1px 2px white;
+}
+
+.table {
+    font-family: 'Times New Roman', serif;
+    font-size: 16px;
+    color: #333;
+}
+
+.table th,
+.table td {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.table-dark th {
+    background-color: #006666;
+    color: #fff;
+}
+
+.btn-info {
+    background-color: #339999;
+    border-color: #339999;
+}
+
+.btn-info:hover {
+    background-color: #267373;
+    border-color: #267373;
+}

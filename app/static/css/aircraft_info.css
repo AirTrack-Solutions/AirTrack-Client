@@ -1,0 +1,256 @@
+
+/* ==============================
+   Aircraft Info Page Layout
+   ============================== */
+.aircraft-info-container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.aircraft-info-wrapper {
+    text-align: center;
+    width: 100%;
+}
+
+/* ==============================
+   Section Styling
+   ============================== */
+.aircraft-details,
+.aircraft-sightings,
+.aircraft-flight-history,
+.aircraft-image,
+.aircraft-notes {
+    width: 100%;
+    margin-bottom: 25px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+h2 {
+    font-size: 22px;
+    color: #1b4f62;
+    margin-bottom: 10px;
+}
+
+p {
+    font-size: 16px;
+    color: #333;
+}
+
+/* ==============================
+   Flight History Table
+   ============================== */
+.aircraft-flight-history table {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 1150px;
+    table-layout: auto;
+    word-wrap: break-word;
+    text-align: center;
+}
+
+.aircraft-flight-history th,
+.aircraft-flight-history td {
+    padding: 10px;
+    border: none;
+    background-color: #f9f9f9;
+}
+
+.aircraft-flight-history th {
+    background-color: #1b4f62;
+    color: white;
+}
+
+.aircraft-flight-history tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* ==============================
+   Flight History Pagination
+   ============================== */
+.flight-history-pagination {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.flight-history-pagination .pagination {
+    display: inline-flex;
+    justify-content: center;
+    padding-left: 0;
+    list-style: none;
+    border-radius: 4px;
+}
+
+.flight-history-pagination .page-item {
+    margin: 0 5px;
+}
+
+.flight-history-pagination .page-link {
+    color: #1b4f62;
+    background-color: #fff;
+    border: 1px solid #1b4f62;
+    padding: 6px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.flight-history-pagination .page-item.active .page-link {
+    background-color: #1b4f62;
+    color: white;
+    border-color: #1b4f62;
+}
+
+.flight-history-pagination .page-link:hover {
+    background-color: #007777;
+    color: white;
+}
+
+/* ==============================
+   Image Styling
+   ============================== */
+.aircraft-image img {
+    width: 100%;
+    object-fit: contain;
+    border-radius: 5px;
+}
+
+/* ==============================
+   Buttons
+   ============================== */
+.aircraft-actions {
+    margin-top: 20px;
+}
+
+.aircraft-actions .btn {
+    font-size: 16px;
+    padding: 10px 20px;
+}
+
+/* ==============================
+   Button Layout and Styling
+   ============================== */
+.d-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.btn {
+    padding: 6px 20px;
+    font-size: 1rem;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 140px;
+    max-height: 40px;
+}
+
+.btn-teal {
+    background-color: #1b4f62;
+    color: white;
+    border: 1px solid #007777;
+}
+
+.btn-teal:hover {
+    background-color: #007777;
+}
+
+.btn-danger {
+    background-color: #d9534f;
+    color: white;
+    border: 1px solid #c9302c;
+}
+
+.btn-danger:hover {
+    background-color: #c9302c;
+}
+
+.btn.btn-sm {
+    min-width: auto;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+}
+
+.aircraft-flight-history .btn-sm {
+    min-width: auto;
+    padding: 2px 10px;
+    font-size: 13px;
+    margin: 0 2px;
+}
+
+/* ==============================
+   Aircraft Info Title
+   ============================== */
+.aircraft-info-title {
+    font-size: 26px;
+    font-weight: bold;
+    font-style: italic;
+    color: black;
+    font-family: "Times New Roman", Times, serif;
+    text-shadow: 2px 2px 4px white;
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 0px;
+}
+
+/* ==============================
+   Ellipsis Hover Explanations
+   ============================== */
+.ellipsis-explanation {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+    border-bottom: 1px dotted #000;
+}
+
+.ellipsis-explanation::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    background: #ffffff;
+    color: #333;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    white-space: normal;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+    width: max-content;
+    max-width: 300px;
+    top: 100%;
+    left: 0;
+}
+
+.ellipsis-explanation:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ==============================
+   The Flags
+   ============================== */
+.flag-img {
+    width: 60px;
+    height: 30px;
+    object-fit: contain;
+}
+.aircraft-info-container {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+}
+.aircraft-details {
+    display: block !important;
+    visibility: visible !important;
+}

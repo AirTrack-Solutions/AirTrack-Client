@@ -1,0 +1,110 @@
+[
+  {
+    "key": "autumn",
+    "value": "autumn",
+    "label": "Autumn",
+    "name": "Autumn",
+    "thumb_url": "/static/themes/autumn_thumb.png?v=1765080941",
+    "cockpit_url": "/static/themes/autumn_cockpit.png?v=1765080941",
+    "background_url": "/static/themes/autumn_background.png?v=1765080941"
+  },
+  {
+    "key": "clouds",
+    "value": "clouds",
+    "label": "Clouds",
+    "name": "Clouds",
+    "thumb_url": "/static/themes/clouds_thumb.png?v=1774583225",
+    "cockpit_url": "/static/themes/clouds_cockpit.png?v=1774585460",
+    "background_url": "/static/themes/clouds_background.png?v=1774583170"
+  },
+  {
+    "key": "default",
+    "value": "default",
+    "label": "Default",
+    "name": "Default",
+    "thumb_url": "/static/themes/default_thumb.png?v=1765080941",
+    "cockpit_url": "/static/themes/default_cockpit.png?v=1765080941",
+    "background_url": "/static/themes/default_background.png?v=1765080941"
+  },
+  {
+    "key": "mascot",
+    "value": "mascot",
+    "label": "Mascot",
+    "name": "Mascot",
+    "thumb_url": "/static/themes/mascot_thumb.png?v=1765080941",
+    "cockpit_url": "/static/themes/mascot_cockpit.png?v=1765080941",
+    "background_url": "/static/themes/mascot_background.png?v=1765080941"
+  },
+  {
+    "key": "mountains",
+    "value": "mountains",
+    "label": "Mountains",
+    "name": "Mountains",
+    "thumb_url": "/static/themes/mountains_thumb.png?v=1774947838",
+    "cockpit_url": "/static/themes/mountains_cockpit.png?v=1774947951",
+    "background_url": "/static/themes/mountains_background.png?v=1774947786"
+  },
+  {
+    "key": "night",
+    "value": "night",
+    "label": "Night",
+    "name": "Night",
+    "thumb_url": "/static/themes/night_thumb.png?v=1765080941",
+    "cockpit_url": "/static/themes/night_cockpit.png?v=1765080941",
+    "background_url": "/static/themes/night_background.png?v=1765080941"
+  },
+  {
+    "key": "northern",
+    "value": "northern",
+    "label": "Northern",
+    "name": "Northern",
+    "thumb_url": "/static/themes/northern_thumb.png?v=1765080941",
+    "cockpit_url": "/static/themes/northern_cockpit.png?v=1765080941",
+    "background_url": "/static/themes/northern_background.png?v=1765080941"
+  },
+  {
+    "key": "red_baron",
+    "value": "red_baron",
+    "label": "Red baron",
+    "name": "Red baron",
+    "thumb_url": "/static/themes/red_baron_thumb.png?v=1765080941",
+    "cockpit_url": "/static/themes/red_baron_cockpit.png?v=1765080941",
+    "background_url": "/static/themes/red_baron_background.png?v=1765080941"
+  },
+  {
+    "key": "spring",
+    "value": "spring",
+    "label": "Spring",
+    "name": "Spring",
+    "thumb_url": "/static/themes/spring_thumb.png?v=1765080941",
+    "cockpit_url": "/static/themes/spring_cockpit.png?v=1765080941",
+    "background_url": "/static/themes/spring_background.png?v=1765080941"
+  },
+  {
+    "key": "summer",
+    "value": "summer",
+    "label": "Summer",
+    "name": "Summer",
+    "thumb_url": "/static/themes/summer_thumb.png?v=1765080941",
+    "cockpit_url": "/static/themes/summer_cockpit.png?v=1765080941",
+    "background_url": "/static/themes/summer_background.png?v=1765080941"
+  },
+  {
+    "key": "sunset",
+    "value": "sunset",
+    "label": "Sunset",
+    "name": "Sunset",
+    "thumb_url": "/static/themes/sunset_thumb.png?v=1774588844",
+    "cockpit_url": "/static/themes/sunset_cockpit.png?v=1774588806",
+    "background_url": "/static/themes/sunset_background.png?v=1774588734"
+  },
+  {
+    "key": "winter",
+    "value": "winter",
+    "label": "Winter",
+    "name": "Winter",
+    "thumb_url": "/static/themes/winter_thumb.png?v=1765080941",
+    "cockpit_url": "/static/themes/winter_cockpit.png?v=1765080941",
+    "background_url": "/static/themes/winter_background.png?v=1765080941"
+  }
+]

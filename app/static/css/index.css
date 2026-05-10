@@ -1,0 +1,273 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+*/
+
+
+/* ==============================
+   Global
+   ============================== */
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+}
+
+html {
+    height: 100%;
+}
+
+
+/* ==============================
+   Main layout
+   ============================== */
+
+.index-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+
+/* ==============================
+   Cards row
+   ============================== */
+
+.index-row {
+
+    display: flex;
+    justify-content: space-between;
+
+    width: calc(100% - 100px);
+
+    margin-bottom: 25px;
+
+    gap: 25px;
+}
+
+.index-col-md-6 {
+    flex: 1;
+}
+
+
+/* ==============================
+   Card Styling
+   ============================== */
+
+.index-card {
+
+    background-color: #f9f9f9;
+
+    border: 1px solid #1b4f62;
+    border-radius: 10px;
+
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+
+    height: 50px;
+
+    padding: 0 20px;
+
+    color: #1b4f62;
+
+    font-family: "Times New Roman", Times, serif;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.index-card-body {
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+}
+
+/* Adjust totals vertical position */
+
+.index-card-title {
+
+    margin: 0;
+
+    top: 2px;   /* halved from 4px */
+
+    font-weight: bold;
+}
+
+
+/* ==============================
+   Filter Bar
+   ============================== */
+
+.index-filter-card {
+
+    width: calc(100% - 100px);
+
+    margin-bottom: 25px;
+
+    background-color: #f9f9f9;
+
+    border: 1px solid #1b4f62;
+    border-radius: 10px;
+
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+
+    height: 60px;
+
+    display: flex;
+    align-items: center;
+}
+
+.index-filter-body {
+
+    width: 100%;
+
+    padding: 0 25px;
+
+    display: flex;
+    align-items: center;
+}
+
+.index-filter-form {
+
+    width: 100%;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 20px;
+}
+
+.index-filter-item {
+
+    flex: 1;
+
+    display: flex;
+    justify-content: center;
+}
+
+
+/* Controls */
+
+.index-filter-item select,
+.index-filter-item input,
+.index-filter-item button {
+
+    width: 100%;
+
+    height: 36px;
+
+    font-size: 14px;
+
+    border-radius: 5px;
+    border: 1px solid #999;
+
+    text-align: center;
+
+}
+
+.index-filter-item button {
+
+    background-color: #1b4f62;
+    color: white;
+
+    border: none;
+
+    transition: background 0.3s ease;
+}
+
+.index-filter-item button:hover {
+    background-color: #14505a;
+}
+
+
+/* ==============================
+   Table
+   ============================== */
+
+table.table {
+
+    width: calc(100% - 100px);
+
+    border: 1px solid #ddd;
+    border-radius: 10px;
+
+    overflow: hidden;
+
+    background: white;
+
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+
+    font-family: "Times New Roman", Times, serif;
+}
+
+table.table th,
+table.table td {
+
+    padding: 10px;
+
+    text-align: center;
+
+    border: 1px solid #ddd;
+}
+
+table.table th {
+
+    background-color: #1b4f62;
+    color: white;
+
+    font-weight: bold;
+}
+
+table.table tbody tr:hover {
+
+    background-color: #f1f1f1;
+}
+
+
+/* ==============================
+   Pagination
+   ============================== */
+
+.pagination-container {
+    margin-top: 25px;
+}
+
+.pagination {
+    display: flex;
+    list-style: none;
+}
+
+
+/* ==============================
+   Footer
+   ============================== */
+
+footer {
+
+    background-color: rgba(255,255,255,0.1);
+
+    color: white;
+
+    text-align: center;
+
+    padding: 10px;
+
+    width: 100%;
+
+    font-family: "Times New Roman", Times, serif;
+
+    font-size: 14px;
+}

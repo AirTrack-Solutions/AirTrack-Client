@@ -1,0 +1,138 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* ==============================
+   Aircraft Page Layout
+   ============================== */
+   .aircraft-container {
+    max-width: 100%;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: "Times New Roman", serif;
+}
+
+/* ==============================
+   Aircraft Wrapper (Card) - Make Thinner
+   ============================== */
+.aircraft-wrapper {
+    width: calc(100% - 300px); /* Reduce card width further */
+    max-width: 1581px; /* Ensure proper containment */
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+/* ==============================
+   Aircraft Table Wrapper (Wider Table)
+   ============================== */
+.aircraft-table-wrapper {
+    width: calc(100% - 50px); /* Keep table slightly inside the card */
+    max-width: 1531px; /* Max width for full containment */
+    margin: 0 auto;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ==============================
+   Table Layout & Header Styling
+   ============================== */
+.aircraft-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    table-layout: fixed;
+}
+
+/* Table Header */
+.aircraft-table thead th {
+    background-color: #1b4f62;
+    color: white;
+    padding: 12px;
+    text-align: center;
+    font-size: 14px;
+    height: 55px;
+    white-space: nowrap;
+}
+
+/* ==============================
+   Fix Row Height (Increased by 5px)
+   ============================== */
+.aircraft-table tbody td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+    font-size: 14px;
+    height: 60px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ==============================
+   Fix Pagination Styling (Centered)
+   ============================== */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pagination {
+    display: flex;
+    list-style: none;
+    padding: 0;
+}
+
+.pagination .page-item {
+    margin: 2px;
+}
+
+.pagination .page-link {
+    padding: 8px 12px;
+    text-decoration: none;
+    background-color: #1b4f62;
+    color: white;
+    border-radius: 5px;
+    font-family: "Times New Roman", serif;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0e3b4d;
+}
+
+/* ==============================
+   Fix Table Column Widths
+   ============================== */
+.aircraft-table th:nth-child(1),
+.aircraft-table td:nth-child(1) { min-width: 180px; }
+.aircraft-table th:nth-child(2),
+.aircraft-table td:nth-child(2) { min-width: 140px; }
+.aircraft-table th:nth-child(3),
+.aircraft-table td:nth-child(3) { min-width: 160px; }
+.aircraft-table th:nth-child(4),
+.aircraft-table td:nth-child(4) { min-width: 200px; }
+.aircraft-table th:nth-child(5),
+.aircraft-table td:nth-child(5) { min-width: 140px; }
+.aircraft-table th:nth-child(6),
+.aircraft-table td:nth-child(6) { min-width: 140px; }
+.aircraft-table th:nth-child(7),
+.aircraft-table td:nth-child(7) { min-width: 160px; }
+.aircraft-table th:nth-child(8),
+.aircraft-table td:nth-child(8) { min-width: 160px; }
+.aircraft-table th:nth-child(9),
+.aircraft-table td:nth-child(9) { min-width: 160px; }
+.aircraft-table th:nth-child(10),
+.aircraft-table td:nth-child(10) { min-width: 120px; }
+.aircraft-table th:nth-child(11),
+.aircraft-table td:nth-child(11) { min-width: 180px; }

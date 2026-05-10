@@ -1,0 +1,72 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* link_airline_logos.css - AirTrack styling for airline logo linker */
+
+body {
+  background-color: var(--background-color, #f8f9fa);
+  color: var(--text-color, #212529);
+}
+
+.page-title {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  font-size: 2rem;
+}
+
+.card {
+  border: none;
+  border-radius: 0.5rem;
+}
+
+.card-body {
+  padding: 1rem 1.5rem;
+  background-color: var(--card-background, #ffffff);
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+}
+
+.card img {
+  border: 1px solid #ccc;
+  background-color: white;
+  padding: 3px;
+  border-radius: 4px;
+}
+
+.form-select {
+  min-width: 220px;
+}
+
+.btn-primary {
+  white-space: nowrap;
+}
+
+.alert {
+  margin-top: 1rem;
+}
+
+.alert-info {
+  text-align: center;
+}
+
+.tab-content {
+  margin-top: 2rem;
+}
+
+.nav-tabs .nav-link.active {
+  background-color: var(--card-background, #ffffff);
+  border-color: #dee2e6 #dee2e6 #ffffff;
+}
+
+.nav-tabs .nav-link {
+  color: #0d6efd;
+  border: 1px solid transparent;
+}
+
+.nav-tabs {
+  margin-bottom: 1rem;
+}

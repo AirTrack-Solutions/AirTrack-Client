@@ -1,0 +1,273 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* ==============================
+   Global Styles & Background
+   ============================== */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-size: cover !important;
+    background-attachment: fixed !important;
+}
+
+/* ==============================
+   Title & Search Box Layout (Match Airlines)
+   ============================== */
+.aircraft-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0 50px;
+    margin-bottom: 0 !important;
+}
+
+.aircraft-title {
+    font-size: 26px;
+    font-weight: bold;
+    font-style: italic;
+    color: black;
+    font-family: "Times New Roman", Times, serif;
+    text-shadow: 2px 2px 4px white;
+    flex-grow: 1;
+    margin-top: 20px;
+    margin-right: -290px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+    margin-bottom: 0 !important;
+}
+
+/* ==============================
+   Search Box Styling
+   ============================== */
+.search-box {
+    width: 250px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    font-family: "Times New Roman", serif;
+    margin-top: -5px !important;
+    margin-bottom: 0 !important;
+}
+
+/* ==============================
+   Add Aircraft Button
+   ============================== */
+.add-aircraft-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* ==============================
+   Table Wrapper
+   ============================== */
+.aircraft-table-wrapper {
+    overflow-x: auto;
+    padding: 10px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: calc(100% - 100px);
+    margin: 0 auto;
+}
+
+/* ==============================
+   Aircraft Table
+   ============================== */
+.aircraft-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+    color: #1b4f62;
+    background-color: white;
+}
+
+.aircraft-table th,
+.aircraft-table td {
+    border: none !important;
+    border-bottom: 1px solid #ddd !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 10px 12px;
+}
+
+.aircraft-table th {
+    background-color: #1b4f62;
+    color: white;
+    font-weight: 600;
+    text-align: center;
+    height: 30px;
+}
+
+.aircraft-table th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.aircraft-table th:last-child {
+    border-top-right-radius: 10px;
+}
+
+.aircraft-table td {
+    text-align: left;
+    vertical-align: middle;
+    color: #1b4f62;
+}
+
+.aircraft-table td img.flag-img {
+    width: 50px;
+    max-height: 30px;
+    display: block;
+    margin: 0 auto;
+}
+
+/* ==============================
+   Rebalanced Column Widths
+   ============================== */
+
+.aircraft-table th:nth-child(1),
+.aircraft-table td:nth-child(1) { /* Airline */
+    min-width: 120px;
+    max-width: 180px;
+}
+
+.aircraft-table th:nth-child(2),
+.aircraft-table td:nth-child(2) { /* Flight */
+    min-width: 50px;
+    max-width: 60px;
+}
+
+.aircraft-table th:nth-child(3),
+.aircraft-table td:nth-child(3) { /* Registration */
+    min-width: 60px;
+    max-width: 70px;
+}
+
+.aircraft-table th:nth-child(4),
+.aircraft-table td:nth-child(4) { /* Aircraft Type */
+    min-width: 130px;
+    max-width: 160px;
+}
+
+.aircraft-table th:nth-child(5),
+.aircraft-table td:nth-child(5),
+.aircraft-table th:nth-child(6),
+.aircraft-table td:nth-child(6) { /* Departure & Arrival */
+    min-width: 130px;
+    max-width: 160px;
+}
+
+.aircraft-table th:nth-child(7),
+.aircraft-table td:nth-child(7),
+.aircraft-table th:nth-child(8),
+.aircraft-table td:nth-child(8) { /* First Sighted & Last Seen */
+    min-width: 100px;
+    max-width: 120px;
+}
+
+.aircraft-table th:nth-child(9),
+.aircraft-table td:nth-child(9) { /* Flag */
+    width: 100px;
+    text-align: center;
+}
+
+.aircraft-table th:nth-child(10),
+.aircraft-table td:nth-child(10) { /* Actions */
+    min-width: 220px;
+    max-width: 240px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* ==============================
+   Buttons in Actions Column
+   ============================== */
+.aircraft-table td:nth-child(10) .btn {
+    padding: 2px 10px;
+    font-size: 13px;
+    margin: 0 2px;
+}
+
+/* ==============================
+   Hover Effect
+   ============================== */
+.aircraft-table tbody tr:hover {
+    background-color: #e0e8ef;
+}
+
+/* ==============================
+   Pagination Styling
+   ============================== */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pagination {
+    display: flex;
+    list-style: none;
+    padding: 0;
+}
+
+.pagination .page-item {
+    margin: 2px;
+}
+
+.pagination .page-link {
+    background-color: white;
+    color: #1b4f62;
+    border: 1px solid #1b4f62;
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: "Times New Roman", serif;
+    text-decoration: none;
+}
+
+.pagination .page-link:hover {
+    background-color: #1b4f62;
+    color: white;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #1b4f62;
+    color: white;
+    border: 1px solid #1b4f62;
+}
+
+/* ==============================
+   Teal Button Style (Global Match)
+   ============================== */
+.btn-teal {
+    background-color: #1b4f62;
+    color: white;
+    border: 1px solid #007777;
+    padding: 6px 20px;
+    font-size: 1rem;
+    border-radius: 4px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-teal:hover {
+    background-color: #007777;
+    color: white;
+    border-color: #007777;
+}

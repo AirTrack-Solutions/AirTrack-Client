@@ -1,0 +1,107 @@
+/*
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+*/
+
+.manual-entry-page {
+    min-height: calc(100vh - 160px);
+    padding: 40px 20px 140px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    position: relative;
+    z-index: 2;
+}
+
+.manual-entry-panel {
+    width: 100%;
+    max-width: 960px;
+    padding: 26px;
+    border: 1px solid rgba(0, 255, 170, 0.35);
+    border-radius: 14px;
+    background: rgba(5, 15, 18, 0.88);
+    box-shadow:
+        0 0 18px rgba(0, 255, 170, 0.16),
+        inset 0 0 20px rgba(0, 255, 170, 0.05);
+    margin-bottom: 80px;
+}
+
+.manual-entry-header {
+    margin-bottom: 24px;
+    border-bottom: 1px solid rgba(0, 255, 170, 0.25);
+    padding-bottom: 14px;
+}
+
+.manual-entry-header h1 {
+    margin: 0;
+    color: #7fffd4;
+    font-size: 2rem;
+    letter-spacing: 0.04em;
+}
+
+.manual-entry-header p {
+    margin: 6px 0 0;
+    color: #b8d8d0;
+}
+
+.manual-entry-form {
+    width: 100%;
+}
+
+.manual-form-row {
+    display: flex;
+    gap: 22px;
+    margin-bottom: 18px;
+}
+
+.manual-form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.manual-form-group label {
+    margin-bottom: 6px;
+    color: #9eeed8;
+    font-size: 0.9rem;
+    letter-spacing: 0.03em;
+}
+
+.manual-form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(0, 255, 170, 0.35);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+.manual-form-group input:focus {
+    outline: none;
+    border-color: #7fffd4;
+    box-shadow: 0 0 10px rgba(127, 255, 212, 0.35);
+}
+
+.manual-form-actions {
+    display: flex;
+    gap: 14px;
+    margin-top: 26px;
+    flex-wrap: wrap;
+}
+
+.manual-form-actions a {
+    text-decoration: none;
+}
+
+@media (max-width: 760px) {
+    .manual-form-row {
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .manual-entry-panel {
+        padding: 20px;
+    }
+}

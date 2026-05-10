@@ -1,0 +1,88 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* ==============================
+   Background & General Layout
+   ============================== */
+   body {
+    background-size: cover !important;
+    background-attachment: fixed !important;
+}
+
+/* Centered Form Container */
+.edit-airline-container {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    margin: 40px auto;
+    max-width: 450px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Title */
+.edit-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    color: #1b4f62;
+    margin-bottom: 20px;
+}
+
+/* Form Styles */
+.edit-airline-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Labels */
+.edit-airline-form label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #1b4f62;
+}
+
+/* Input Fields */
+.edit-airline-form input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Read-Only (Disabled) Field Styling */
+.edit-airline-form input:disabled {
+    background-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Button Container */
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+/* Save Button */
+.btn-success {
+    background-color: #1b4f62;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #163f52;
+}
+
+/* Cancel Button */
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}

@@ -1,0 +1,47 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* ==============================
+   Upload Aircraft Image Page
+   ============================== */
+
+body {
+    background-size: cover;
+    background-attachment: fixed;
+    font-family: "Times New Roman", Times, serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* ==============================
+   Container Styling
+   ============================== */
+.container {
+    background: transparent;
+    padding: 0px 30px 10px 30px;
+    border-radius: 8px;
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: none;
+}
+
+/* ==============================
+   Title Styling (Match Others)
+   ============================== */
+.title-text {
+    font-size: 26px;
+    font-weight: bold;
+    font-style: italic;
+    color: black;
+    font-family: "Times New Roman", Times, serif;
+    text-shadow: 2px 2px 4px white;
+    text-align: center;
+    margin: 0;
+    padding-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

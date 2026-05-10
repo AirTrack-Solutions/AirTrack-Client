@@ -1,0 +1,115 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* ==============================
+   Help Page Layout
+   ============================== */
+   body {
+    background-size: cover;
+    background-attachment: fixed;
+    margin: 0;
+    font-family: "Times New Roman", Times, serif;
+    color: #1b4f62;
+}
+
+.aircraft-info-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 20px 0px 20px; 
+}
+
+.aircraft-info-wrapper {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 0px 0px 0px 0px; /* Consistent spacing between cards */
+    margin: 0 auto; /* Center horizontally */
+}
+
+/* ==============================
+   Title
+   ============================== */
+.aircraft-title {
+    font-size: 26px;
+    font-weight: bold;
+    font-style: italic;
+    color: black;
+    font-family: "Times New Roman", Times, serif;
+    text-shadow: 2px 2px 4px white;
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+/* ==============================
+   Content Cards
+   ============================== */
+   .info-help-container {
+    max-width: 900px;
+    margin: 0px auto;
+    padding: 0px 0px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ==============================
+   Sections
+   ============================== */
+.info-section {
+    margin-bottom: 0px;
+    border-left: 4px solid #1b4f62;
+    padding-left: 15px;
+}
+
+.info-section h3 {
+    font-size: 20px;
+    margin-bottom: 0px;
+    color: #14505a;
+}
+
+.info-section p {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #333;
+}
+
+/* ==============================
+   Back Button
+   ============================== */
+   .aircraft-back-link {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 30px; /* Reduced bottom spacing */
+}
+
+.teal-button {
+    align-items: center;       
+    font-family: "Times New Roman", serif;
+    justify-content: center;        /* Horizontally center the text */
+    text-decoration: none !important;
+    padding: 10px 30px;             /* Adjust padding */
+    height: 30px;
+    background-color: #14505a;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.teal-button:hover {
+    background-color: #14505a;
+    color: white;
+    text-decoration: none;
+}
+
+.info-help-container h3,
+.info-help-container p {
+    margin-top: 0;
+    margin-bottom: 0px;
+}

@@ -1,0 +1,230 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* ==============================
+   Global Styling
+   ============================== */
+   body {
+    background-size: cover !important;
+    background-attachment: fixed !important;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+  }
+
+  html, body {
+    overflow-y: auto;
+  }
+  
+  /* ==============================
+     Main Layout
+     ============================== */
+  .index-container {
+    background-color: transparent;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  /* ==============================
+     Row and Column Adjustments
+     ============================== */
+  .index-row {
+    display: flex;
+    justify-content: space-between;
+    width: calc(100% - 100px);
+    padding: 0;
+    margin-bottom: 25px;
+  }
+  
+  .index-col-md-6 {
+    flex: 1;
+    max-width: 50%;
+    padding: 0;
+  }
+  
+  .index-col-md-6:first-child {
+    margin-right: 25px;
+  }
+  
+  /* ==============================
+     Card Styling (Totals Card)
+     ============================== */
+  .index-card {
+    background-color: #f9f9f9;
+    border: 1px solid #1b4f62;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 10px 20px;
+    color: #1b4f62;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    font-family: "Times New Roman", Times, serif;
+    height: 50px;
+    margin-top: 25px;
+  }
+  
+  /* ==============================
+     Filter Section
+     ============================== */
+  .index-filter-card {
+    width: calc(100% - 148px);
+    margin-bottom: 25px !important;
+    background-color: #f9f9f9;
+    border: 1px solid #1b4f62;
+    border-radius: 10px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    color: #1b4f62;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .index-filter-card:last-child {
+    margin-bottom: 25px !important;
+  }
+  
+  /* ==============================
+     Centering Dropdown, Input, & Button
+     ============================== */
+  .index-filter-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 25px;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .index-filter-form {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+  }
+  
+  .index-filter-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 35px;
+  }
+  
+  .index-filter-item select,
+  .index-filter-item input,
+  .index-filter-item button {
+    width: 100%;
+    height: 35px;
+    font-size: 14px;
+    text-align: center;
+    border-radius: 5px;
+    border: 1px solid #999;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  
+  .index-filter-item button {
+    background-color: #1b4f62;
+    color: white;
+    border: none;
+    transition: background 0.3s ease;
+  }
+  
+  .index-filter-item button:hover {
+    background-color: #14505a;
+  }
+  
+  /* ==============================
+     Table Styling (Fixed 25px Gap)
+     ============================== */
+  table.table {
+    width: calc(100% - 148px);
+    margin-top: 0px !important;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    font-family: "Times New Roman", Times, serif;
+  }
+  
+  table.table th,
+  table.table td {
+    padding: 10px;
+    text-align: center;
+    vertical-align: middle;
+    border: 1px solid #ddd;
+  }
+  
+  table.table th {
+    background-color: #1b4f62;
+    color: #ffffff;
+    font-weight: bold;
+  }
+  
+  table.table td img {
+    max-width: 60px;
+    height: auto;
+  }
+  
+  table.table tbody tr {
+    height: auto;
+  }
+  
+  table.table tbody tr:hover {
+    background-color: #f1f1f1;
+    cursor: pointer;
+  }
+  
+  /* ==============================
+     Pagination Styling
+     ============================== */
+  .pagination-container {
+    margin-top: 25px;
+  }
+  
+  .pagination {
+    display: flex;
+    list-style: none;
+  }
+  
+  /* ==============================
+     Footer Styling
+     ============================== */
+     footer,
+     .index-footer {
+         position: relative;
+         background-color: transparent !important;
+         color: white !important;
+         text-align: center;
+         padding: 10px;
+         margin-top: auto;
+         width: 100%;
+         z-index: 1;
+         font-size: 14px;
+         font-family: "Times New Roman", Times, serif;
+     }
+     
+     footer a,
+     .index-footer a {
+         color: #99ccff !important;
+         text-decoration: none;
+     }
+     
+     footer a:hover,
+     .index-footer a:hover {
+         text-decoration: underline;
+     }     

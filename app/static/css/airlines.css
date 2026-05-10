@@ -1,0 +1,227 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+body {
+  background-size: cover !important;
+  background-attachment: fixed !important;
+}
+
+/* ==============================
+   Airlines Page Styles
+   ============================== */
+
+/* Container for the Airlines Page */
+.airlines-container {
+  padding: 0;
+  background-color: transparent;
+  min-height: 100vh; /* Full viewport height */
+}
+
+/* ==============================
+   Title Section
+   ============================== */
+.airlines-title-container {
+  width: calc(100% - 75px);
+  margin: 0 auto;
+  margin-bottom: 15px;
+  background-color: transparent;
+  color: white;
+  font-weight: bold;
+  font-size: 1.5rem;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center title and items */
+  padding: 0 20px;
+  border-radius: 10px 10px 0 0;
+  position: relative;
+}
+
+.airlines-title-text {
+  font-family: "Times New Roman", Times, serif;
+  margin: 0;
+  padding: 0;
+  color: white;
+  position: absolute; /* Position the title absolutely */
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.airlines-search-box {
+  width: 300px;
+  border-radius: 5px;
+  border: 1px solid #1b4f62;
+  padding: 8px 12px;
+  margin-right: 50px;
+  background-color: white;
+  color: #1b4f62;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  justify-content: end; /* Ensures left alignment */
+  gap: 10px; /* Space between button and search box */
+  width: 100%;
+  margin-bottom: 20px;
+  margin-top: 5px; /* Slight spacing between title and search box */
+}
+
+.search-button-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Space between button and input */
+}
+
+.btn-dark-blue {
+  background-color: #004080; /* Dark blue */
+  color: white;
+  border: none;
+}
+
+.btn-dark-blue:hover {
+  background-color: #002f5f; /* Darker blue on hover */
+}
+
+/* ==============================
+ Airlines Table Wrapper
+ ============================== */
+.airlines-table-wrapper {
+  width: calc(100% - 75px);
+  margin: 0 auto;
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ==============================
+ Airlines Table Styles
+ ============================== */
+.airlines-table {
+  width: 100%;
+  margin: 0;
+  
+  border-collapse: collapse;
+  background-color: #ffffff;
+}
+
+.airlines-table th {
+  background-color: #1b4f62; /* Teal header background */
+  color: #ffffff; /* White header text */
+  text-align: center;
+  font-family: "Times New Roman", Times, serif;
+  padding: 10px;
+}
+
+.airlines-table th.airline-name-column {
+  width: 40%;
+}
+
+.airlines-table th.last-updated-column,
+.airlines-table th.actions-column {
+  width: 30%;
+}
+
+.airlines-table td {
+  font-family: "Times New Roman", Times, serif;
+  padding: 10px;
+  text-align: center;
+  word-wrap: break-word;
+  border-bottom: 1px solid #ddd;
+}
+
+.airlines-table tbody tr {
+  height: 45px; /* Ensures consistent row height */
+}
+
+.airlines-table tbody tr:hover {
+  background-color: #e0e8ef; /* Light hover effect */
+}
+
+/* ==============================
+ Buttons in Actions Column
+ ============================== */
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 15px; /* Space between buttons */
+}
+
+.btn-teal {
+  background-color: #1b4f62; /* Teal */
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+
+.btn-teal:hover {
+  background-color: #164354; /* Darker teal */
+}
+
+/* Burgundy Button Style */
+.btn-burgundy {
+  background-color: #800020; /* Burgundy */
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 5px;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.btn-burgundy:hover {
+  background-color: #66001A; /* Darker Burgundy */
+  color: white;
+}
+
+/* ==============================
+ Pagination Styling
+ ============================== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.pagination .page-item .page-link {
+  background-color: white;
+  color: #1b4f62;
+  border: 1px solid #1b4f62;
+  padding: 8px 12px;
+  margin: 2px;
+  border-radius: 5px;
+}
+
+.pagination .page-item .page-link:hover {
+  background-color: #1b4f62;
+  color: white;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #1b4f62;
+  color: white;
+  font-weight: bold;
+  border: 1px solid #1b4f62;
+}
+
+.pagination .page-item:first-child .page-link,
+.pagination .page-item:last-child .page-link {
+  background-color: #1b4f62;
+  color: white;
+  border: none;
+}
+
+.pagination .page-item:first-child .page-link:hover,
+.pagination .page-item:last-child .page-link:hover {
+  background-color: #163f52;
+}
+
+.airline-logo-img {
+  height: 30px;
+  max-width: 80px;
+  object-fit: contain;
+}

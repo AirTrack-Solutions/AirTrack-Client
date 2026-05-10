@@ -1,0 +1,243 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* ==============================
+   Background & Layout Fixes
+   ============================== */
+   body {
+    background-size: cover !important;
+    background-attachment: fixed !important;
+}
+
+/* Ensure Table Wrapper Has Proper Spacing */
+.airlines-table-wrapper {
+    padding: 10px;
+    margin: 0 auto;
+    width: calc(100% - 100px);
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ==============================
+   Fix Title Alignment + White Shadow + Italics
+   ============================== */
+.table-container {
+    display: flex;
+    width: 100%;
+    margin-bottom: 10px !important;
+    padding: 0 50px; /* Space for the title and search box */
+    align-items: center; /* Vertically centers the title and search box */
+}
+
+/* Title Styling */
+.page-title {
+    font-size: 26px;
+    font-weight: bold;
+    font-style: italic;
+    color: black;
+    font-family: "Times New Roman", Times, serif;
+    text-shadow: 2px 2px 4px white;
+    margin-left: 780px;
+    margin-top: 10px;
+    flex-grow: 1;
+}
+
+/* Search Box Container */
+.search-container {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end; /* Aligns the search box to the right */
+    width: 100%; /* Ensures the container takes up full width */
+    padding-right: 0px; /* Moves the search box further to the right */
+    align-items: center; /* Centers the search box vertically with the title */
+}
+
+/* Search Box Styling */
+.search-box {
+    width: 250px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+/* ==============================
+   Balanced Column Widths - Ensures Equal Spacing
+   ============================== */
+.airlines-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+    color: #1b4f62;
+}
+
+.airlines-table th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.airlines-table th:last-child {
+    border-top-right-radius: 10px;
+}
+
+.airlines-table th:nth-child(1),
+.airlines-table td:nth-child(1) {
+    width: 25%;
+    text-align: center;
+    padding-left: 10px;
+}
+
+.airlines-table th:nth-child(2),
+.airlines-table td:nth-child(2) {
+    width: 33%;
+    text-align: center;
+    padding-left: 0px;
+}
+
+.airlines-table th:nth-child(3),
+.airlines-table td:nth-child(3) {
+    width: 33%;
+    text-align: center;
+    font-weight: bold;
+    padding: 10px;
+}
+
+.airlines-table th:nth-child(4),
+.airlines-table td:nth-child(4) {
+    width: 34%;
+    text-align: center;
+}
+
+/* ==============================
+   Table Headers
+   ============================== */
+.airlines-table th {
+    background-color: #1b4f62 !important;
+    color: white !important;
+    font-weight: bold;
+    text-align: center;
+    height: 40px;
+}
+
+/* ==============================
+   Table Rows & Cells
+   ============================== */
+.airlines-table td {
+    padding: 10px 20px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+    height: 40px;
+    font-size: 14px;
+    color: #1b4f62 !important;
+    vertical-align: middle;
+}
+
+.airlines-table tbody tr {
+    background-color: white !important;
+}
+
+.airlines-table tbody tr:hover {
+    background-color: #e0e8ef;
+}
+
+/* ==============================
+   Actions Column Buttons
+   ============================== */
+.actions-column {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding-right: 20px;
+}
+
+.airlines-table .btn {
+    width: 75px;
+    height: 30px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    border-radius: 5px;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-burgundy {
+    background-color: #800020;
+    color: white;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease-in-out;
+}
+.btn-burgundy:hover {
+    background-color: #660015;
+    color: white;
+}
+
+.airlines-table .btn-danger {
+    background-color: #D32F2F;
+    color: white;
+}
+.airlines-table .btn-danger:hover {
+    background-color: #B71C1C;
+}
+.airlines-table .btn-warning {
+    background-color: #1b4f62;
+    color: white;
+}
+.airlines-table .btn-warning:hover {
+    background-color: #163f52;
+}
+
+/* ==============================
+   Pagination Styling
+   ============================== */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+.pagination .page-item .page-link {
+    background-color: white;
+    color: #1b4f62;
+    border: 1px solid #1b4f62;
+    padding: 6px 10px;
+    margin: 2px;
+    border-radius: 5px;
+    font-size: 12px;
+}
+.pagination .page-item .page-link:hover {
+    background-color: #1b4f62;
+    color: white;
+}
+.pagination .page-item.active .page-link {
+    background-color: #1b4f62;
+    color: white;
+    border: 1px solid #1b4f62;
+}
+
+/* ==============================
+   Empty Row Styling
+   ============================== */
+.empty-row td {
+    height: 35px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #ddd;
+}
+
+/* ==============================
+   Flag Styling
+   ============================== */
+.flag-img {
+    width: 60px;
+    height: auto;
+    max-height: 30px;
+    display: inline-block;
+}

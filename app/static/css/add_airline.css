@@ -1,0 +1,110 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+.admin-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+.background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+/* ==============================
+   Add Airline Page Styling
+   ============================== */
+   body.info-background {
+    background-size: cover;
+    background-attachment: fixed;
+    font-family: "Times New Roman", serif;
+}
+
+.add-airline-container {
+    margin-top: 0px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.add-airline-card {
+    width: 500px;
+    background-color: rgba(255, 255, 255, 0.0);
+    border-radius: 10px;
+    padding: 30px;
+}
+
+.add-airline-card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.add-airline-title {
+    text-align: center;
+    font-size: 26px;
+    font-weight: bold;
+    font-style: italic;
+    color: black;
+    text-shadow: 2px 2px 4px white;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-family: "Times New Roman", serif;
+}
+
+.add-airline-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+/* ==============================
+   Input Label Styling
+   ============================== */
+   label {
+    color: white;
+    font-family: "Times New Roman", serif;
+    font-size: 16px;
+    text-shadow: 1px 1px 2px black;
+}
+
+.teal-button {
+    background-color: #1b4f62;
+    color: white;
+    border: 1px solid #1b4f62;
+    padding: 10px 20px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.teal-button:hover {
+    background-color: #14505a;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background-color: #1b4f62;
+    color: white;
+    border: 1px solid #1b4f62;
+    padding: 10px 20px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+

@@ -1,0 +1,111 @@
+{
+  "description": "AirTrack Logbook application sitemap. Use this to answer navigation questions like 'where do I add an aircraft' or 'how do I edit a flight'. Always include the url in your answer as a clickable link.",
+  "pages": [
+    {
+      "name": "Home / Dashboard",
+      "url": "/",
+      "description": "The main dashboard showing summary statistics: total aircraft logged, total flights, total airlines, and recent activity."
+    },
+    {
+      "name": "Aircraft List",
+      "url": "/aircraft",
+      "description": "Browse and search all aircraft in the logbook. Shows registration, type, airline, and photo thumbnail. Supports filtering and sorting."
+    },
+    {
+      "name": "Add Aircraft",
+      "url": "/aircraft/add",
+      "description": "Add a new aircraft to the logbook. Enter registration, aircraft type, airline, MSN, flight number, date spotted, airport, and notes. This is where you log a new aircraft sighting."
+    },
+    {
+      "name": "Edit Aircraft",
+      "url": "/aircraft/edit/<id>",
+      "description": "Edit an existing aircraft record. Access by clicking the edit button on any aircraft in the aircraft list or aircraft detail page."
+    },
+    {
+      "name": "Aircraft Detail / Info",
+      "url": "/aircraft/aircraft_info/<id>",
+      "description": "Full detail page for a single aircraft: all logged fields, photo gallery, ownership history, and cross-referenced registry data."
+    },
+    {
+      "name": "Upload Aircraft Image",
+      "url": "/aircraft/upload",
+      "description": "Upload a photo for an aircraft in the logbook. Supports JPEG and PNG. Images are linked to the aircraft record by registration."
+    },
+    {
+      "name": "Airlines List",
+      "url": "/airlines/",
+      "description": "Browse all airlines in the database. Shows airline name, ICAO/IATA codes, country, and logo."
+    },
+    {
+      "name": "Add Airline",
+      "url": "/airlines/add",
+      "description": "Add a new airline to the database. Enter name, ICAO code, IATA code, country, and upload a logo."
+    },
+    {
+      "name": "Airline Detail / Info",
+      "url": "/airlines/info/<id>",
+      "description": "Full detail page for a single airline: all fields, logo, and list of aircraft spotted from that airline."
+    },
+    {
+      "name": "Reports",
+      "url": "/reports",
+      "description": "Pre-built reports and the Smart Ask AI query box. Reports include: most seen aircraft, top airlines, busiest airports, oldest aircraft, rare airline sightings, different aircraft types, orphaned aircraft. Smart Ask lets you ask natural language questions about your logbook data."
+    },
+    {
+      "name": "Flight History",
+      "url": "/flight_history/<aircraft_id>",
+      "description": "Chronological sighting history for a specific aircraft. Access from the aircraft detail page."
+    },
+    {
+      "name": "Logged Airports",
+      "url": "/reports/logged_airports",
+      "description": "List of all airports where aircraft have been spotted, with sighting counts."
+    },
+    {
+      "name": "Orphaned Aircraft",
+      "url": "/orphaned_aircraft",
+      "description": "Aircraft records that are missing an airline link or have other data quality issues."
+    },
+    {
+      "name": "Live Flights",
+      "url": "https://www.flightradar24.com/",
+      "description": "External link to Flightradar24 for real-time flight tracking. Opens in a new tab.",
+      "external": true
+    },
+    {
+      "name": "User Guide",
+      "url": "/admin/user_guide",
+      "description": "Built-in help and documentation for AirTrack. Covers all features including adding aircraft, airlines, images, and using reports."
+    },
+    {
+      "name": "Cockpit / Admin",
+      "url": "/admin",
+      "description": "Admin dashboard for server management. Includes database status, logs, broken link checker, git controls, and system settings. Also called the Cockpit."
+    },
+    {
+      "name": "Admin Logs",
+      "url": "/admin/logs",
+      "description": "View application logs. Shows recent activity, errors, and system events."
+    },
+    {
+      "name": "Admin Status",
+      "url": "/admin/status",
+      "description": "System status page showing database connection health, disk usage, and application version."
+    },
+    {
+      "name": "Broken Links",
+      "url": "/admin/broken_links",
+      "description": "Scan for aircraft records with missing or broken image links."
+    },
+    {
+      "name": "Manual Aircraft Entry",
+      "url": "/admin/manual-aircraft/",
+      "description": "Alternative aircraft entry form for manual data entry without registry lookups."
+    },
+    {
+      "name": "Link Airline Logos",
+      "url": "/link_airlines/",
+      "description": "Tool to batch-link airline logo images to airline records."
+    }
+  ]
+}

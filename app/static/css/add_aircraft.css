@@ -1,0 +1,161 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+/* ==============================
+   Add Aircraft Page Layout
+   ============================== */
+body {
+    background-size: cover;
+    background-attachment: fixed;
+    font-family: "Segoe UI", "Times New Roman", serif;
+    color: #e6e6e6;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    background: transparent;
+    padding: 0px 30px 10px 30px;
+    border-radius: 8px;
+    max-width: 1100px;
+    margin: 0 auto; /* no top margin */
+    box-shadow: none;
+}
+
+/* ==============================
+   Title Styling
+   ============================== */
+h2 {
+    font-size: 26px;
+    font-weight: bold;
+    font-style: italic;
+    color: black;
+    font-family: "Times New Roman", Times, serif;
+    text-shadow: 2px 2px 4px white;
+    text-align: center;
+    margin: 0;
+    padding-top: 2px; /* 👈 reduced from 10px */
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ==============================
+   Labels and Inputs
+   ============================== */
+label {
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px black;
+    margin-top: 10px;
+}
+
+input.form-control,
+textarea.form-control {
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+}
+
+/* ==============================
+   Section Headers
+   ============================== */
+h4 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #1b4f62;
+    text-shadow: 1px 1px 1px #ffffff;
+    margin-top: 20px;
+}
+
+/* ==============================
+   Button Styling
+   ============================== */
+button.btn-success {
+    background-color: #1b4f62;
+    border-color: #1b4f62;
+    width: 140px;
+}
+
+button.btn-success:hover {
+    background-color: #007777;
+    border-color: #007777;
+}
+
+button.btn-secondary {
+    width: 140px;
+}
+
+/* ==============================
+   Responsive Tweaks
+   ============================== */
+@media (max-width: 768px) {
+    .row > .col-md-4,
+    .row > .col-md-2 {
+        margin-bottom: 15px;
+    }
+}
+
+/* ==============================
+   Airport Autocomplete Styling
+   ============================== */
+.airport-autocomplete {
+    position: relative;
+}
+
+.airport-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.airport-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.airport-suggestion:hover {
+    background-color: #f8f9fa;
+}
+
+.airport-code {
+    font-weight: bold;
+    color: #007bff;
+}
+
+.airport-name {
+    color: #333; /* darker text */
+}
+
+/* ==============================
+   Airport Keyboard Navigation
+   ============================== */
+.airport-suggestion.selected {
+    background-color: #007bff !important;
+    color: white !important;
+}
+
+.airport-suggestion.selected .airport-name {
+    color: white !important;
+}
+
+/* ==============================
+   Additional Styles
+   ============================== */
+.uppercase-input {
+    text-transform: uppercase;
+}

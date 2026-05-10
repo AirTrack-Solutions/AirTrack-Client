@@ -1,0 +1,17 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+.admin-header {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 20px;
+  text-align: center;
+}
+
+.admin-header h1 {
+  color: #00ffff;
+  font-size: 2em;
+  text-shadow: 0 0 10px #00ffff;
+}

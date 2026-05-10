@@ -163,7 +163,7 @@ tmp/
 *.tmp
 
 app/static/uploads/
-static/
+/static/
 logs/
 app_data/
 

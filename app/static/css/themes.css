@@ -1,0 +1,125 @@
+/* Auto-generated on 2026-03-31T20:06:08.341556 */
+.background{
+position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:-1;
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-autumn .admin-background {
+background-image:url('/static/themes/autumn_cockpit.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-autumn .background {
+background-image:url('/static/themes/autumn_background.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-clouds .admin-background {
+background-image:url('/static/themes/clouds_cockpit.png?v=1774585460');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-clouds .background {
+background-image:url('/static/themes/clouds_background.png?v=1774583170');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-default .admin-background {
+background-image:url('/static/themes/default_cockpit.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-default .background {
+background-image:url('/static/themes/default_background.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-mascot .admin-background {
+background-image:url('/static/themes/mascot_cockpit.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-mascot .background {
+background-image:url('/static/themes/mascot_background.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-mountains .admin-background {
+background-image:url('/static/themes/mountains_cockpit.png?v=1774947951');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-mountains .background {
+background-image:url('/static/themes/mountains_background.png?v=1774947786');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-night .admin-background {
+background-image:url('/static/themes/night_cockpit.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-night .background {
+background-image:url('/static/themes/night_background.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-northern .admin-background {
+background-image:url('/static/themes/northern_cockpit.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-northern .background {
+background-image:url('/static/themes/northern_background.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-red_baron .admin-background {
+background-image:url('/static/themes/red_baron_cockpit.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-red_baron .background {
+background-image:url('/static/themes/red_baron_background.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-spring .admin-background {
+background-image:url('/static/themes/spring_cockpit.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-spring .background {
+background-image:url('/static/themes/spring_background.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-summer .admin-background {
+background-image:url('/static/themes/summer_cockpit.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-summer .background {
+background-image:url('/static/themes/summer_background.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-sunset .admin-background {
+background-image:url('/static/themes/sunset_cockpit.png?v=1774588806');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-sunset .background {
+background-image:url('/static/themes/sunset_background.png?v=1774588734');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-winter .admin-background {
+background-image:url('/static/themes/winter_cockpit.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+
+.theme-winter .background {
+background-image:url('/static/themes/winter_background.png?v=1765080941');
+background-size:cover; background-position:center; background-repeat:no-repeat;
+}

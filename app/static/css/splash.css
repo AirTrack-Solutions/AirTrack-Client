@@ -1,0 +1,56 @@
+/*
+ * AirTrack 1.0.0 'Wilbur' — Release 300
+ * Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+ * SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+ */
+
+body {
+    background-size: cover !important;
+    background-attachment: fixed !important;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #1b4f62; /* Prevents any white border */
+}
+
+.splash-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.pulse {
+    animation: pulse 10s ease-in-out;
+    width: 350px;
+}
+
+/* ✅ Fade Out Effect */
+.fade-out {
+    animation: fadeOut 1s ease-in-out forwards;
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes pulse {
+    0%, 100%   { transform: scale(1); opacity: 1; }
+    12.5%      { transform: scale(1.2); opacity: 0.7; }
+    25%        { transform: scale(1); opacity: 1; }
+    37.5%      { transform: scale(1.2); opacity: 0.7; }
+    50%        { transform: scale(1); opacity: 1; }
+    62.5%      { transform: scale(1.2); opacity: 0.7; }
+    75%        { transform: scale(1); opacity: 1; }
+    87.5%      { transform: scale(1.2); opacity: 0.7; }
+}
