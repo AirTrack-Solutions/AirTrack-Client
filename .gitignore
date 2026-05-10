@@ -122,9 +122,8 @@ docker-compose.override.yml
 # ---------------------------
 
 app/app_data/
-# Config — exclude licence files only
+# License files — never commit
 *.lic
-!app/config/license.lic
 app_data/
 
 # ---------------------------
