@@ -33,7 +33,7 @@ services:
     volumes:
       - repo_data:/app
       - ./logs:/app/logs:rw
-      - ./app/config/license.lic:/app/config/license.lic:ro
+      - ./app/config/license.lic:/app/app/config/license.lic:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
