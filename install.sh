@@ -42,12 +42,23 @@ else
     echo " Existing .env.client found — skipping generation."
 fi
 
-# ── Remove placeholder license ────────────────────────────────────────────────
+# ── Ensure license.lic is a file, not a directory ────────────────────────────
+# Docker creates a directory if the bind-mount target doesn't exist.
+# We pre-create the file so Docker always finds a file to mount.
+mkdir -p app/config
+if [ -d app/config/license.lic ]; then
+    rmdir app/config/license.lic 2>/dev/null && touch app/config/license.lic
+    echo " Fixed: license.lic was a directory — replaced with empty file."
+elif [ ! -f app/config/license.lic ]; then
+    touch app/config/license.lic
+fi
+
+# Remove placeholder license content if present
 if [ -f app/config/license.lic ]; then
     CONTENT=$(cat app/config/license.lic)
     if echo "$CONTENT" | grep -q "REPLACE_WITH_YOUR_LICENSE"; then
-        rm app/config/license.lic
-        echo " Removed placeholder license."
+        echo "" > app/config/license.lic
+        echo " Cleared placeholder license."
     fi
 fi
 
