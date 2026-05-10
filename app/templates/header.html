@@ -61,14 +61,16 @@
         </div>
         <div id="headerAskResult" class="smart-ask-drawer-result" style="display:none;"></div>
     </div>
+    {% endif %}
 
 </div>
 
 <!-- Smart Ask toggle — sits just below the header container -->
+{% if is_server %}
 <div class="smart-ask-toggle-row">
     <button class="smart-ask-toggle" id="smartAskToggle">✦ Ask AI</button>
 </div>
-    {% endif %}
+{% endif %}
 
 <script>
 (function () {
