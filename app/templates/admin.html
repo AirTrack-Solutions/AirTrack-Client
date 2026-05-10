@@ -293,13 +293,12 @@
   </div>
 
   {% set HAS_GIT = is_server and show_commit_push and airtrack_urls is defined and ('git_commit' in airtrack_urls) and ('git_push' in airtrack_urls) %}
-  {% set HAS_UPDATE = airtrack_urls is defined and ('check_updates' in airtrack_urls) and ('run_updater' in airtrack_urls) %}
 
-  <!-- BEGIN Git / Updates modal -->
+  <!-- BEGIN Git modal -->
   <div id="gitModal" class="modal-backdrop" style="display:none;">
     <div class="settings-card" role="dialog" aria-modal="true" aria-labelledby="gitTitle">
       <div class="settings-header">
-        <div id="gitTitle" class="settings-title">{% if HAS_GIT %}Git / Updates{% else %}Updates{% endif %}</div>
+        <div id="gitTitle" class="settings-title">Git</div>
         <button class="settings-close" onclick="closeGit()" aria-label="Close">✕</button>
       </div>
 
@@ -313,20 +312,6 @@
             <button class="btn ghost" onclick="gitPush()">Push</button>
           </div>
           <div id="gitStatus" class="status" style="margin-top:6px;"></div>
-        </section>
-        {% endif %}
-
-        {% if HAS_UPDATE %}
-        {% if HAS_GIT %}
-        <hr style="border:0;border-top:1px solid #1e1e1e;margin:12px 0;">
-        {% endif %}
-        <section>
-          <div class="btn-row">
-            <button class="btn ghost" onclick="checkUpdates()">Check for Updates</button>
-            <button class="btn primary" onclick="runUpdater()">Update Now</button>
-          </div>
-          <div id="gitAheadBehind" class="help" style="margin-top:6px;"></div>
-          <div id="updateStatus" class="status" style="margin-top:6px;"></div>
         </section>
         {% endif %}
       </div>
@@ -613,52 +598,6 @@
 
       setStatus('gitStatus', 'Pushing…', true);
       await postJSON(API.git_push, {}, 'gitStatus').catch(() => null);
-    }
-
-    async function checkUpdates() {
-      if (!API.check_updates) return setStatus('updateStatus', 'Check updates endpoint not configured.', false);
-
-      setStatus('updateStatus', 'Checking…', true);
-      const r = await getJSON(API.check_updates);
-      if (!r.ok) {
-        if (r.status === 405) setStatus('updateStatus', '❌ METHOD NOT ALLOWED — endpoint expects GET.', false);
-        else setStatus('updateStatus', `❌ Error: HTTP ${r.status}`, false);
-        return;
-      }
-
-      const d = r.data || {};
-      const behind = d.behind || 0;
-      const ahead = d.ahead || 0;
-      document.getElementById('gitAheadBehind').textContent =
-        (behind || ahead) ? `Ahead ${ahead}, behind ${behind}.` : 'Up to date.';
-
-      if ((Array.isArray(d.files_needing_update) && d.files_needing_update.length) || d.emergency_update) {
-        setStatus('updateStatus', '⬆️ Updates available.', true);
-      } else {
-        setStatus('updateStatus', '✅ Up to date.', true);
-      }
-    }
-
-    async function runUpdater() {
-      if (!API.run_updater) return setStatus('updateStatus', 'Updater endpoint not configured.', false);
-
-      // Git elevation only required on server. Clients update via HTTPS, no elevation needed.
-      if (window.AIRTRACK_FLAGS.isServer) {
-        if (!(await isElevated())) return explain403('Update', 'updateStatus');
-      }
-
-      setStatus('updateStatus', 'Updating…', true);
-      const d = await postJSON(API.run_updater, {}, 'updateStatus').catch(() => null);
-      if (d && d.status === 'success') {
-        if (d.restart_required) {
-            const banner = document.createElement('div');
-            banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#f0a500;color:#0a1628;text-align:center;padding:1rem;font-weight:bold;z-index:9999;font-size:1.1rem;';
-            banner.innerHTML = '⚠ Update applied. Please restart your AirTrack container to complete the update: <code>docker compose down && docker compose up -d</code>';
-            document.body.prepend(banner);
-        } else {
-            setTimeout(() => location.reload(), 1200);
-        }
-      }
     }
 
     async function runCleanup(dryRun) {

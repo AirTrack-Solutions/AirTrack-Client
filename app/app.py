@@ -185,18 +185,6 @@ def inject_time():
 
 @app.context_processor
 
-def inject_env_vars():
-    try:
-        return {
-            "AIRTRACK_UPDATE_MODE": os.getenv("AIRTRACK_UPDATE_MODE", ""),
-            "AIRTRACK_SYNC_USER": os.getenv("AIRTRACK_SYNC_USER", ""),
-        }
-    except Exception:
-        return {}
-
-
-@app.context_processor
-
 def inject_settings():
     """Expose app_settings rows as `settings` in templates."""
     try:
@@ -1117,18 +1105,6 @@ def admin_panel():
     except Exception as e:
         logging.error("❌ Backup listing error: %s", e)
 
-    AIRTRACK_SYNC_USER = os.getenv("AIRTRACK_SYNC_USER", "").lower()
-    update_mode = os.getenv("AIRTRACK_UPDATE_MODE", "remote").lower()
-    show_update_button = False
-
-    sync_route_name = (
-        "sync_route"  # Placeholder, as original code references this variable but it's undefined
-    )
-    show_sync_button = (
-        AIRTRACK_SYNC_USER == "trevor"
-        and sync_route_name in current_app.view_functions
-    )
-
     def _safe_url(name, **kwargs):
         try:
             if name in current_app.view_functions:
@@ -1138,8 +1114,6 @@ def admin_panel():
         return None
 
     airtrack_urls = {
-        "check_updates": _safe_url("admin_tools.check_updates"),
-        "run_updater": _safe_url("admin_tools.run_updater"),
         "git_commit": _safe_url("admin_tools.git_commit"),
         "git_push": _safe_url("admin_tools.git_push"),
         "housekeeping": _safe_url("admin_tools.housekeeping"),
@@ -1153,17 +1127,11 @@ def admin_panel():
     }
     airtrack_urls = {k: v for k, v in airtrack_urls.items() if v}
 
-    logging.warning("🧪 AIRTRACK_SYNC_USER = %s", AIRTRACK_SYNC_USER)
-    logging.warning("🧪 AIRTRACK_UPDATE_MODE = %s", update_mode)
-
     return render_template(
         "admin.html",
         is_server=os.getenv("AIRTRACK_ROLE") == "server",
         stats=stats,
         backup_files=backup_files,
-        show_update_button=show_update_button,
-        show_sync_button=show_sync_button,
-        AIRTRACK_SYNC_USER=AIRTRACK_SYNC_USER,
         airtrack_urls=airtrack_urls,
     )
 
