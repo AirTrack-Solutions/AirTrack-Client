@@ -2,20 +2,15 @@ services:
   git-bootstrap:
     image: alpine/git:latest
     restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
     env_file: .env.client
     volumes:
       - repo_data:/app
     command: >
-      sh -lc "
-        if [ ! -d /app/.git ]; then
-          echo 'Cloning ${GIT_REMOTE}…';
-          git clone --depth=1 ${GIT_REMOTE} /app;
-        else
-          echo 'Updating repo…';
-          git -C /app fetch --all --tags --prune;
-          git -C /app reset --hard origin/main;
-        fi
-      "
+      "if [ ! -d /app/.git ];
+       then echo 'Cloning ${GIT_REMOTE}…'; git clone --depth=1 ${GIT_REMOTE} /app;
+       else echo 'Updating repo…'; git -C /app fetch --all --tags --prune && git -C /app reset --hard origin/main;
+       fi"
 
   airtrack:
     build:
