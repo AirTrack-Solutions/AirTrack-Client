@@ -31,6 +31,7 @@ services:
     volumes:
       - repo_data:/app
       - ./logs:/app/logs:rw
+      - ./app/config/license.lic:/app/config/license.lic:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -38,11 +39,6 @@ services:
     image: mariadb:11.4
     restart: unless-stopped
     env_file: .env.client
-    environment:
-      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
-      MYSQL_DATABASE: "${DB_NAME}"
-      MYSQL_USER: "${DB_USER}"
-      MYSQL_PASSWORD: "${DB_PASSWORD}"
     volumes:
       - db_data:/var/lib/mysql
       - ./app/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro

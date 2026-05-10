@@ -28,28 +28,18 @@ if [ ! -f .env.client ]; then
     DB_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
     DB_ROOT_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
 
-    # Copy example and substitute placeholders
+    # Copy example and substitute all credential placeholders
     sed \
         -e "s|your-secret-key-here|${SECRET_KEY}|" \
         -e "s|DB_PASSWORD=changeme$|DB_PASSWORD=${DB_PASSWORD}|" \
         -e "s|DB_ROOT_PASSWORD=changeme-root|DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}|" \
+        -e "s|MYSQL_PASSWORD=changeme|MYSQL_PASSWORD=${DB_PASSWORD}|" \
+        -e "s|MYSQL_ROOT_PASSWORD=changeme-root|MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}|" \
         env.client.example > .env.client
-
-    # Write .env for docker-compose variable interpolation
-    # (docker-compose reads ${VAR} references from .env, not from env_file)
-    printf "DB_NAME=airtrack\nDB_USER=airtrack\nDB_PASSWORD=%s\nDB_ROOT_PASSWORD=%s\nGIT_REMOTE=https://github.com/Subhuti/AirTrack-Client.git\n" \
-        "${DB_PASSWORD}" "${DB_ROOT_PASSWORD}" > .env
 
     echo " Configuration generated."
 else
     echo " Existing .env.client found — skipping generation."
-    # Regenerate .env from .env.client in case it was lost
-    if [ ! -f .env ]; then
-        DB_PASSWORD=$(grep "^DB_PASSWORD=" .env.client | cut -d= -f2)
-        DB_ROOT_PASSWORD=$(grep "^DB_ROOT_PASSWORD=" .env.client | cut -d= -f2)
-        printf "DB_NAME=airtrack\nDB_USER=airtrack\nDB_PASSWORD=%s\nDB_ROOT_PASSWORD=%s\nGIT_REMOTE=https://github.com/Subhuti/AirTrack-Client.git\n" \
-            "${DB_PASSWORD}" "${DB_ROOT_PASSWORD}" > .env
-    fi
 fi
 
 # ── Remove placeholder license ────────────────────────────────────────────────
