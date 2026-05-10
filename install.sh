@@ -10,29 +10,62 @@ echo ""
 read -p " Press Enter to continue..."
 echo ""
 
+# ── Check supported OS ────────────────────────────────────────────────────────
+if [ -f /etc/os-release ]; then
+    DISTRO=$(grep ^ID= /etc/os-release | cut -d= -f2 | tr -d '"')
+else
+    DISTRO="unknown"
+fi
+if [[ "$DISTRO" != "ubuntu" && "$DISTRO" != "debian" && "$DISTRO" != "raspbian" ]]; then
+    echo " WARNING: This installer is designed for Ubuntu, Debian, or Raspberry Pi OS."
+    echo " Your system reports: $DISTRO"
+    echo " Docker may need to be installed manually on your distribution."
+    echo " Continuing anyway — press Ctrl+C to abort."
+    echo ""
+    sleep 5
+fi
+
 # ── Check for Docker ──────────────────────────────────────────────────────────
 if ! command -v docker &>/dev/null; then
     echo " ERROR: Docker is not installed."
     echo ""
     echo " Please install Docker first, then run this script again."
-    echo " Installation guide: https://docs.docker.com/engine/install/"
     echo ""
-    echo " On Raspberry Pi / Debian / Ubuntu you can run:"
+    echo " On Raspberry Pi / Debian / Ubuntu:"
     echo "   curl -fsSL https://get.docker.com | sh"
     echo "   sudo usermod -aG docker \$USER"
-    echo "   (then log out and back in)"
+    echo "   Then log out and back in, and run this installer again."
     echo ""
     exit 1
 fi
 
+# ── Check Docker is accessible (user may not be in docker group yet) ──────────
+if ! docker info &>/dev/null; then
+    echo " ERROR: Docker is installed but cannot be accessed by your user."
+    echo ""
+    echo " This usually means you need to add yourself to the docker group."
+    echo " Run these commands, then log out and back in:"
+    echo ""
+    echo "   sudo usermod -aG docker \$USER"
+    echo "   newgrp docker"
+    echo ""
+    echo " Then run this installer again."
+    echo ""
+    exit 1
+fi
+
+# ── Check for Docker Compose ──────────────────────────────────────────────────
 if ! docker compose version &>/dev/null; then
     echo " ERROR: Docker Compose is not available."
     echo ""
-    echo " If you installed Docker recently, try:"
+    echo " Try installing it with:"
     echo "   sudo apt-get install docker-compose-plugin"
     echo ""
     exit 1
 fi
+
+echo " Docker and Docker Compose are ready."
+echo ""
 
 # ── Bootstrap: clone repo if running via curl rather than from inside it ──────
 # When piped through curl | bash the working directory won't have the repo files.
