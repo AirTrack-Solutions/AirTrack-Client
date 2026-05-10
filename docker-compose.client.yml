@@ -17,8 +17,10 @@ services:
       context: ./app
       dockerfile: Dockerfile
     depends_on:
-      - git-bootstrap
-      - airtrack-db
+      git-bootstrap:
+        condition: service_completed_successfully
+      airtrack-db:
+        condition: service_started
     restart: unless-stopped
     ports:
       - "5000:5000"
