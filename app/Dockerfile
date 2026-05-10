@@ -33,4 +33,4 @@ RUN sed -i 's/\r$//' /app/wait-for-mariadb.sh \
 # gunicorn will import this
 EXPOSE 5000
 ENTRYPOINT ["/usr/local/bin/wait-for-mariadb.sh"]
-CMD ["/venv/bin/gunicorn","-w","2","-k","gthread","--threads","8","-b","0.0.0.0:5000","--pid","/tmp/gunicorn.pid","--chdir","/app/app","wsgi:app"]
+CMD ["/venv/bin/gunicorn","-w","2","-k","gthread","--threads","8","-b","0.0.0.0:5000","--pid","/tmp/gunicorn.pid","wsgi:app"]

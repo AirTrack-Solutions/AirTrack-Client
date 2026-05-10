@@ -7,10 +7,12 @@ services:
     volumes:
       - repo_data:/app
     command: >
-      "if [ ! -d /app/.git ];
-       then echo 'Cloning $$GIT_REMOTE…'; find /app -mindepth 1 -delete && git clone --depth=1 $$GIT_REMOTE /app;
-       else echo 'Updating repo…'; git -C /app fetch --depth=1 origin main && git -C /app reset --hard FETCH_HEAD;
-       fi"
+      "echo 'Fetching $$GIT_REMOTE…';
+       find /app -mindepth 1 -delete;
+       git clone --depth=1 $$GIT_REMOTE /tmp/airtrack-repo;
+       cp -a /tmp/airtrack-repo/app/. /app/;
+       rm -rf /tmp/airtrack-repo;
+       echo 'Done.'"
 
   airtrack:
     build:
@@ -33,7 +35,7 @@ services:
     volumes:
       - repo_data:/app
       - ./logs:/app/logs:rw
-      - ./app/config/license.lic:/app/app/config/license.lic:ro
+      - ./app/config/license.lic:/app/config/license.lic:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
