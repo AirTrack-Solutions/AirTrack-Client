@@ -154,6 +154,12 @@
         <button class="cockpit-hud-button">Restore Backup</button>
       </form>
 
+      {% if is_server %}
+      <form class="cockpit-hud-form" action="{{ url_for('admin_tools.broken_links') }}" method="get">
+        <button class="cockpit-hud-button">Check Airport Links</button>
+      </form>
+      {% endif %}
+
     </div>
   </div>
 
@@ -166,10 +172,6 @@
     <a href="{{ url_for('registry.registry_list') }}"><button type="button" class="cockpit-hud-button">Registries</button></a>
 
     {% if is_server %}
-    <form class="cockpit-hud-form" action="{{ url_for('admin_tools.broken_links') }}" method="get">
-      <button class="cockpit-hud-button">Check Airport Links</button>
-    </form>
-
     <form class="cockpit-hud-form" action="{{ url_for('admin_tools.check_aircraft_images') }}" method="post" onsubmit="showCockpitConfirmation('Image check complete');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="cockpit-hud-button">Check Images</button>
