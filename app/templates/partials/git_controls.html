@@ -1,0 +1,69 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+
+-->
+
+-->
+
+{% if show_update_button %}
+<button class="cockpit-hud-button" type="button" onclick="checkUpdates()">Check for Updates</button>
+<button class="cockpit-hud-button" type="button" onclick="runUpdater()">Update Now</button>
+{% endif %}
+
+{% if show_commit_push %}
+<input id="commitMsg" class="form-control" placeholder="Commit message" style="margin:8px 0;">
+<div class="btn-row" style="margin-bottom:8px;">
+  <button class="cockpit-hud-button" type="button" onclick="gitCommit()">Commit</button>
+  <button class="cockpit-hud-button" type="button" onclick="gitPush()">Push</button>
+</div>
+{% endif %}
+
+<script>
+(function(){
+  const API = (window.AIRTRACK || {});
+  const ok  = m => (window.showCockpitConfirmation ? showCockpitConfirmation(m) : alert(m));
+  const err = m => (window.showCockpitConfirmation ? showCockpitConfirmation("❌ " + m) : alert("❌ " + m));
+
+  window.gitCommit = async function(){
+    const el = document.getElementById('commitMsg');
+    const msg = (el && el.value || '').trim();
+    if (!msg) { err("Commit message required"); return; }
+    try {
+      const r = await fetch(API.git_commit || '/admin_tools/git_commit', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({message: msg})
+      });
+      const j = await r.json();
+      if (r.ok) { ok(j.detail || "Committed."); el.value = ''; }
+      else { err(j.detail || "Commit failed"); }
+    } catch(e){ err("Commit failed"); }
+  };
+
+  window.gitPush = async function(){
+    try {
+      const r = await fetch(API.git_push || '/admin_tools/git_push', {method:'POST'});
+      const j = await r.json();
+      r.ok ? ok(j.detail || "Pushed.") : err(j.detail || "Push failed");
+    } catch(e){ err("Push failed"); }
+  };
+
+  window.checkUpdates = async function(){
+    try {
+      const r = await fetch(API.check_updates || '/admin_tools/check_updates');
+      const j = await r.json();
+      ok(`Ahead: ${j.ahead||0}  Behind: ${j.behind||0}`);
+    } catch(e){ err("Check failed"); }
+  };
+
+  window.runUpdater = async function(){
+    try {
+      const r = await fetch(API.run_updater || '/admin_tools/run_updater');
+      const j = await r.json();
+      r.ok ? ok(j.detail || "Updated.") : err(j.detail || "Update failed");
+    } catch(e){ err("Update failed"); }
+  };
+})();
+</script>
