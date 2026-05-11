@@ -279,6 +279,69 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   })();
 
+  // ---------- Update (conditional HUD button) --------------------------------
+  let updateChecked = false;
+
+  function injectHudUpdateButton() {
+    const lc = rightCol();
+    if (!lc) return;
+    insertHudButton(lc, "hudUpdateBtn", "Update Available", runUpdater, {
+      position: "top",
+      extraClass: "hud-update-button",
+    });
+  }
+
+  async function checkForUpdates() {
+
+    if (window.AIRTRACK_FLAGS && window.AIRTRACK_FLAGS.isServer) {
+      console.log("Server mode detected — skipping update check.");
+      return;
+    }
+
+    if (updateChecked) return;
+    updateChecked = true;
+
+    const data = await getJSON("/admin_tools/check_updates");
+
+    if (
+      data &&
+      ((Array.isArray(data.files_needing_update) &&
+        data.files_needing_update.length > 0) ||
+        data.emergency_update)
+    ) {
+      injectHudUpdateButton();
+    }
+  }
+
+  function runUpdater() {
+    if (typeof showModal === "function") {
+      showModal("Updating... Please wait.");
+    }
+
+    postJSON("/admin_tools/run_updater?force=true", {}).then((data) => {
+      if (!data || data.status === "error") {
+        if (typeof showModal === "function") {
+          showModal(
+            "❌ Update failed: " +
+              (data && data.detail ? data.detail : "Please try again.")
+          );
+          setTimeout(() => {
+            if (typeof hideModal === "function") hideModal();
+          }, 3200);
+        }
+        return;
+      }
+
+      if (typeof showModal === "function") {
+        showModal("✅ Update complete. Reloading…");
+        setTimeout(() => {
+          if (typeof hideModal === "function") hideModal();
+          location.reload();
+        }, 1800);
+      }
+    });
+  }
+
   // ---------- Git buttons ----------------------------------------------------
   function injectGitButtons() {
     // Commit (left / top)
@@ -686,6 +749,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   injectShutdownButton();
+  const _role = (window.AIRTRACK_ROLE || "").toLowerCase();
+  if (_role !== "server") checkForUpdates();
 });
 // --- BEGIN: Invisible Server Elevation (Ctrl+Alt+S, no UI) ---
 (function () {

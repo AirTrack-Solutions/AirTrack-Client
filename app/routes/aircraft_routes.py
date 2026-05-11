@@ -109,8 +109,7 @@ def aircraft_table():
                 COALESCE(lf.Arrival, ac.Arrival) AS Arrival,
                 ac.Spotted_At, ac.Country_of_Reg, ac.First_Sighted,
                 ac.Aircraft_Updated, ac.Aircraft_Image,
-                al.AirlineName,
-                (SELECT COUNT(*) FROM flights f WHERE f.AircraftID = ac.AircraftID) AS Times_Seen
+                al.AirlineName
             FROM aircraft ac
             LEFT JOIN airlines al ON ac.AirlineID = al.AirlineID
             LEFT JOIN (
@@ -210,178 +209,6 @@ def aircraft_info(aircraft_id):
         return redirect(url_for("aircraft.aircraft_table"))
 
     aircraft = dict(row._mapping)
-
-    # --------------------------------------------------
-    # CASA ENRICHMENT (SAFE)
-    # --------------------------------------------------
-    casa = {}
-    us = {}
-    acft = {}
-    nz = {}
-    ca = {}
-    manual = {}
-
-    reg = (aircraft.get("Registration") or "").strip().upper()
-
-    if reg.startswith("VH-"):
-        casa_row = db.session.execute(
-            text("""
-                SELECT *
-                FROM australia
-                WHERE UPPER(TRIM(registration)) = :reg
-                LIMIT 1
-            """),
-            {"reg": reg},
-        ).fetchone()
-
-        if casa_row:
-            casa = dict(casa_row._mapping)
-
-            # Fill blanks only (do NOT overwrite existing data)
-            if not aircraft.get("MSN"):
-                aircraft["MSN"] = casa.get("msn")
-
-            if not aircraft.get("Aircraft_Type"):
-                aircraft["Aircraft_Type"] = casa.get("aircraftmodel")
-
-            if not aircraft.get("Manufacture_Year"):
-                aircraft["Manufacture_Year"] = casa.get("yearmanu")
-
-            if not aircraft.get("Engine_Type"):
-                aircraft["Engine_Type"] = casa.get("enginetype")
-
-    elif reg.startswith("N") and "-" not in reg:
-        faa_reg = reg[1:]  # remove leading N
-
-        us_row = db.session.execute(
-            text("""
-                SELECT *
-                FROM united_states
-                WHERE TRIM(n_number) = :reg
-                LIMIT 1
-            """),
-            {"reg": faa_reg},
-        ).fetchone()
-
-        if us_row:
-            us = dict(us_row._mapping)
-
-            acft = {}
-
-            if us.get("mfr_mdl_code"):
-                acft_row = db.session.execute(
-                    text("""
-                        SELECT *
-                        FROM acftref
-                        WHERE code = :code
-                        LIMIT 1
-                    """),
-                    {"code": us.get("mfr_mdl_code")},
-                ).fetchone()
-
-                if acft_row:
-                    acft = dict(acft_row._mapping)
-
-            # Display-friendly reg
-            us["display_reg"] = f"N{us.get('n_number')}"
-
-            if not aircraft.get("MSN"):
-                aircraft["MSN"] = us.get("serial_number")
-
-            if not aircraft.get("Manufacture_Year"):
-                try:
-                    aircraft["Manufacture_Year"] = int(us.get("year_mfr") or 0)
-                except:
-                    pass
-
-            if not aircraft.get("Engine_Type"):
-                aircraft["Engine_Type"] = us.get("type_engine")
-
-    # --------------------------------------------------
-    # NEW ZEALAND ENRICHMENT (SAFE)
-    # --------------------------------------------------
-    nz = {}
-
-    if reg.startswith("ZK-"):
-        nz_row = db.session.execute(
-            text("""
-                SELECT *
-                FROM new_zealand
-                WHERE UPPER(TRIM(registration)) = :reg
-                LIMIT 1
-            """),
-            {"reg": reg},
-        ).fetchone()
-
-        if nz_row:
-            nz = dict(nz_row._mapping)
-
-            if not aircraft.get("MSN"):
-                aircraft["MSN"] = nz.get("serial")
-
-            if not aircraft.get("Aircraft_Type"):
-                aircraft["Aircraft_Type"] = nz.get("model")
-
-            if not aircraft.get("ICAO_Address"):
-                aircraft["ICAO_Address"] = nz.get("icao_address")
-
-    # --------------------------------------------------
-    # CANADA ENRICHMENT (SAFE)
-    # --------------------------------------------------
-    ca = {}
-
-    if reg.startswith("C-"):
-        ca_row = db.session.execute(
-            text("""
-                SELECT *
-                FROM canada
-                WHERE UPPER(TRIM(registration)) = :reg
-                LIMIT 1
-            """),
-            {"reg": reg},
-        ).fetchone()
-
-        if ca_row:
-            ca = dict(ca_row._mapping)
-
-            if not aircraft.get("MSN"):
-                aircraft["MSN"] = ca.get("msn")
-
-            if not aircraft.get("Aircraft_Type"):
-                aircraft["Aircraft_Type"] = ca.get("aircraftmodel")
-
-            if not aircraft.get("Manufacture_Year"):
-                aircraft["Manufacture_Year"] = ca.get("yearmanu")
-
-            if not aircraft.get("Engine_Type"):
-                aircraft["Engine_Type"] = ca.get("enginetype")
-
-    # --------------------------------------------------
-    # MANUAL REGISTRY ENRICHMENT (SAFE)
-    # --------------------------------------------------
-    manual = {}
-
-    manual_row = db.session.execute(
-        text("""
-            SELECT *
-            FROM aircraft_manual_registry
-            WHERE registration = :reg
-            LIMIT 1
-        """),
-        {"reg": reg},
-    ).fetchone()
-
-    if manual_row:
-        manual = dict(manual_row._mapping)
-
-        if not aircraft.get("MSN"):
-            aircraft["MSN"] = manual.get("serial_number")
-
-        if not aircraft.get("Manufacture_Year"):
-            aircraft["Manufacture_Year"] = manual.get("year")
-
-        if not aircraft.get("Engine_Type"):
-            aircraft["Engine_Type"] = manual.get("engine")
 
     # Times seen
     times_seen = db.session.execute(
@@ -561,12 +388,6 @@ def aircraft_info(aircraft_id):
     return render_template(
         "aircraft_info.html",
         aircraft=aircraft,
-        casa=casa,
-        us=us,
-        acft=acft,
-        nz=nz,
-        ca=ca,
-        manual=manual,
         ownership_history=ownership_history,
         flight_history=paged,
         current_page=page,
@@ -718,6 +539,9 @@ def edit_aircraft(aircraft_id: int):
         airline_id_raw = form.get("AirlineID") or ""
         airline_id = int(airline_id_raw) if airline_id_raw.isdigit() else None
 
+        times_seen_raw = (form.get("Times_Seen") or "").strip()
+        times_seen = int(times_seen_raw) if times_seen_raw.isdigit() else 1
+
         manufacture_year_raw = form.get("Manufacture_Year") or ""
         manufacture_year = (
             int(manufacture_year_raw)
@@ -751,6 +575,7 @@ def edit_aircraft(aircraft_id: int):
                         MSN              = :MSN,
                         Category         = :Category,
                         Country_of_Reg   = :Country_of_Reg,
+                        Times_Seen       = :Times_Seen,
                         Manufacture_Year = :Manufacture_Year,
                         Manufacture_Month= :Manufacture_Month,
                         ICAO_Address     = :ICAO_Address,
@@ -770,6 +595,7 @@ def edit_aircraft(aircraft_id: int):
                     "MSN": msn,
                     "Category": category,
                     "Country_of_Reg": country_of_reg,
+                    "Times_Seen": times_seen,
                     "Manufacture_Year": manufacture_year,
                     "Manufacture_Month": manufacture_month,
                     "ICAO_Address": icao_address,
@@ -788,11 +614,11 @@ def edit_aircraft(aircraft_id: int):
                         """
                         INSERT INTO flights (
                             AircraftID, AirlineID, FlightNumber, Registration, MSN,
-                            Aircraft_Type, Departure, Arrival,
+                            Aircraft_Type, Times_Seen, Departure, Arrival,
                             Country_of_Reg, Timestamp, Spotted_At
                         ) VALUES (
                             :AircraftID, :AirlineID, :FlightNumber, :Registration, :MSN,
-                            :Aircraft_Type, :Departure, :Arrival,
+                            :Aircraft_Type, :Times_Seen, :Departure, :Arrival,
                             :Country_of_Reg, :Timestamp, :Spotted_At
                         )
                         """
@@ -804,6 +630,7 @@ def edit_aircraft(aircraft_id: int):
                         "Registration": registration,
                         "MSN": msn,
                         "Aircraft_Type": aircraft_type,
+                        "Times_Seen": times_seen,
                         "Departure": departure,
                         "Arrival": arrival,
                         "Country_of_Reg": country_of_reg,

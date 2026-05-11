@@ -1,0 +1,43 @@
+# ---------------------------------------------------------------------------
+# AirTrack 1.0.0 'Wilbur'
+# ---------------------------------------------------------------------------
+
+# Folders to exclude
+.venv/
+__pycache__/
+.git/
+backups/
+
+# Files to exclude
+*.log
+*.bak
+*.pyc
+*.pyo
+*.pyd
+*.tmp
+*~
+.env
+*.tar.gz
+*.zip
+*.crt
+*.key
+*.db
+*.sqlite
+.DS_Store
+
+# Build and installer artifacts
+AirTrack_images.tar
+AirTrack_full_0.9.0.zip
+AirTrack-Windows-Installer.exe
+airtrack-windows.iss
+build_airtrack_windows.ps1
+
+# Generated/config files
+update_ignore.json
+themes.css
+themes.json
+
+# Specific assets
+logo.png
+file_sync.py
+install_airtrack.sh

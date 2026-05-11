@@ -14,12 +14,7 @@ from version import FULL_VERSION, SHORT_VERSION, DISPLAY_VERSION
 
 from utils.airport_utils import format_airport_display
 
-import os
-_role = os.getenv("AIRTRACK_ROLE", "")
-if _role != "client":
-    from security.server_webauthn import server_webauthn
-else:
-    server_webauthn = None
+from security.server_webauthn import server_webauthn
 
 from utils.stats_utils import get_airtrack_stats, get_all_airlines
 
@@ -190,6 +185,18 @@ def inject_time():
 
 @app.context_processor
 
+def inject_env_vars():
+    try:
+        return {
+            "AIRTRACK_UPDATE_MODE": os.getenv("AIRTRACK_UPDATE_MODE", ""),
+            "AIRTRACK_SYNC_USER": os.getenv("AIRTRACK_SYNC_USER", ""),
+        }
+    except Exception:
+        return {}
+
+
+@app.context_processor
+
 def inject_settings():
     """Expose app_settings rows as `settings` in templates."""
     try:
@@ -214,9 +221,8 @@ app.jinja_env.filters["airport"] = format_airport_display
 # Also make time() available globally
 app.jinja_env.globals["time"] = time
 
-# Register WebAuthn blueprint (server only)
-if server_webauthn is not None:
-    app.register_blueprint(server_webauthn)
+# Register WebAuthn blueprint
+app.register_blueprint(server_webauthn)
 
 # ---------------------------------------------------------------------------
 # Configuration (DB / debug / secrets)
@@ -1111,6 +1117,18 @@ def admin_panel():
     except Exception as e:
         logging.error("❌ Backup listing error: %s", e)
 
+    AIRTRACK_SYNC_USER = os.getenv("AIRTRACK_SYNC_USER", "").lower()
+    update_mode = os.getenv("AIRTRACK_UPDATE_MODE", "remote").lower()
+    show_update_button = False
+
+    sync_route_name = (
+        "sync_route"  # Placeholder, as original code references this variable but it's undefined
+    )
+    show_sync_button = (
+        AIRTRACK_SYNC_USER == "trevor"
+        and sync_route_name in current_app.view_functions
+    )
+
     def _safe_url(name, **kwargs):
         try:
             if name in current_app.view_functions:
@@ -1120,6 +1138,8 @@ def admin_panel():
         return None
 
     airtrack_urls = {
+        "check_updates": _safe_url("admin_tools.check_updates"),
+        "run_updater": _safe_url("admin_tools.run_updater"),
         "git_commit": _safe_url("admin_tools.git_commit"),
         "git_push": _safe_url("admin_tools.git_push"),
         "housekeeping": _safe_url("admin_tools.housekeeping"),
@@ -1133,11 +1153,17 @@ def admin_panel():
     }
     airtrack_urls = {k: v for k, v in airtrack_urls.items() if v}
 
+    logging.warning("🧪 AIRTRACK_SYNC_USER = %s", AIRTRACK_SYNC_USER)
+    logging.warning("🧪 AIRTRACK_UPDATE_MODE = %s", update_mode)
+
     return render_template(
         "admin.html",
         is_server=os.getenv("AIRTRACK_ROLE") == "server",
         stats=stats,
         backup_files=backup_files,
+        show_update_button=show_update_button,
+        show_sync_button=show_sync_button,
+        AIRTRACK_SYNC_USER=AIRTRACK_SYNC_USER,
         airtrack_urls=airtrack_urls,
     )
 
@@ -1190,6 +1216,7 @@ from routes import admin_tools_routes
 from routes.airports_api import bp as airports_api_bp
 
 from routes.manual_entry_routes import manual_entry_bp
+from routes.registry_routes import registry_bp
 
 try:
     from routes.billing_routes import billing_bp
@@ -1213,6 +1240,7 @@ app.register_blueprint(edit_aircraft_bp)
 app.register_blueprint(airline_logo_linker)
 app.register_blueprint(admin_tools_routes.admin_tools_bp)
 app.register_blueprint(manual_entry_bp)
+app.register_blueprint(registry_bp)
 csrf.exempt(manual_entry_bp)
 csrf.exempt(admin_tools_routes.admin_tools_bp)
 csrf.exempt(admin_bp)

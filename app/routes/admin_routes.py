@@ -17,8 +17,6 @@ from flask import (
 
 from sqlalchemy import text
 
-from utils.country_importer import import_aircraft_row
-
 from extensions import db
 
 import os
@@ -27,6 +25,18 @@ import logging
 
 from datetime import datetime
 
+# ---------------------------------------------------------------------------
+# Update check — runs once when blueprint loads, client only
+# ---------------------------------------------------------------------------
+try:
+    if os.getenv('AIRTRACK_ROLE', 'client').lower() == 'client':
+        from utils.airtrack_updater import check_for_updates as _check_for_updates
+        _update_check = _check_for_updates()
+        update_available = not _update_check.get('up_to_date', True)
+    else:
+        update_available = None
+except Exception:
+    update_available = None
 
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -193,10 +203,22 @@ def admin_dashboard():
     # -----------------------------
     is_server = os.getenv('AIRTRACK_ROLE', 'client').lower() == 'server'
 
+    show_update_button = (
+        update_available is True
+        and 'admin_tools.check_updates' in current_app.view_functions
+        and 'admin_tools.run_updater' in current_app.view_functions
+    )
+
     show_commit_push = (
         is_server
         and 'admin_tools.git_commit' in current_app.view_functions
         and 'admin_tools.git_push' in current_app.view_functions
+    )
+
+    AIRTRACK_SYNC_USER = os.getenv('AIRTRACK_SYNC_USER', '').lower()
+
+    show_sync_button = AIRTRACK_SYNC_USER == 'trevor' and (
+        'admin_tools.run_file_sync' in current_app.view_functions
     )
 
     # -----------------------------
@@ -205,6 +227,8 @@ def admin_dashboard():
     airtrack_urls = {
         "git_commit": _endpoint_url('admin_tools.git_commit'),
         "git_push": _endpoint_url('admin_tools.git_push'),
+        "check_updates": _endpoint_url('admin_tools.check_updates'),
+        "run_updater": _endpoint_url('admin_tools.run_updater'),
         "housekeeping": _endpoint_url('admin_tools.housekeeping'),
     }
 
@@ -212,7 +236,10 @@ def admin_dashboard():
         'admin.html',
         stats=stats,
         backup_files=backup_files,
+        show_update_button=show_update_button,
+        show_sync_button=show_sync_button,
         show_commit_push=show_commit_push,
+        AIRTRACK_SYNC_USER=AIRTRACK_SYNC_USER,
         airtrack_urls=airtrack_urls,
         is_server=is_server,
     )
@@ -258,37 +285,6 @@ def save_settings():
         current_app.logger.exception('save_settings failed')
         return jsonify({"success": False, "error": str(e)}), 500
 
-# ---------------------------------------------------------------------------
-# Manual Aircraft Entry
-# ---------------------------------------------------------------------------
-
-@admin_bp.route('/manual_aircraft', methods=['GET', 'POST'])
-
-def manual_aircraft():
-
-    if request.method == 'POST':
-        try:
-            form = request.form.to_dict()
-
-            # Clean empty fields
-            raw_data = {k: v for k, v in form.items() if v.strip() != ""}
-
-            if "registration" not in raw_data:
-                flash("❌ Registration is required", "danger")
-                return redirect(url_for('admin.manual_aircraft'))
-
-            # Use your importer logic
-            import_aircraft_row(db, raw_data)
-
-            flash(f"✅ Aircraft {raw_data.get('registration')} saved successfully", "success")
-            return redirect(url_for('admin.manual_aircraft'))
-
-        except Exception as e:
-            current_app.logger.exception("Manual aircraft entry failed")
-            flash(f"❌ Error: {e}", "danger")
-            return redirect(url_for('admin.manual_aircraft'))
-
-    return render_template('manual_aircraft_entry.html')
 
 @admin_bp.route('/update_app_settings', methods=['POST'])
 

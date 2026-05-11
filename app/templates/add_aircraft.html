@@ -81,6 +81,10 @@
                     <label>Country of Registration</label>
                     <input type="text" name="Country_of_Reg" class="form-control" value="{{ request.form.get('Country_of_Reg', '') }}">
                 </div>
+                <div class="col-md-4">
+                    <label>Times Seen</label>
+                    <input type="number" name="Times_Seen" class="form-control" value="{{ request.form.get('Times_Seen', '1') }}">
+                </div>
             </div>
 
             <!-- Manufacture / ICAO -->

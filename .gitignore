@@ -171,3 +171,8 @@ app/*.sql
 app/*.zip
 app/*_bak.html
 app/*_backup*.sql
+
+__pycache__/
+*.pyc
+*.pyo
+*.lic

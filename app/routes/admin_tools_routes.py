@@ -215,6 +215,21 @@ def whitelist_link():
     return redirect(url_for('admin_tools.broken_links'))
 
 
+@admin_tools_bp.route('/run_updater', methods=['GET', 'POST'])
+
+def run_updater():
+
+    if os.getenv('AIRTRACK_ROLE', 'client') != 'client':
+        return _err("Updates are disabled on server installations.")
+
+    try:
+        from utils.airtrack_updater import run_full_update
+        result = run_full_update()
+        return _ok(**result)
+
+    except Exception as e:
+        return _err(f"❌ Updater failed: {e}")
+
 @admin_tools_bp.route('/git_commit', methods=['POST'])
 @require_server
 
@@ -589,3 +604,21 @@ def update_municipality():
         return _err(f"❌ Database error: {e}")
 
 
+@admin_tools_bp.route("/check_updates", methods=["GET", "POST"])
+
+def check_updates():
+    try:
+        from utils.airtrack_updater import check_for_updates
+        result = check_for_updates()
+        if result.get("error") and result.get("up_to_date"):
+            return _err(result["error"])
+        return _ok(
+            status="ok",
+            up_to_date=result["up_to_date"],
+            local_version=result["local_version"],
+            remote_version=result["remote_version"],
+            files_needing_update=result["files_needing_update"],
+        )
+    except Exception as e:
+        return _err(f"❌ Update check failed: {e}")
+    

@@ -61,38 +61,6 @@ CREATE TABLE `aircraft_images` (
   CONSTRAINT `fk_aircraft_images_aircraft` FOREIGN KEY (`AircraftID`) REFERENCES `aircraft` (`AircraftID`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `aircraft_manual_registry`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE IF NOT EXISTS `aircraft_manual_registry` (
-  `registration` varchar(10) NOT NULL,
-  `hexcode` varchar(10) DEFAULT NULL,
-  `aircraftmanufacturer` varchar(100) DEFAULT NULL,
-  `aircraftmodel` varchar(50) DEFAULT NULL,
-  `msn` varchar(50) DEFAULT NULL,
-  `maxtakeoffweight` int(11) DEFAULT NULL,
-  `enginecount` int(11) DEFAULT NULL,
-  `enginemanufacturer` varchar(100) DEFAULT NULL,
-  `enginetype` varchar(50) DEFAULT NULL,
-  `enginemodel` varchar(50) DEFAULT NULL,
-  `fueltype` varchar(50) DEFAULT NULL,
-  `registrationtype` varchar(50) DEFAULT NULL,
-  `registeredowner` varchar(150) DEFAULT NULL,
-  `registeredownercountry` varchar(50) DEFAULT NULL,
-  `operatorname` varchar(150) DEFAULT NULL,
-  `operatorcountry` varchar(50) DEFAULT NULL,
-  `firstregistrationdate` date DEFAULT NULL,
-  `airframe` varchar(100) DEFAULT NULL,
-  `propmanu` varchar(100) DEFAULT NULL,
-  `propmodel` varchar(50) DEFAULT NULL,
-  `typecert` varchar(50) DEFAULT NULL,
-  `countrymanu` varchar(50) DEFAULT NULL,
-  `yearmanu` int(11) DEFAULT NULL,
-  `monthmanu` int(11) DEFAULT NULL,
-  `icaotypedesig` varchar(10) DEFAULT NULL,
-  PRIMARY KEY (`registration`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `aircraft_owners`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
