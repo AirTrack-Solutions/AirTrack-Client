@@ -750,7 +750,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   injectShutdownButton();
   const _role = (window.AIRTRACK_ROLE || "").toLowerCase();
-  if (_role !== "server") checkForUpdates();
+  
 });
 // --- BEGIN: Invisible Server Elevation (Ctrl+Alt+S, no UI) ---
 (function () {

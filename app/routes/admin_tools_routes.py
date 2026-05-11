@@ -594,20 +594,5 @@ def update_municipality():
 
 
 @admin_tools_bp.route("/check_updates", methods=["GET", "POST"])
-
 def check_updates():
-    try:
-        from utils.airtrack_updater import check_for_updates
-        result = check_for_updates()
-        if result.get("error") and result.get("up_to_date"):
-            return _err(result["error"])
-        return _ok(
-            status="ok",
-            up_to_date=result["up_to_date"],
-            local_version=result["local_version"],
-            remote_version=result["remote_version"],
-            files_needing_update=result["files_needing_update"],
-        )
-    except Exception as e:
-        return _err(f"❌ Update check failed: {e}")
-    
+    return _ok(status="ok", up_to_date=True, files_needing_update=[])
