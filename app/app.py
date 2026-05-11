@@ -1138,8 +1138,6 @@ def admin_panel():
         return None
 
     airtrack_urls = {
-        "check_updates": _safe_url("admin_tools.check_updates"),
-        "run_updater": _safe_url("admin_tools.run_updater"),
         "git_commit": _safe_url("admin_tools.git_commit"),
         "git_push": _safe_url("admin_tools.git_push"),
         "housekeeping": _safe_url("admin_tools.housekeeping"),

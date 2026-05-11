@@ -216,19 +216,8 @@ def whitelist_link():
 
 
 @admin_tools_bp.route('/run_updater', methods=['GET', 'POST'])
-
 def run_updater():
-
-    if os.getenv('AIRTRACK_ROLE', 'client') != 'client':
-        return _err("Updates are disabled on server installations.")
-
-    try:
-        from utils.airtrack_updater import run_full_update
-        result = run_full_update()
-        return _ok(**result)
-
-    except Exception as e:
-        return _err(f"❌ Updater failed: {e}")
+    return _err("This updater has been retired. Use docker compose to update.")
 
 @admin_tools_bp.route('/git_commit', methods=['POST'])
 @require_server
