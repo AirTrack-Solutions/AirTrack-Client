@@ -1,147 +1,204 @@
-# AirTrack 1.0.0 'Wilbur' — Release 300
-# Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+# AirTrack 1.0.0 'Wilbur'
+# Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
 # SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+#
+# build_airtrack_windows.ps1
+# Builds the AirTrack Windows installer (.exe) using Inno Setup.
+#
+# Run from anywhere — this script auto-locates the project root
+# (two directories above app/scripts/ where the script lives).
+#
+# PFX certificate password:
+#   Put the password in   <script_dir>\.pfxpass   (one line, no quotes).
+#   That file is git-ignored. If missing, you will be prompted.
+#
+# Optional parameters:
+#   -ProjectRoot  Override the auto-detected project root directory.
+#   -Version      Override the version (default: reads VERSION file).
 
-# Paths and Config
-$certName = "AirTrack_Beta"
-$pfxFolder = "C:\Users\trevo\docker\certs"
-$pfxPath = "$pfxFolder\$certName.pfx"
-$pfxPassword = "marianneanneroxannediane"
-$issFile = "airtrack-windows.iss"
-$outputExe = "AirTrack-Windows-Installer.exe"
-$zipName = "AirTrack_full_0.9.0.zip"
-$innosetupCompiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-$projectRoot = "C:\Users\trevo\docker\AirTrack-Windows-bak"
-$timestamp = Get-Date -Format "HH:mm:ss"
-$tempDir = "$env:TEMP\airtrack_package"
+#Requires -Version 5.1
+param(
+    [string]$ProjectRoot = "",
+    [string]$Version     = ""
+)
 
-# Set working directory
-Set-Location $projectRoot
-Write-Host "[ $timestamp ] 📂 Working directory set to: $projectRoot"
+$ErrorActionPreference = "Stop"
 
-# Ensure cert folder exists
-if (-not (Test-Path $pfxFolder)) {
-    Write-Host "[ $timestamp ] 📁 Cert folder not found. Creating: $pfxFolder"
-    New-Item -ItemType Directory -Path $pfxFolder | Out-Null
+# ── Resolve paths ─────────────────────────────────────────────────────────────
+
+$ScriptDir = $PSScriptRoot
+
+# Project root is two levels up from app/scripts/
+if ($ProjectRoot -eq "") {
+    $ProjectRoot = (Resolve-Path (Join-Path $ScriptDir "..\..\")).Path
 }
 
-# Check for PFX file
+# Version from VERSION file or parameter
+if ($Version -eq "") {
+    $versionFile = Join-Path $ProjectRoot "VERSION"
+    $Version = if (Test-Path $versionFile) {
+        (Get-Content $versionFile -Raw).Trim()
+    } else { "1.0.0" }
+}
+
+$certName     = "AirTrack_Signing"
+$pfxFolder    = Join-Path $env:USERPROFILE "docker\certs"
+$pfxPath      = Join-Path $pfxFolder "$certName.pfx"
+$pfxPassFile  = Join-Path $ScriptDir ".pfxpass"
+$issFile      = Join-Path $ScriptDir "airtrack-windows.iss"
+$zipName      = "AirTrack_full_$Version.zip"
+$zipPath      = Join-Path $ScriptDir $zipName
+$outputExe    = Join-Path $ScriptDir "AirTrack-Windows-Installer.exe"
+$innoCompiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+$signtool     = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+$tempDir      = Join-Path $env:TEMP "airtrack_build_$(Get-Random)"
+
+function TS { Get-Date -Format "HH:mm:ss" }
+
+Write-Host ""
+Write-Host "[ $(TS) ] AirTrack Windows Build v$Version"
+Write-Host "[ $(TS) ] Project root : $ProjectRoot"
+Write-Host "[ $(TS) ] Script dir   : $ScriptDir"
+Write-Host ""
+
+# ── PFX password ───────────────────────────────────────────────────────────────
+
+if (Test-Path $pfxPassFile) {
+    $pfxPassword = (Get-Content $pfxPassFile -Raw).Trim()
+    Write-Host "[ $(TS) ] PFX password  : loaded from .pfxpass"
+} else {
+    Write-Host "[ $(TS) ] .pfxpass not found — please enter the certificate password."
+    $secPwd = Read-Host "  Certificate password" -AsSecureString
+    $pfxPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
+        [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secPwd)
+    )
+    Write-Host "[ $(TS) ] PFX password  : entered interactively"
+}
+
+# ── Certificate ────────────────────────────────────────────────────────────────
+
+if (-not (Test-Path $pfxFolder)) {
+    New-Item -ItemType Directory -Path $pfxFolder | Out-Null
+    Write-Host "[ $(TS) ] Created cert folder: $pfxFolder"
+}
+
 if (-not (Test-Path $pfxPath)) {
-    Write-Host "[ $timestamp ] 🔐 PFX not found. Generating new self-signed certificate..."
+    Write-Host "[ $(TS) ] No PFX found — generating self-signed code-signing certificate..."
     $cert = New-SelfSignedCertificate `
         -Type CodeSigningCert `
-        -Subject "CN=AirTrack Beta Signing Cert" `
+        -Subject "CN=AirTrack Signing Cert" `
         -CertStoreLocation "Cert:\CurrentUser\My" `
         -KeyExportPolicy Exportable `
         -KeySpec Signature
-
     $securePwd = ConvertTo-SecureString -String $pfxPassword -AsPlainText -Force
-
-    Export-PfxCertificate `
-        -Cert $cert `
-        -FilePath $pfxPath `
-        -Password $securePwd
-
-    Write-Host "[ $timestamp ] ✅ Certificate created and saved to $pfxPath"
+    Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $securePwd | Out-Null
+    Write-Host "[ $(TS) ] Self-signed certificate saved: $pfxPath"
 } else {
-    Write-Host "[ $timestamp ] 🔐 PFX certificate found."
+    Write-Host "[ $(TS) ] Certificate   : $pfxPath"
 }
 
-# Clean old ZIP if it exists
-if (Test-Path $zipName) {
-    Write-Host "[ $timestamp ] 🗑️ Removing existing zip file: $zipName"
-    Remove-Item $zipName -Force
-}
+# ── Load .airtrackignore ────────────────────────────────────────────────────────
 
-# Prepare temp packaging folder
-if (Test-Path $tempDir) {
-    Remove-Item $tempDir -Recurse -Force
-}
-New-Item -Path $tempDir -ItemType Directory | Out-Null
-
-# Load .airtrackignore rules
-$ignorePatterns = Get-Content ".airtrackignore" -ErrorAction SilentlyContinue |
-    Where-Object { $_ -and -not ($_.Trim().StartsWith("#")) }
+$ignoreFile = Join-Path $ProjectRoot ".airtrackignore"
+$ignorePatterns = if (Test-Path $ignoreFile) {
+    Get-Content $ignoreFile | Where-Object { $_ -and -not ($_.Trim().StartsWith("#")) }
+} else { @() }
 
 $shouldIgnore = {
     param($item)
-
-    foreach ($pattern in $ignorePatterns) {
-        $pattern = $pattern.Trim()
-        if (-not $pattern) { continue }
-
-        # Folder patterns (ends in slash)
-        if ($pattern -like "*/" -or $pattern -like "*\\") {
-            if ($item.PSIsContainer -and $item.FullName -like "*$($pattern.TrimEnd('/\'))*") {
-                return $true
-            }
+    foreach ($pat in $ignorePatterns) {
+        $pat = $pat.Trim()
+        if (-not $pat) { continue }
+        if ($pat -like "*/" -or $pat -like "*\\") {
+            if ($item.PSIsContainer -and $item.FullName -like "*$($pat.TrimEnd('/\'))*") { return $true }
             continue
         }
-
-        # Wildcard match
-        if ($item.Name -like $pattern) {
-            return $true
-        }
-
-        # Exact filename match
-        if ($item.Name -eq $pattern) {
-            return $true
-        }
+        if ($item.Name -like $pat -or $item.Name -eq $pat) { return $true }
     }
     return $false
 }
 
-Write-Host "[ $timestamp ] 📦 Staging files for ZIP (using .airtrackignore)..."
+# ── Stage project files ────────────────────────────────────────────────────────
 
-Get-ChildItem -Path "." -Recurse -Force |
+Write-Host "[ $(TS) ] Staging files for ZIP..."
+
+if (Test-Path $tempDir) { Remove-Item $tempDir -Recurse -Force }
+New-Item -Path $tempDir -ItemType Directory | Out-Null
+
+Get-ChildItem -Path $ProjectRoot -Recurse -Force |
     Where-Object {
+        $_.FullName -notmatch [regex]::Escape($tempDir) -and
         $_.FullName -notmatch '\\AppData\\' -and
         $_.FullName -notmatch '\\Temp\\' -and
-        (-not (& $shouldIgnore $_) -or $_.Name -eq "AirTrack_images.tar")
+        (-not (& $shouldIgnore $_))
     } |
     ForEach-Object {
-        $relativePath = $_.FullName -replace [regex]::Escape($projectRoot), ""
-        $destinationPath = Join-Path $tempDir $relativePath
-
+        $rel = $_.FullName -replace [regex]::Escape($ProjectRoot), ""
+        $dst = Join-Path $tempDir $rel
         if ($_.PSIsContainer) {
-            New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
+            New-Item -ItemType Directory -Path $dst -Force | Out-Null
         } else {
-            New-Item -ItemType Directory -Path (Split-Path $destinationPath) -Force | Out-Null
-            Copy-Item $_.FullName -Destination $destinationPath -Force
+            New-Item -ItemType Directory -Path (Split-Path $dst) -Force | Out-Null
+            Copy-Item $_.FullName -Destination $dst -Force
         }
     }
 
-# Preview contents being zipped
-Write-Host "`n🧪 Files staged for zipping:"
-Get-ChildItem -Path $tempDir -Recurse | ForEach-Object { Write-Host "  - $($_.FullName)" }
+# ── Compress ──────────────────────────────────────────────────────────────────
 
-# Compress temp folder contents
+if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+
 try {
-    Compress-Archive -Path "$tempDir\*" -DestinationPath $zipName -Force -ErrorAction Stop
-    Write-Host "[ $timestamp ] ✅ Full project ZIP created successfully."
+    Write-Host "[ $(TS) ] Compressing to $zipName..."
+    Compress-Archive -Path "$tempDir\*" -DestinationPath $zipPath -Force -ErrorAction Stop
+    $sizeMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
+    Write-Host "[ $(TS) ] ZIP created  : $zipName ($sizeMB MB)"
 } catch {
-    Write-Host "[ $timestamp ] ❌ Compression failed: $($_.Exception.Message)"
+    Write-Host "[ $(TS) ] ERROR: Compression failed: $($_.Exception.Message)"
+    exit 1
+} finally {
+    Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# ── Build installer ────────────────────────────────────────────────────────────
+
+if (-not (Test-Path $innoCompiler)) {
+    Write-Host "[ $(TS) ] ERROR: Inno Setup 6 not found at: $innoCompiler"
+    Write-Host "         Download from https://jrsoftware.org/isinfo.php"
     exit 1
 }
 
-# Clean temp
-Remove-Item $tempDir -Recurse -Force
-
-# Confirm Inno Setup exists
-if (-not (Test-Path $innosetupCompiler)) {
-    Write-Host "[ $timestamp ] ❌ Inno Setup not found at: $innosetupCompiler"
-    exit 1
-}
-
-# Build the installer
-Write-Host "[ $timestamp ] 🚀 Launching Inno Setup Compiler..."
-& "$innosetupCompiler" $issFile
+Write-Host "[ $(TS) ] Running Inno Setup..."
+& $innoCompiler $issFile /DAppVersion=$Version /DZipName=$zipName
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ $timestamp ] ❌ Installer build failed with exit code $LASTEXITCODE."
+    Write-Host "[ $(TS) ] ERROR: Inno Setup failed (exit code $LASTEXITCODE)"
     exit 1
 }
 
-Write-Host "[ $timestamp ] ✅ Installer built and signed successfully."
-Write-Host "[ $timestamp ] 🎉 Build complete."
+Write-Host "[ $(TS) ] Installer built: AirTrack-Windows-Installer.exe"
 
+# ── Code-sign the installer ────────────────────────────────────────────────────
+
+if (Test-Path $signtool) {
+    Write-Host "[ $(TS) ] Signing installer..."
+    & $signtool sign `
+        /f $pfxPath `
+        /p $pfxPassword `
+        /fd sha256 `
+        /tr http://timestamp.digicert.com `
+        /td sha256 `
+        $outputExe
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ $(TS) ] WARNING: Code signing failed (exit $LASTEXITCODE) — installer still usable."
+    } else {
+        Write-Host "[ $(TS) ] Installer signed successfully."
+    }
+} else {
+    Write-Host "[ $(TS) ] signtool.exe not found — skipping code signing."
+    Write-Host "         Install Windows SDK to enable signing."
+}
+
+Write-Host ""
+Write-Host "[ $(TS) ] Build complete!"
+Write-Host "[ $(TS) ] Output: $outputExe"
+Write-Host ""
