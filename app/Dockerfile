@@ -25,12 +25,12 @@ RUN /venv/bin/pip install --no-cache-dir flask-wtf==1.2.1
 RUN mkdir -p /app/export && chmod 0777 /app/export
 # now copy the whole app (this may overwrite files from prior steps)
 COPY . /app
-# Copy entrypoint to /usr/local/bin so the /app volume mount can't hide it
+# **fix the entrypoint script *after* the full copy** so it can't be overwritten later
 RUN sed -i 's/\r$//' /app/wait-for-mariadb.sh \
 && sed -i '1s/^\xEF\xBB\xBF//' /app/wait-for-mariadb.sh \
-&& cp /app/wait-for-mariadb.sh /usr/local/bin/wait-for-mariadb.sh \
-&& chmod 0755 /usr/local/bin/wait-for-mariadb.sh
+&& chmod 0755 /app/wait-for-mariadb.sh \
+&& /bin/sh -lc 'ls -l /app/wait-for-mariadb.sh && head -1 /app/wait-for-mariadb.sh'
 # gunicorn will import this
 EXPOSE 5000
-ENTRYPOINT ["/usr/local/bin/wait-for-mariadb.sh"]
+ENTRYPOINT ["/app/wait-for-mariadb.sh"]
 CMD ["/venv/bin/gunicorn","-w","2","-k","gthread","--threads","8","-b","0.0.0.0:5000","--pid","/tmp/gunicorn.pid","wsgi:app"]
