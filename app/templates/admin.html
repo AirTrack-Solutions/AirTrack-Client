@@ -154,6 +154,7 @@
         <button class="cockpit-hud-button">Restore Backup</button>
       </form>
 
+      <a href="https://bugs.airtracksolutions.com" target="_blank"><button type="button" class="cockpit-hud-button">Launch Bug Tracker</button></a>
     </div>
   </div>
 
@@ -164,6 +165,7 @@
     {% endif %}
     <a href="{{ url_for('airline_logo_linker.link_airline_logos') }}"><button type="button" class="cockpit-hud-button">Logos</button></a>
     <a href="{{ url_for('registry.registry_list') }}"><button type="button" class="cockpit-hud-button">Registries</button></a>
+    <a href="{{ url_for('admin.woodland_roster') }}"><button type="button" class="cockpit-hud-button">Woodland Roster</button></a>
 
     {% if is_server %}
     <form class="cockpit-hud-form" action="{{ url_for('admin_tools.broken_links') }}" method="get">
@@ -176,7 +178,6 @@
     </form>
     {% endif %}
 
-    <a href="https://bugs.airtracksolutions.com" target="_blank"><button type="button" class="cockpit-hud-button">Launch Bug Tracker</button></a>
     <button class="cockpit-hud-button" onclick="openSettings()">Settings</button>
     <button class="cockpit-hud-button" onclick="openMunicipalityModal()" title="Set city name for an airport">Set Municipality</button>
 
@@ -184,8 +185,62 @@
     <button class="cockpit-hud-button" onclick="openGit()">Git / Updates</button>
     {% elif not is_server %}
     <button type="button" class="cockpit-hud-button" onclick="openCleanupModal()" title="Remove old backups, exports and rotate logs.">Clean Up</button>
+    <button class="cockpit-hud-button" onclick="openGit()">Update</button>
     {% endif %}
   </div>
+
+  <!-- Discord Community Widget -->
+  <div id="discordWidget" style="
+    position: fixed;
+    bottom: 88px;
+    left: 24px;
+    z-index: 900;
+  ">
+    <button id="discordToggle" onclick="toggleDiscord()" title="AirTrack Community" style="
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #5865F2;
+      border: 2px solid #7983f5;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(88,101,242,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: box-shadow .15s, transform .15s;
+      padding: 0;
+    ">
+      <!-- Discord logo -->
+      <svg width="26" height="20" viewBox="0 0 71 55" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M60.1 4.9A58.5 58.5 0 0 0 45.4.4a.2.2 0 0 0-.2.1 40.8 40.8 0 0 0-1.8 3.7 54 54 0 0 0-16.2 0A38 38 0 0 0 25.4.5a.2.2 0 0 0-.2-.1A58.4 58.4 0 0 0 10.5 4.9a.2.2 0 0 0-.1.1C1.5 18.1-.9 31-.3 43.7a.2.2 0 0 0 .1.2 58.8 58.8 0 0 0 17.7 8.9.2.2 0 0 0 .2-.1 42 42 0 0 0 3.6-5.9.2.2 0 0 0-.1-.3 38.7 38.7 0 0 1-5.5-2.6.2.2 0 0 1 0-.4l1.1-.8a.2.2 0 0 1 .2 0c11.5 5.3 24 5.3 35.4 0a.2.2 0 0 1 .2 0l1.1.8a.2.2 0 0 1 0 .4 36 36 0 0 1-5.5 2.6.2.2 0 0 0-.1.3 47 47 0 0 0 3.6 5.9.2.2 0 0 0 .2.1 58.7 58.7 0 0 0 17.7-8.9.2.2 0 0 0 .1-.2c.7-14.8-2.5-27.6-10.1-39a.2.2 0 0 0-.1 0zM23.7 36.3c-3.5 0-6.4-3.2-6.4-7.1s2.8-7.1 6.4-7.1c3.6 0 6.4 3.2 6.3 7.1 0 3.9-2.8 7.1-6.3 7.1zm23.6 0c-3.5 0-6.3-3.2-6.3-7.1s2.8-7.1 6.3-7.1c3.6 0 6.4 3.2 6.4 7.1 0 3.9-2.8 7.1-6.4 7.1z"/>
+      </svg>
+    </button>
+
+    <div id="discordPanel" style="
+      display: none;
+      position: absolute;
+      bottom: 62px;
+      left: 0;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+      border: 1px solid #4752c4;
+    ">
+      <iframe src="https://discord.com/widget?id=1388676733842227210&theme=dark"
+              width="350" height="500"
+              allowtransparency="true"
+              frameborder="0"
+              sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts">
+      </iframe>
+    </div>
+  </div>
+
+  <script>
+    function toggleDiscord() {
+      const panel = document.getElementById('discordPanel');
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+  </script>
 
   <!-- Reusable iframe modal for Logs / external pages -->
   <div id="logViewerWrapper"
