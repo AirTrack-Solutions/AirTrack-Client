@@ -59,9 +59,9 @@ def _extract_table_name(sql_file: Path) -> str | None:
     try:
         with sql_file.open('r', encoding='utf-8', errors='replace') as fh:
             for line in fh:
-                m = re.search(r'INSERT INTO `([^`]+)`', line)
+                m = re.search(r'INSERT(?:\s+IGNORE)?\s+INTO\s+(?:`([^`]+)`|([a-z_]+))\s*\(', line)
                 if m:
-                    return m.group(1)
+                    return m.group(1) or m.group(2)
     except Exception:
         pass
     return None
@@ -198,12 +198,14 @@ def scan_registries() -> list[dict]:
 def registry_list():
     registries = scan_registries()
     imported_count = sum(1 for r in registries if r['imported'])
+    total_records  = sum(r['row_count'] for r in registries if r['imported'])
     today_count = _imports_today()
     return render_template(
         'admin_registries.html',
         registries=registries,
         imported_count=imported_count,
         total_count=len(registries),
+        total_records=total_records,
         imports_today=today_count,
         daily_limit=DAILY_IMPORT_LIMIT,
     )
