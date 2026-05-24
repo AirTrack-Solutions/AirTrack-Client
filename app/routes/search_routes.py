@@ -48,6 +48,7 @@ def search_unified():
                 SELECT COUNT(*) FROM aircraft a
                 LEFT JOIN airlines al ON a.AirlineID = al.AirlineID
                 WHERE LOWER(a.Registration) LIKE :q
+                OR LOWER(a.ICAO_Address) LIKE :q
                 OR LOWER(a.Aircraft_Type) LIKE :q
                 OR LOWER(a.Departure) LIKE :q
                 OR LOWER(a.Arrival) LIKE :q
@@ -71,6 +72,7 @@ def search_unified():
                 FROM aircraft a
                 LEFT JOIN airlines al ON a.AirlineID = al.AirlineID
                 WHERE LOWER(a.Registration) LIKE :q
+                OR LOWER(a.ICAO_Address) LIKE :q
                 OR LOWER(a.Aircraft_Type) LIKE :q
                 OR LOWER(a.Departure) LIKE :q
                 OR LOWER(a.Arrival) LIKE :q

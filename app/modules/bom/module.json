@@ -1,0 +1,21 @@
+{
+  "name": "BOM",
+  "title": "BOM Weather",
+  "description": "Optional Bureau of Meteorology weather awareness module for AirTrack Logbook.",
+  "version": "0.1.0",
+  "enabled": true,
+  "provider": "Bureau of Meteorology",
+  "country": "AU",
+  "routes": "routes.py",
+  "blueprint": "bom_bp",
+  "url_prefix": "/modules/BOM",
+  "menu": {
+    "label": "Weather",
+    "url": "/modules/BOM",
+    "icon": "weather"
+  },
+  "outputs": {
+    "status": "weather_status.json",
+    "warnings": "weather_warnings.json"
+  }
+}

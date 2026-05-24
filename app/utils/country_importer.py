@@ -41,13 +41,108 @@ AIRTRACK_COLUMNS = [
 # --------------------------------------------------
 
 PREFIX_TABLES = {
-    "VH": "australia",
-    "P2": "papua_new_guinea",
-    "ZK": "new_zealand",
-    "SE": "sweden",
-    "G": "united_kingdom",
-    "C": "canada",
-    "N": "united_states",
+    # ---- 4-char prefixes (VP/VQ territories — must match before shorter VP/VQ) ----
+    "VP-C": "cayman_islands",
+    "VQ-T": "turks_and_caicos_islands",
+
+    # ---- 2-char prefixes ----
+    "4L":  "georgia",
+    "4O":  "montenegro",
+    "4R":  "sri_lanka",
+    "5B":  "cyprus",
+    "5V":  "togo",
+    "6V":  "senegal",
+    "6W":  "senegal",
+    "6Y":  "jamaica",
+    "8Q":  "maldives",
+    "9A":  "croatia",
+    "9H":  "malta",
+    "9M":  "malaysia",
+    "9V":  "singapore",
+    "9Y":  "trinidad_and_tobago",
+    "A5":  "bhutan",
+    "A6":  "united_arab_emirates",
+    "A7":  "qatar",
+    "A8":  "liberia",
+    "AP":  "pakistan",
+    "C6":  "bahamas",
+    "CC":  "chile",
+    "CN":  "morocco",
+    "CP":  "bolivia",
+    "CU":  "cuba",
+    "CX":  "uruguay",
+    "DQ":  "fiji",
+    "EC":  "spain",
+    "EI":  "ireland",
+    "EJ":  "ireland",
+    "EK":  "armenia",
+    "EL":  "liberia",
+    "EP":  "iran",
+    "ER":  "moldova",
+    "ES":  "estonia",
+    "ET":  "ethiopia",
+    "HA":  "hungary",
+    "HB":  "switzerland",
+    "HL":  "south_korea",
+    "HP":  "panama",
+    "HS":  "thailand",
+    "HZ":  "saudi_arabia",
+    "JA":  "japan",
+    "LN":  "norway",
+    "LQ":  "argentina",
+    "LV":  "argentina",
+    "LX":  "luxembourg",
+    "LY":  "lithuania",
+    "LZ":  "bulgaria",
+    "OE":  "austria",
+    "OH":  "finland",
+    "OK":  "czech_republic",
+    "OM":  "slovakia",
+    "OO":  "belgium",
+    "OY":  "denmark",
+    "P2":  "papua_new_guinea",
+    "PH":  "netherlands",
+    "PK":  "indonesia",
+    "PP":  "brazil",
+    "PR":  "brazil",
+    "PT":  "brazil",
+    "PU":  "brazil",
+    "PZ":  "suriname",
+    "RA":  "russia",
+    "RF":  "russia",
+    "RP":  "philippines",
+    "S7":  "seychelles",
+    "SE":  "sweden",
+    "SP":  "poland",
+    "SU":  "egypt",
+    "SX":  "greece",
+    "T7":  "san_marino",
+    "T9":  "bosnia_and_herzegovina",
+    "TC":  "turkey",
+    "TF":  "iceland",
+    "TI":  "costa_rica",
+    "V3":  "belize",
+    "VH":  "australia",
+    "VT":  "india",
+    "YL":  "latvia",
+    "YR":  "romania",
+    "YU":  "serbia",
+    "Z3":  "north_macedonia",
+    "ZK":  "new_zealand",
+    "ZS":  "south_africa",
+    "ZT":  "south_africa",
+    "ZU":  "south_africa",
+
+    # ---- 1-char prefixes (matched last) ----
+    "2":   "guernsey",
+    "B":   "china",
+    "C":   "canada",
+    "D":   "germany",
+    "F":   "france",
+    "G":   "united_kingdom",
+    "I":   "italy",
+    "M":   "isleofman",
+    "N":   "united_states",
 }
 
 # --------------------------------------------------
@@ -63,6 +158,15 @@ def normalize_registration(reg):
         reg = reg.replace("-", "", 1)
 
     return reg
+
+
+def normalize_hexcode(hexcode):
+    """Normalize ADS-B ICAO24 hex codes."""
+    if not hexcode:
+        return None
+    value = str(hexcode).strip().upper()
+    value = re.sub(r"[^A-F0-9]", "", value)
+    return value or None
 
 
 def clean_table_name(name):
@@ -157,6 +261,7 @@ def upsert_aircraft(db, table_name, data):
         cleaned[col] = value if value not in ("", None) else None
 
     cleaned["registration"] = reg
+    cleaned["hexcode"] = normalize_hexcode(cleaned.get("hexcode"))
 
     # Convert numeric fields safely
     for field in ["maxtakeoffweight", "enginecount", "yearmanu", "monthmanu"]:
