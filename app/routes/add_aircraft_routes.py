@@ -136,9 +136,6 @@ def add_aircraft():
             notes = request.form.get("Notes")
             country_of_reg = request.form.get("Country_of_Reg")
 
-            times_seen_raw = request.form.get("Times_Seen", "").strip()
-            times_seen = int(times_seen_raw) if times_seen_raw.isdigit() else 0
-
             manufacture_year_raw = request.form.get("Manufacture_Year", "")
             manufacture_year = (
                 int(manufacture_year_raw)
@@ -177,7 +174,6 @@ def add_aircraft():
                     MSN,
                     Category,
                     Country_of_Reg,
-                    Times_Seen,
                     Manufacture_Year,
                     Manufacture_Month,
                     ICAO_Address,
@@ -195,7 +191,6 @@ def add_aircraft():
                     :MSN,
                     :Category,
                     :Country_of_Reg,
-                    :Times_Seen,
                     :Manufacture_Year,
                     :Manufacture_Month,
                     :ICAO_Address,
@@ -216,7 +211,6 @@ def add_aircraft():
                     "MSN": msn,
                     "Category": category,
                     "Country_of_Reg": country_of_reg,
-                    "Times_Seen": times_seen,
                     "Manufacture_Year": manufacture_year,
                     "Manufacture_Month": manufacture_month,
                     "ICAO_Address": icao_address,
@@ -245,7 +239,6 @@ def add_aircraft():
                     Registration,
                     MSN,
                     Aircraft_Type,
-                    Times_Seen,
                     Departure,
                     Arrival,
                     Country_of_Reg,
@@ -258,7 +251,6 @@ def add_aircraft():
                     :Registration,
                     :MSN,
                     :Aircraft_Type,
-                    :Times_Seen,
                     :Departure,
                     :Arrival,
                     :Country_of_Reg,
@@ -274,7 +266,6 @@ def add_aircraft():
                     "Registration": registration_form,
                     "MSN": msn,
                     "Aircraft_Type": aircraft_type,
-                    "Times_Seen": times_seen,
                     "Departure": departure,
                     "Arrival": arrival,
                     "Country_of_Reg": country_of_reg,

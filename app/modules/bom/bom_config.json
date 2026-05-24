@@ -1,0 +1,11 @@
+{
+  "region_label": "NSW / ACT",
+  "feed_url": "https://www.bom.gov.au/fwo/IDZ00061.warnings_land_nsw.xml",
+  "refresh_seconds": 300,
+  "timeout_seconds": 20,
+  "user_agent": "AirTrack-BOM-Module/0.1",
+  "source_name": "Bureau of Meteorology",
+  "source_url": "https://www.bom.gov.au/rss/",
+  "kiosk_normal_title": "WX NORMAL",
+  "kiosk_normal_summary": "No active BOM warnings"
+}

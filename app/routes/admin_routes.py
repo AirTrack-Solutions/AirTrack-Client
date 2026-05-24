@@ -4,6 +4,7 @@
 
 # routes/admin_routes.py
 
+from pathlib import Path
 from flask import (
     Blueprint,
     render_template,
@@ -17,6 +18,8 @@ from flask import (
 
 from sqlalchemy import text
 
+from utils.country_importer import import_aircraft_row
+
 from extensions import db
 
 import os
@@ -25,18 +28,6 @@ import logging
 
 from datetime import datetime
 
-# ---------------------------------------------------------------------------
-# Update check — runs once when blueprint loads, client only
-# ---------------------------------------------------------------------------
-try:
-    if os.getenv('AIRTRACK_ROLE', 'client').lower() == 'client':
-        from utils.airtrack_updater import check_for_updates as _check_for_updates
-        _update_check = _check_for_updates()
-        update_available = not _update_check.get('up_to_date', True)
-    else:
-        update_available = None
-except Exception:
-    update_available = None
 
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -203,22 +194,10 @@ def admin_dashboard():
     # -----------------------------
     is_server = os.getenv('AIRTRACK_ROLE', 'client').lower() == 'server'
 
-    show_update_button = (
-        update_available is True
-        and 'admin_tools.check_updates' in current_app.view_functions
-        and 'admin_tools.run_updater' in current_app.view_functions
-    )
-
     show_commit_push = (
         is_server
         and 'admin_tools.git_commit' in current_app.view_functions
         and 'admin_tools.git_push' in current_app.view_functions
-    )
-
-    AIRTRACK_SYNC_USER = os.getenv('AIRTRACK_SYNC_USER', '').lower()
-
-    show_sync_button = AIRTRACK_SYNC_USER == 'trevor' and (
-        'admin_tools.run_file_sync' in current_app.view_functions
     )
 
     # -----------------------------
@@ -227,8 +206,6 @@ def admin_dashboard():
     airtrack_urls = {
         "git_commit": _endpoint_url('admin_tools.git_commit'),
         "git_push": _endpoint_url('admin_tools.git_push'),
-        "check_updates": _endpoint_url('admin_tools.check_updates'),
-        "run_updater": _endpoint_url('admin_tools.run_updater'),
         "housekeeping": _endpoint_url('admin_tools.housekeeping'),
     }
 
@@ -236,10 +213,7 @@ def admin_dashboard():
         'admin.html',
         stats=stats,
         backup_files=backup_files,
-        show_update_button=show_update_button,
-        show_sync_button=show_sync_button,
         show_commit_push=show_commit_push,
-        AIRTRACK_SYNC_USER=AIRTRACK_SYNC_USER,
         airtrack_urls=airtrack_urls,
         is_server=is_server,
     )
@@ -285,6 +259,37 @@ def save_settings():
         current_app.logger.exception('save_settings failed')
         return jsonify({"success": False, "error": str(e)}), 500
 
+# ---------------------------------------------------------------------------
+# Manual Aircraft Entry
+# ---------------------------------------------------------------------------
+
+@admin_bp.route('/manual_aircraft', methods=['GET', 'POST'])
+
+def manual_aircraft():
+
+    if request.method == 'POST':
+        try:
+            form = request.form.to_dict()
+
+            # Clean empty fields
+            raw_data = {k: v for k, v in form.items() if v.strip() != ""}
+
+            if "registration" not in raw_data:
+                flash("❌ Registration is required", "danger")
+                return redirect(url_for('admin.manual_aircraft'))
+
+            # Use your importer logic
+            import_aircraft_row(db, raw_data)
+
+            flash(f"✅ Aircraft {raw_data.get('registration')} saved successfully", "success")
+            return redirect(url_for('admin.manual_aircraft'))
+
+        except Exception as e:
+            current_app.logger.exception("Manual aircraft entry failed")
+            flash(f"❌ Error: {e}", "danger")
+            return redirect(url_for('admin.manual_aircraft'))
+
+    return render_template('manual_aircraft_entry.html')
 
 @admin_bp.route('/update_app_settings', methods=['POST'])
 
@@ -296,10 +301,16 @@ def update_app_settings():
         theme = (data.get("theme") or 'default').strip()
         timezone = (data.get("timezone") or '').strip()
 
+        image_import_folder = (
+            data.get("aircraft_image_import_folder")
+            or '/app/static/uploads/aircraft_imports'
+        ).strip()
+
         with db.engine.begin() as conn:
             for k, v in (
                 ('timezone', timezone),
                 ('Theme', theme),
+                ('aircraft_image_import_folder', image_import_folder),
             ):
                 conn.execute(
                     text(
@@ -324,3 +335,68 @@ def update_app_settings():
 
 def user_guide():
     return render_template('user_guide.html')
+
+
+
+@admin_bp.route('/woodland')
+def woodland_roster():
+    import re as _re, html as _html
+    roster_path = str(Path(current_app.root_path) / 'woodland_roster.md')
+    try:
+        with open(roster_path, 'r', encoding='utf-8') as fh:
+            raw = fh.read()
+
+        def md_to_html(text):
+            t = _html.escape(text)
+            # Tables: match pipe-delimited blocks
+            table_pat = _re.compile(r'((?:[^\n]*\|[^\n]*\n)+)', _re.MULTILINE)
+            def render_table(m):
+                rows = [r.strip() for r in m.group(0).strip().splitlines()]
+                out = '<table>'
+                header_done = False
+                for row in rows:
+                    if _re.match(r'^[\|\s\-:]+$', row):
+                        continue
+                    cells = [c.strip() for c in row.strip('|').split('|')]
+                    if not header_done:
+                        out += '<tr>' + ''.join('<th>' + c + '</th>' for c in cells) + '</tr>'
+                        header_done = True
+                    else:
+                        out += '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'
+                return out + '</table>'
+            t = table_pat.sub(render_table, t)
+            # Headings
+            t = _re.sub(r'^#### (.+)$', r'<h4>\1</h4>', t, flags=_re.MULTILINE)
+            t = _re.sub(r'^### (.+)$',  r'<h3>\1</h3>', t, flags=_re.MULTILINE)
+            t = _re.sub(r'^## (.+)$',   r'<h2>\1</h2>', t, flags=_re.MULTILINE)
+            t = _re.sub(r'^# (.+)$',    r'<h1>\1</h1>', t, flags=_re.MULTILINE)
+            # HR
+            t = _re.sub(r'^---+$', '<hr>', t, flags=_re.MULTILINE)
+            # Bold, italic, inline code
+            t = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', t)
+            t = _re.sub(r'\*(.+?)\*',     r'<em>\1</em>', t)
+            t = _re.sub(r'`([^`]+)`',     r'<code>\1</code>', t)
+            # Images: ![alt](src)
+            t = _re.sub(r'!\[([^\]]+)\]\(([^)]+)\)', r'<img src="\2" alt="\1" class="critter-portrait">', t)
+            # Unordered lists
+            def render_list(m):
+                items = _re.findall(r'^[-*] (.+)$', m.group(0), _re.MULTILINE)
+                return '<ul>' + ''.join('<li>' + i + '</li>' for i in items) + '</ul>'
+            t = _re.sub(r'(^[-*] .+\n?)+', render_list, t, flags=_re.MULTILINE)
+            # Paragraphs
+            paras = _re.split(r'\n{2,}', t)
+            out = []
+            for p in paras:
+                p = p.strip()
+                if not p:
+                    continue
+                if p.startswith('<'):
+                    out.append(p)
+                else:
+                    out.append('<p>' + p.replace('\n', '<br>') + '</p>')
+            return '\n'.join(out)
+
+        content_html = md_to_html(raw)
+    except Exception as e:
+        content_html = '<p style="color:#cc4444">Could not load roster: ' + str(e) + '</p>'
+    return render_template('admin_woodland.html', content=content_html)

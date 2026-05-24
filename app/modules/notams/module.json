@@ -1,0 +1,21 @@
+{
+  "name": "NOTAM",
+  "title": "NOTAM Awareness",
+  "description": "Optional NOTAM awareness module for AirTrack Logbook.",
+  "version": "0.0.0",
+  "enabled": false,
+  "provider": "Airservices Australia",
+  "country": "AU",
+  "routes": "routes.py",
+  "blueprint": "notam_bp",
+  "url_prefix": "/modules/NOTAM",
+  "menu": {
+    "label": "NOTAM",
+    "url": "/modules/NOTAM",
+    "icon": "warning"
+  },
+  "outputs": {
+    "status": "notam_status.json",
+    "notices": "notam_notices.json"
+  }
+}

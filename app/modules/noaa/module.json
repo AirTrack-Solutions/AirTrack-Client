@@ -1,0 +1,21 @@
+{
+  "name": "NOAA",
+  "title": "NOAA Weather",
+  "description": "Optional NOAA weather awareness module for AirTrack Logbook.",
+  "version": "0.0.0",
+  "enabled": false,
+  "provider": "NOAA",
+  "country": "US",
+  "routes": "routes.py",
+  "blueprint": "noaa_bp",
+  "url_prefix": "/modules/NOAA",
+  "menu": {
+    "label": "NOAA",
+    "url": "/modules/NOAA",
+    "icon": "weather"
+  },
+  "outputs": {
+    "status": "noaa_status.json",
+    "warnings": "noaa_warnings.json"
+  }
+}
