@@ -16,24 +16,26 @@ from pathlib import Path
 # Edition hierarchy — higher index = more features
 # ATP = Personal (2 activations), ATF = Professional (10 activations)
 # ATS and ATI kept for backward compatibility with existing licenses
-EDITIONS = ['lite', 'ATS', 'ATP', 'ATI', 'ATF']
+EDITIONS = ['lite', 'ATS', 'ATP', 'ATI', 'ATF', 'AirTrack-Client']
 
 # Friendly names for display
 EDITION_NAMES = {
-    'lite': 'Lite',
-    'ATS':  'Personal',
-    'ATP':  'Personal',
-    'ATI':  'Professional',
-    'ATF':  'Professional',
+    'lite':            'Lite',
+    'ATS':             'Personal',
+    'ATP':             'Personal',
+    'ATI':             'Professional',
+    'ATF':             'Professional',
+    'AirTrack-Client': 'Field Unit',
 }
 
 # Activations allowed per edition
 EDITION_ACTIVATIONS = {
-    'lite':  1,
-    'ATS':   2,
-    'ATP':   2,
-    'ATI':  10,
-    'ATF':  10,
+    'lite':            1,
+    'ATS':             2,
+    'ATP':             2,
+    'ATI':            10,
+    'ATF':            10,
+    'AirTrack-Client': 1,
 }
 
 # Features — Personal and Professional both get everything
@@ -83,6 +85,17 @@ EDITION_FEATURES = {
         'basic_search':         True,
     },
     'ATF': {
+        'admin_cockpit':        True,
+        'export_mobile':        True,
+        'maintenance_tools':    True,
+        'whitelist_tools':      True,
+        'image_tools':          True,
+        'git_tools':            False,
+        'reports':              True,
+        'flight_history':       True,
+        'basic_search':         True,
+    },
+    'AirTrack-Client': {
         'admin_cockpit':        True,
         'export_mobile':        True,
         'maintenance_tools':    True,

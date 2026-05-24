@@ -94,6 +94,10 @@
 <body class="theme-{{ selected_theme or 'default' }}">
   <div class="admin-background"></div>
 
+  <!-- Cockpit shutdown layers -->
+  <div class="cockpit-hangar-plate" aria-hidden="true"></div>
+  <div class="cockpit-secured-mask" aria-hidden="true"></div>
+
   <!-- Gauges -->
   <div class="gauge gauge-airlines"  data-count="{{ stats.total_airlines  or '0' }}"><div class="needle"></div><div class="gauge-value">0</div><div class="gauge-label">Total Airlines</div></div>
   <div class="gauge gauge-aircraft"  data-count="{{ stats.total_aircraft  or '0' }}"><div class="needle"></div><div class="gauge-value">0</div><div class="gauge-label">Total Aircraft</div></div>
@@ -154,7 +158,9 @@
         <button class="cockpit-hud-button">Restore Backup</button>
       </form>
 
-      <a href="https://bugs.airtracksolutions.com" target="_blank"><button type="button" class="cockpit-hud-button">Launch Bug Tracker</button></a>
+      <a href="http://bugs.airtracksolutions.com" target="_blank"><button type="button" class="cockpit-hud-button">Launch Bug Tracker</button></a>
+      <a href="https://discord.gg/NsmUxZmuY" target="_blank"><button type="button" class="cockpit-hud-button">Discord</button></a>
+      {% if aria_enabled %}<button type="button" class="cockpit-hud-button" onclick="if(window.ariaTogglePanel) window.ariaTogglePanel()">Aria</button>{% endif %}
     </div>
   </div>
 
@@ -168,7 +174,8 @@
     <a href="{{ url_for('admin.woodland_roster') }}"><button type="button" class="cockpit-hud-button">Woodland Roster</button></a>
 
     {% if is_server %}
-    <form class="cockpit-hud-form" action="{{ url_for('admin_tools.broken_links') }}" method="get">
+    <form class="cockpit-hud-form" action="{{ url_for('admin_tools.check_airport_links') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="cockpit-hud-button">Check Airport Links</button>
     </form>
 
@@ -188,59 +195,6 @@
     <button class="cockpit-hud-button" onclick="openGit()">Update</button>
     {% endif %}
   </div>
-
-  <!-- Discord Community Widget -->
-  <div id="discordWidget" style="
-    position: fixed;
-    bottom: 88px;
-    left: 24px;
-    z-index: 900;
-  ">
-    <button id="discordToggle" onclick="toggleDiscord()" title="AirTrack Community" style="
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      background: #5865F2;
-      border: 2px solid #7983f5;
-      cursor: pointer;
-      box-shadow: 0 4px 18px rgba(88,101,242,0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: box-shadow .15s, transform .15s;
-      padding: 0;
-    ">
-      <!-- Discord logo -->
-      <svg width="26" height="20" viewBox="0 0 71 55" fill="white" xmlns="http://www.w3.org/2000/svg">
-        <path d="M60.1 4.9A58.5 58.5 0 0 0 45.4.4a.2.2 0 0 0-.2.1 40.8 40.8 0 0 0-1.8 3.7 54 54 0 0 0-16.2 0A38 38 0 0 0 25.4.5a.2.2 0 0 0-.2-.1A58.4 58.4 0 0 0 10.5 4.9a.2.2 0 0 0-.1.1C1.5 18.1-.9 31-.3 43.7a.2.2 0 0 0 .1.2 58.8 58.8 0 0 0 17.7 8.9.2.2 0 0 0 .2-.1 42 42 0 0 0 3.6-5.9.2.2 0 0 0-.1-.3 38.7 38.7 0 0 1-5.5-2.6.2.2 0 0 1 0-.4l1.1-.8a.2.2 0 0 1 .2 0c11.5 5.3 24 5.3 35.4 0a.2.2 0 0 1 .2 0l1.1.8a.2.2 0 0 1 0 .4 36 36 0 0 1-5.5 2.6.2.2 0 0 0-.1.3 47 47 0 0 0 3.6 5.9.2.2 0 0 0 .2.1 58.7 58.7 0 0 0 17.7-8.9.2.2 0 0 0 .1-.2c.7-14.8-2.5-27.6-10.1-39a.2.2 0 0 0-.1 0zM23.7 36.3c-3.5 0-6.4-3.2-6.4-7.1s2.8-7.1 6.4-7.1c3.6 0 6.4 3.2 6.3 7.1 0 3.9-2.8 7.1-6.3 7.1zm23.6 0c-3.5 0-6.3-3.2-6.3-7.1s2.8-7.1 6.3-7.1c3.6 0 6.4 3.2 6.4 7.1 0 3.9-2.8 7.1-6.4 7.1z"/>
-      </svg>
-    </button>
-
-    <div id="discordPanel" style="
-      display: none;
-      position: absolute;
-      bottom: 62px;
-      left: 0;
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.55);
-      border: 1px solid #4752c4;
-    ">
-      <iframe src="https://discord.com/widget?id=1388676733842227210&theme=dark"
-              width="350" height="500"
-              allowtransparency="true"
-              frameborder="0"
-              sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts">
-      </iframe>
-    </div>
-  </div>
-
-  <script>
-    function toggleDiscord() {
-      const panel = document.getElementById('discordPanel');
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    }
-  </script>
 
   <!-- Reusable iframe modal for Logs / external pages -->
   <div id="logViewerWrapper"
@@ -305,6 +259,7 @@
         <button type="button" class="tab-btn active" data-tab="callsign">Callsign</button>
         <button type="button" class="tab-btn" data-tab="timezone">Timezone</button>
         <button type="button" class="tab-btn" data-tab="theme">Theme</button>
+        <button type="button" class="tab-btn" data-tab="images">Images</button>
       </div>
 
       <div class="settings-body">
@@ -334,6 +289,26 @@
           <label class="form-label">Theme</label>
           <div id="theme-grid" class="theme-grid"></div>
           <small class="help">Click a card to preview. Saves when you press <b>Save</b>.</small>
+        </div>
+
+        <div class="settings-pane" data-pane="images">
+
+          <label class="form-label" for="set-image-import-folder">
+            Aircraft Image Import Folder
+          </label>
+
+          <input
+            type="text"
+            class="form-control"
+            id="set-image-import-folder"
+            value="{{ (settings.get('aircraft_image_import_folder') or '/app/static/uploads/aircraft_imports') if settings else '/app/static/uploads/aircraft_imports' }}"
+            placeholder="/app/static/uploads/aircraft_imports"
+          >
+
+          <small class="help">
+            Images copied into this folder will be automatically imported if the filename matches an existing aircraft registration.
+          </small>
+
         </div>
       </div>
 
@@ -605,6 +580,10 @@
       const callsign = (document.getElementById('set-callsign')?.value || '').trim();
       const timezone = (document.getElementById('set-timezone')?.value || 'UTC').trim();
       const theme = (document.querySelector('input[name="set-theme"]:checked')?.value || 'default');
+
+      const imageImportFolder =
+        (document.getElementById('set-image-import-folder')?.value
+        || '/app/static/uploads/aircraft_imports').trim();
       const statusEl = document.getElementById('settingsStatus');
       const saveBtn = document.getElementById('saveSettingsBtn');
 
@@ -620,7 +599,14 @@
       try {
         const r1 = await postJSON('{{ url_for("admin.save_settings") }}', { callsign, first_name: '', last_name: '' });
         if (!r1 || !r1.success) throw new Error((r1 && r1.error) || 'save_settings failed');
-        const r2 = await postJSON('{{ url_for("admin.update_app_settings") }}', { timezone, theme });
+        const r2 = await postJSON(
+          '{{ url_for("admin.update_app_settings") }}',
+          {
+            timezone,
+            theme,
+            aircraft_image_import_folder: imageImportFolder
+          }
+        );
         if (!r2 || !r2.success) throw new Error((r2 && r2.error) || 'update_app_settings failed');
         if (window._applyTheme) window._applyTheme(theme);
         setStatusBar('Saved.', true);
@@ -757,5 +743,29 @@
     }
 
   </script>
+
+{% if aria_enabled %}{% include "aria_chat.html" %}{% endif %}
+<script src="{{ url_for('static', filename='js/cockpit_shutdown.js') }}?v={{ time() }}"></script>
+<script src="{{ url_for('static', filename='js/briefing.js') }}?v={{ time() }}"></script>
+<script>document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("ariaToggle");if(b)b.style.display="none";});</script>
+
+<!-- ── Daily Briefing Overlay ─────────────────────────────────────────── -->
+<div id="briefing-overlay" class="briefing-overlay" hidden aria-modal="true" role="dialog">
+  <div class="briefing-card">
+    <button class="briefing-close" aria-label="Close briefing">✕</button>
+    <div class="briefing-card-title">
+      <span class="briefing-status-dot"></span>
+      <span class="briefing-critter-name"></span>
+    </div>
+    <img class="briefing-critter-img" src="" alt="">
+    <p class="briefing-report-text"></p>
+    <div class="briefing-nav">
+      <button class="briefing-prev briefing-arrow" aria-label="Previous critter">&#8592;</button>
+      <span class="briefing-counter"></span>
+      <button class="briefing-next briefing-arrow" aria-label="Next critter">&#8594;</button>
+    </div>
+    <div id="briefing-qa" class="briefing-qa" hidden></div>
+  </div>
+</div>
 </body>
 </html>
