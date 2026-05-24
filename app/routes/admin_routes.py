@@ -203,11 +203,15 @@ def admin_dashboard():
     # -----------------------------
     # Safe endpoint URLs
     # -----------------------------
-    airtrack_urls = {
-        "git_commit": _endpoint_url('admin_tools.git_commit'),
-        "git_push": _endpoint_url('admin_tools.git_push'),
-        "housekeeping": _endpoint_url('admin_tools.housekeeping'),
-    }
+    airtrack_urls = {k: v for k, v in {
+        "check_updates": _endpoint_url('admin_tools.check_updates'),
+        "run_updater":   _endpoint_url('admin_tools.run_updater'),
+        "git_commit":    _endpoint_url('admin_tools.git_commit'),
+        "git_push":      _endpoint_url('admin_tools.git_push'),
+        "housekeeping":  _endpoint_url('admin_tools.housekeeping'),
+        "logs":          _endpoint_url('admin_tools.logs'),
+        "logs_tail":     _endpoint_url('admin_tools.logs_tail'),
+    }.items() if v}
 
     return render_template(
         'admin.html',

@@ -62,13 +62,25 @@ def _is_git_dir(p: Path) -> bool:
     return g.is_dir() or g.is_file()
 
 
-def _run_cmd(cmd: str, cwd: Path | None = None):
+def _run_cmd(cmd: str, cwd: Path | None = None, extra_env: dict | None = None):
+    import os as _os
+    env = {**_os.environ, **(extra_env or {})}
     p = subprocess.Popen(
         shlex.split(cmd), cwd=str(cwd) if cwd else None,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        env=env,
     )
     out, err = p.communicate()
     return p.returncode, (out or '').strip(), (err or '').strip()
+
+
+# Git env — suppress interactive prompts, don't touch GIT_SSH_COMMAND
+def _git_env() -> dict:
+    """Return env for git subprocesses with GIT_SSH_COMMAND removed."""
+    import os as _os
+    env = {k: v for k, v in _os.environ.items() if k != 'GIT_SSH_COMMAND'}
+    env['GIT_TERMINAL_PROMPT'] = '0'
+    return env
 
 
 def _repo_root() -> Path | None:
@@ -642,7 +654,7 @@ def check_updates():
 
     try:
         # Fetch quietly — don't fail if offline
-        _run_cmd("git fetch origin", cwd=repo)
+        _run_cmd("git fetch origin", cwd=repo, extra_env=_git_env())
 
         # Commits behind and ahead of origin/main
         rc, behind_str, _ = _run_cmd(
@@ -687,7 +699,7 @@ def run_updater():
 
     try:
         # Fetch latest from origin
-        rc, out, err = _run_cmd("git fetch origin", cwd=repo)
+        rc, out, err = _run_cmd("git fetch origin", cwd=repo, extra_env=_git_env())
         if rc != 0:
             return _err(f"git fetch failed: {err or out}", code=500)
 
@@ -701,12 +713,12 @@ def run_updater():
             return _ok(status="success", detail="Already up to date.", restart_required=False)
 
         # Hard reset to origin/main — wipes local divergence cleanly
-        rc3, out3, err3 = _run_cmd("git reset --hard origin/main", cwd=repo)
+        rc3, out3, err3 = _run_cmd("git reset --hard origin/main", cwd=repo, extra_env=_git_env())
         if rc3 != 0:
             return _err(f"git reset failed: {err3 or out3}", code=500)
 
         # Clean up untracked files that conflict with the new state
-        _run_cmd("git clean -fd", cwd=repo)
+        _run_cmd("git clean -fd", cwd=repo, extra_env=_git_env())
 
         return _ok(
             status="success",
