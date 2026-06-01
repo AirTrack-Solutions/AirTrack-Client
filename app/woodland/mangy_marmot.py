@@ -176,15 +176,17 @@ def _install_package(package_path: Path) -> None:
         raise FileNotFoundError(f"package_installer.py not found at {installer_path}")
 
     os.environ["AIRTRACK_HOME"] = str(AIRTRACK_HOME)
+    os.environ.setdefault("AIRTRACK_VERSION", "1.0.0")
 
     spec   = importlib.util.spec_from_file_location("package_installer", installer_path)
     module = importlib.util.module_from_spec(spec)
     sys.modules["package_installer"] = module
     spec.loader.exec_module(module)
 
-    result = module.PackageInstaller(package_path).install()
-    if not result.ok:
-        raise RuntimeError(f"Install failed: {result.error}")
+    result = module.validate_package(package_path)
+    if not result.valid:
+        errs = "; ".join(result.errors or [])
+        raise RuntimeError(f"Install failed: {errs}")
     _log(f"Install: '{result.package_name}' v{result.package_version} installed")
 
 
