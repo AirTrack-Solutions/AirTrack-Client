@@ -1,6 +1,6 @@
 """
 AirTrack — Mangy Marmot
-woodland/mangy_marmot.py v0.1
+woodland/mangy_marmot.py v0.2
 
 Capability delivery agent. Runs on a schedule inside the AirTrack client.
 
@@ -207,7 +207,24 @@ def _deliver(capability: str) -> bool:
 
     matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == capability]
     if not matching:
-        _log(f"Delivery: no dispatched delivery for '{capability}'"); return False
+        _log(f"Delivery: no dispatched delivery for '{capability}' — requesting from warehouse")
+        try:
+            cap_req = _post("/api/wombat/request-capability", {
+                "customer_id": CUSTOMER_ID,
+                "capability":  capability,
+            })
+        except Exception as exc:
+            _log(f"Delivery: request-capability failed — {exc}"); return False
+        if cap_req.get("status") != "dispatched":
+            _log(f"Delivery: request-capability returned '{cap_req.get('status')}' — {cap_req.get('note', cap_req.get('error', ''))}"); return False
+        # Re-fetch manifest so we have the freshly dispatched delivery
+        try:
+            manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
+        except Exception as exc:
+            _log(f"Delivery: manifest re-fetch failed — {exc}"); return False
+        matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == capability]
+        if not matching:
+            _log(f"Delivery: warehouse dispatched but manifest not yet updated — will retry"); return False
 
     delivery   = matching[0]
     request_id = delivery["request_id"]
