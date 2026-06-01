@@ -30,3 +30,4 @@ paramiko==3.4.0
 # Prod server
 gunicorn==21.2.0
 nano
+apscheduler>=3.10
