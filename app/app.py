@@ -1289,3 +1289,34 @@ if __name__ == "__main__":
         use_reloader=False,
         threaded=True,
     )
+
+# ---------------------------------------------------------------------------
+# Woodland Scheduler — capability delivery
+# ---------------------------------------------------------------------------
+try:
+    import os as _os
+    if _os.getenv("WOMBAT_URL") and _os.getenv("AIRTRACK_CUSTOMER_ID"):
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from apscheduler.triggers.interval import IntervalTrigger
+
+        def _run_mangy_marmot():
+            try:
+                from woodland.mangy_marmot import main
+                main()
+            except Exception as _exc:
+                logging.error("Mangy Marmot crashed: %s", _exc, exc_info=True)
+
+        _scheduler = BackgroundScheduler(timezone="UTC")
+        _scheduler.add_job(
+            _run_mangy_marmot,
+            IntervalTrigger(minutes=5),
+            id="mangy_marmot",
+            name="Mangy Marmot",
+            max_instances=1,
+            coalesce=True,
+        )
+        _scheduler.start()
+        logging.info("Woodland Scheduler started — Mangy Marmot every 5 minutes")
+        _run_mangy_marmot()  # run immediately on startup
+except Exception as _sched_exc:
+    logging.error("Woodland Scheduler failed to start: %s", _sched_exc, exc_info=True)
