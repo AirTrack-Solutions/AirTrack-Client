@@ -11,6 +11,7 @@ services:
        find /app -mindepth 1 -delete;
        git clone --depth=1 $$GIT_REMOTE /tmp/airtrack-repo;
        cp -a /tmp/airtrack-repo/app/. /app/;
+       chmod +x /app/wait-for-mariadb.sh;
        rm -rf /tmp/airtrack-repo;
        echo 'Done.'"
 
@@ -32,8 +33,10 @@ services:
       - AIRTRACK_ENABLE_SHUTDOWN=1
       - AIRTRACK_SHUTDOWN_TOKEN=change-me
       - AIRTRACK_ROLE=client
+      - AIRTRACK_SERVER_URL=${AIRTRACK_SERVER_URL:-}
     volumes:
       - repo_data:/app
+      - ./data/airtrack_data:/airtrack_data:rw
       - ./logs:/app/logs:rw
       - ./app/config/license.lic:/app/config/license.lic:ro
     extra_hosts:
