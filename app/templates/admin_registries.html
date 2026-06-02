@@ -216,6 +216,41 @@
       padding: 40px 0;
       text-align: center;
     }
+
+    /* Record tally banner */
+    .tally-bar {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: #0d1a0d;
+      border: 1px solid #1a3a1a;
+      border-radius: 8px;
+    }
+    .tally-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .tally-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #00ff66;
+      letter-spacing: .5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .tally-label {
+      font-size: 0.72rem;
+      color: #556;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+    }
+    .tally-divider {
+      width: 1px;
+      height: 32px;
+      background: #1e3a1e;
+    }
   </style>
 </head>
 <body>
@@ -226,6 +261,24 @@
     <a class="coffee-link" href="https://buymeacoffee.com/airtracksolutions" target="_blank" rel="noopener">☕ Buy me a coffee</a>
     <a class="back-link" href="{{ url_for('registry.registry_tracker') }}">🗂 Tracker</a>
     <a class="back-link" href="{{ url_for('admin.admin_dashboard') }}">← Cockpit</a>
+  </div>
+
+  <!-- Record tally -->
+  <div class="tally-bar">
+    <div class="tally-stat">
+      <span class="tally-value" id="tallyRecords">{{ '{:,}'.format(total_records) }}</span>
+      <span class="tally-label">Total records</span>
+    </div>
+    <div class="tally-divider"></div>
+    <div class="tally-stat">
+      <span class="tally-value" id="tallyCountries">{{ imported_count }}</span>
+      <span class="tally-label">Countries imported</span>
+    </div>
+    <div class="tally-divider"></div>
+    <div class="tally-stat">
+      <span class="tally-value">{{ total_count - imported_count }}</span>
+      <span class="tally-label">Available to import</span>
+    </div>
   </div>
 
   <!-- Daily import quota -->
@@ -309,6 +362,17 @@
   <script>
     const DAILY_LIMIT = {{ daily_limit }};
     let importsToday = {{ imports_today }};
+    let totalRecords = {{ total_records }};
+
+    function updateTally(addedRows) {
+      totalRecords += addedRows;
+      const el = document.getElementById('tallyRecords');
+      if (el) el.textContent = totalRecords.toLocaleString();
+      const cards = document.querySelectorAll('.registry-card');
+      const imported = [...cards].filter(c => c.dataset.state === 'imported').length;
+      const countEl = document.getElementById('tallyCountries');
+      if (countEl) countEl.textContent = imported;
+    }
 
     function csrf() {
       const m = document.querySelector('meta[name="csrf-token"]');
@@ -404,6 +468,7 @@
           document.getElementById('btn-remove-' + dir).style.display = '';
 
           if (data.quota) updateQuotaBar(data.quota.used);
+          updateTally(rows);
           updateFilterCounts();
         } else {
           setFeedback(dir, '✗ ' + (data.detail || 'Import failed'), false);

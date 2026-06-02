@@ -194,8 +194,53 @@ def scan_registries() -> list[dict]:
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
+def _server_url() -> str | None:
+    """Return the configured server base URL, or None if not set."""
+    url = os.getenv('AIRTRACK_SERVER_URL', '').rstrip('/')
+    return url or None
+
+
+def _fetch_manifest(server_url: str) -> list[dict]:
+    """Fetch available registries from the server manifest endpoint."""
+    import urllib.request, json as _json
+    try:
+        with urllib.request.urlopen(f'{server_url}/admin/registries/manifest', timeout=10) as resp:
+            return _json.loads(resp.read().decode('utf-8'))
+    except Exception as exc:
+        logging.warning(f'Failed to fetch registry manifest from {server_url}: {exc}')
+        return []
+
+
 @registry_bp.route('/')
 def registry_list():
+    is_client = os.getenv('AIRTRACK_ROLE', 'server').lower() == 'client'
+    server_url = _server_url()
+
+    if is_client:
+        # Client mode: fetch available registries from server
+        available = _fetch_manifest(server_url) if server_url else []
+        # Annotate each with local import status
+        for r in available:
+            imported = _table_exists(r['table'])
+            r['imported']  = imported
+            r['row_count'] = _row_count(r['table']) if imported else 0
+        imported_count = sum(1 for r in available if r['imported'])
+        total_records  = sum(r['row_count'] for r in available if r['imported'])
+        today_count    = _imports_today()
+        return render_template(
+            'admin_registries.html',
+            registries=available,
+            imported_count=imported_count,
+            total_count=len(available),
+            total_records=total_records,
+            imports_today=today_count,
+            daily_limit=DAILY_IMPORT_LIMIT,
+            is_client=True,
+            server_url=server_url,
+            server_reachable=bool(available or server_url is None),
+        )
+
+    # Server mode: scan local files as before
     registries = scan_registries()
     imported_count = sum(1 for r in registries if r['imported'])
     total_records  = sum(r['row_count'] for r in registries if r['imported'])
@@ -208,26 +253,87 @@ def registry_list():
         total_records=total_records,
         imports_today=today_count,
         daily_limit=DAILY_IMPORT_LIMIT,
+        is_client=False,
+        server_url=None,
+        server_reachable=True,
     )
 
 
 @registry_bp.route('/import/<country>', methods=['POST'])
 def import_registry(country):
+    is_client = os.getenv('AIRTRACK_ROLE', 'server').lower() == 'client'
+
+    # ── Daily limit check ────────────────────────────────────────────────────
+    today_count = _imports_today()
+    if today_count >= DAILY_IMPORT_LIMIT:
+        return jsonify({
+            'status': 'error',
+            'detail': f'Daily limit of {DAILY_IMPORT_LIMIT} imports reached — come back tomorrow!',
+            'quota':  {'used': today_count, 'limit': DAILY_IMPORT_LIMIT, 'remaining': 0},
+        }), 429
+
+    db_host     = os.getenv('DB_HOST', 'airtrack-db')
+    db_user     = os.getenv('DB_USER', 'airtrack')
+    db_password = os.getenv('DB_PASSWORD', '')
+    db_name     = os.getenv('DB_NAME', 'airtrack')
+
+    if is_client:
+        # Client mode: download SQL from server, pipe into local DB
+        import urllib.request as _ur, tempfile, io
+        server_url = _server_url()
+        if not server_url:
+            return jsonify({'status': 'error', 'detail': 'AIRTRACK_SERVER_URL not configured'}), 500
+
+        # First fetch the manifest to get the table name
+        manifest = _fetch_manifest(server_url)
+        entry = next((r for r in manifest if r['dir'] == country), None)
+        if not entry:
+            return jsonify({'status': 'error', 'detail': f'Registry not found on server: {country}'}), 404
+
+        table_name = entry['table']
+
+        try:
+            ensure_country_table(db, table_name)
+
+            sql_url = f'{server_url}/admin/registries/sql/{country}'
+            with _ur.urlopen(sql_url, timeout=120) as resp:
+                sql_bytes = resp.read()
+
+            result = subprocess.run(
+                ['mysql', '-h', db_host, f'-u{db_user}', f'-p{db_password}', db_name],
+                input=sql_bytes.decode('utf-8', errors='replace'),
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
+
+            if result.returncode != 0:
+                logging.error(f"Client registry import failed for {country}: {result.stderr}")
+                return jsonify({'status': 'error', 'detail': result.stderr or 'Import failed'}), 500
+
+            rows = _row_count(table_name)
+            _record_import()
+            new_count = today_count + 1
+            remaining = max(0, DAILY_IMPORT_LIMIT - new_count)
+            return jsonify({
+                'status':    'ok',
+                'detail':    f'Imported {rows:,} records',
+                'row_count': rows,
+                'quota':     {'used': new_count, 'limit': DAILY_IMPORT_LIMIT, 'remaining': remaining},
+            })
+
+        except subprocess.TimeoutExpired:
+            return jsonify({'status': 'error', 'detail': 'Import timed out (>10 min)'}), 500
+        except Exception as e:
+            logging.exception(f"Client registry import error for {country}")
+            return jsonify({'status': 'error', 'detail': str(e)}), 500
+
+    # ── Server mode: import from local SQL file ───────────────────────────────
     reg_dir = _registries_dir()
     country_dir = reg_dir / country
 
     if not country_dir.is_dir():
         return jsonify({'status': 'error', 'detail': f'Not found: {country}'}), 404
-
-    # ── Daily limit check ────────────────────────────────────────────────────
-    today_count = _imports_today()
-    if today_count >= DAILY_IMPORT_LIMIT:
-        remaining = 0
-        return jsonify({
-            'status':    'error',
-            'detail':    f'Daily limit of {DAILY_IMPORT_LIMIT} imports reached — come back tomorrow!',
-            'quota':     {'used': today_count, 'limit': DAILY_IMPORT_LIMIT, 'remaining': remaining},
-        }), 429
 
     sql_file = _find_sql_file(country_dir)
     if not sql_file:
@@ -238,13 +344,7 @@ def import_registry(country):
         return jsonify({'status': 'error', 'detail': 'Could not determine table name'}), 400
 
     try:
-        # Ensure the table schema exists before importing
         ensure_country_table(db, table_name)
-
-        db_host     = os.getenv('DB_HOST', 'airtrack-db')
-        db_user     = os.getenv('DB_USER', 'airtrack')
-        db_password = os.getenv('DB_PASSWORD', '')
-        db_name     = os.getenv('DB_NAME', 'airtrack')
 
         with sql_file.open('r', encoding='utf-8', errors='replace') as fh:
             result = subprocess.run(
@@ -262,7 +362,7 @@ def import_registry(country):
         rows = _row_count(table_name)
         _record_import()
         new_count = today_count + 1
-        remaining  = max(0, DAILY_IMPORT_LIMIT - new_count)
+        remaining = max(0, DAILY_IMPORT_LIMIT - new_count)
         return jsonify({
             'status':    'ok',
             'detail':    f'Imported {rows:,} records',
@@ -528,6 +628,37 @@ def _packs_countries() -> set[str]:
 def _norm(s: str) -> str:
     """Normalise a country name or dir name for fuzzy matching."""
     return s.replace('_', '').replace(' ', '').replace('-', '').replace('&', '').replace("'", '').replace('.', '').lower()
+
+
+@registry_bp.route('/manifest')
+def registry_manifest():
+    """Return JSON list of available registries — consumed by client installs."""
+    registries = scan_registries()
+    return jsonify([
+        {
+            'name':         r['display_name'],
+            'dir':          r['dir'],
+            'table':        r['table'],
+            'file_records': r['file_records'],
+        }
+        for r in registries
+    ])
+
+
+@registry_bp.route('/sql/<country>')
+def registry_sql(country):
+    """Stream the SQL file for a registry — consumed by client installs."""
+    from flask import send_file, abort
+    reg_dir = _registries_dir()
+    # Sanitise: only allow Title_Case dir names that exist
+    country_dir = reg_dir / country
+    if not country_dir.is_dir() or country.lower() in _SKIP_DIRS or not country[0].isupper():
+        abort(404)
+    sql_file = _find_sql_file(country_dir)
+    if not sql_file:
+        abort(404)
+    return send_file(str(sql_file), mimetype='application/sql', as_attachment=True,
+                     download_name=sql_file.name)
 
 
 @registry_bp.route('/tracker')

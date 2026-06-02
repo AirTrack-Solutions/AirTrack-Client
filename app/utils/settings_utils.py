@@ -1,5 +1,5 @@
 # AirTrack 1.0.0
-# Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+# Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
 # SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
 
 
@@ -7,9 +7,8 @@
 
 from __future__ import annotations
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Dict, Optional
-from zoneinfo import ZoneInfo
 import pytz
 
 from flask import has_app_context
@@ -29,12 +28,6 @@ def load_settings() -> Dict[str, str]:
         return {r._mapping["SettingKey"]: r._mapping["SettingValue"] for r in rows}
     except Exception:
         return {}
-
-    """Resolve timezone safely; default to UTC on bad input."""
-    try:
-        return ZoneInfo(tz_name)
-    except Exception:
-        return timezone.utc
 
 
 def get_current_timezone() -> pytz.BaseTzInfo:
@@ -61,17 +54,19 @@ def get_current_timezone() -> pytz.BaseTzInfo:
 
 def convert_to_local(
     dt: Optional[datetime],
-    tz_name: Optional[str] = "Australia/Sydney",
+    tz_name: Optional[str] = None,
 ) -> Optional[datetime]:
     """
-    Convert a datetime to the given local timezone.
+    Convert a datetime (or date) to the user's configured local timezone.
     - If dt is naive, assume UTC.
-    - If tz_name is None, use DB-defined timezone (safe fallback to UTC).
+    - Reads timezone from DB on every call (reflects user settings changes immediately).
     """
     if dt is None:
         return None
+    if isinstance(dt, date) and not isinstance(dt, datetime):
+        dt = datetime.combine(dt, datetime.min.time())
     if not isinstance(dt, datetime):
-        raise TypeError("convert_to_local expects a datetime object")
+        raise TypeError("convert_to_local expects a datetime or date object")
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=pytz.utc)
     tz = _tz_from_name(tz_name) if tz_name else get_current_timezone()
@@ -79,6 +74,20 @@ def convert_to_local(
         return dt.astimezone(tz)
     except Exception:
         return dt
+
+
+def format_display_dt(dt, default: str = "Unknown") -> str:
+    """
+    Convert a UTC datetime (or date) to the user's configured local timezone
+    and format for display as DD-MM-YYYY HH:MM:SS.
+    Single source of truth for all user-facing datetime formatting in AirTrack.
+    """
+    if dt is None:
+        return default
+    local = convert_to_local(dt)
+    if local is None:
+        return default
+    return local.strftime("%d-%m-%Y %H:%M:%S")
 
 
 def get_current_theme() -> str:

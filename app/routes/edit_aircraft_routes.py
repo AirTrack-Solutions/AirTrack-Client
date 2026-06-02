@@ -58,8 +58,20 @@ def edit_aircraft(aircraft_id):
 
     try:
         # Load airlines for dropdown
+        # Load current AirlineID so we can include it even if ceased
+        current_row = db.session.execute(
+            text("SELECT AirlineID FROM aircraft WHERE AircraftID = :id"),
+            {"id": aircraft_id},
+        ).fetchone()
+        current_airline_id = current_row[0] if current_row else None
+
         result = db.session.execute(
-            text("SELECT AirlineID, AirlineName FROM airlines ORDER BY AirlineName")
+            text(
+                "SELECT AirlineID, AirlineName FROM airlines "
+                "WHERE Ceased_Operations = 0 OR AirlineID = :current "
+                "ORDER BY AirlineName"
+            ),
+            {"current": current_airline_id},
         )
         airlines = [dict(r._mapping) for r in result.fetchall()]
 
@@ -82,7 +94,6 @@ def edit_aircraft(aircraft_id):
             spotted_at = _get_str(request.form, 'Spotted_At')
             notes = _get_str(request.form, 'Notes')
             country_of_reg = _get_str(request.form, 'Country_of_Reg')
-            times_seen = _none_if_zero(_get_int_or_none(request.form, 'Times_Seen'))
             manufacture_year = _none_if_zero(_get_int_or_none(request.form, 'Manufacture_Year'))
             manufacture_month = _none_if_zero(_get_int_or_none(request.form, 'Manufacture_Month'))
             airline_id = _none_if_zero(_get_int_or_none(request.form, 'AirlineID'))
@@ -106,7 +117,6 @@ def edit_aircraft(aircraft_id):
                             MSN               = :MSN,
                             Category          = :Category,
                             Country_of_Reg    = :Country_of_Reg,
-                            Times_Seen        = :Times_Seen,
                             Manufacture_Year  = :Manufacture_Year,
                             Manufacture_Month = :Manufacture_Month,
                             ICAO_Address      = :ICAO_Address,
@@ -125,7 +135,6 @@ def edit_aircraft(aircraft_id):
                         "MSN": msn,
                         "Category": category,
                         "Country_of_Reg": country_of_reg,
-                        "Times_Seen": times_seen,
                         "Manufacture_Year": manufacture_year,
                         "Manufacture_Month": manufacture_month,
                         "ICAO_Address": icao_address,
@@ -137,6 +146,37 @@ def edit_aircraft(aircraft_id):
                         "AircraftID": aircraft_id,
                     },
                 )
+
+                # If operator changed, close old history row and open new one
+                if airline_id != current_airline_id:
+                    today = datetime.utcnow().date()
+                    if current_airline_id:
+                        db.session.execute(
+                            text(
+                                "UPDATE aircraft_owners SET To_Date = :today "
+                                "WHERE AircraftID = :ac AND To_Date IS NULL"
+                            ),
+                            {"today": today, "ac": aircraft_id},
+                        )
+                    if airline_id:
+                        airline_name_snap = db.session.execute(
+                            text("SELECT AirlineName FROM airlines WHERE AirlineID = :id"),
+                            {"id": airline_id},
+                        ).scalar()
+                        db.session.execute(
+                            text(
+                                "INSERT INTO aircraft_owners "
+                                "(AircraftID, AirlineID, airline_name_snapshot, From_Date, Notes) "
+                                "VALUES (:ac, :al, :snap, :fd, :notes)"
+                            ),
+                            {
+                                "ac":    aircraft_id,
+                                "al":    airline_id,
+                                "snap":  airline_name_snap,
+                                "fd":    today,
+                                "notes": "Operator updated via edit form",
+                            },
+                        )
 
                 db.session.commit()
                 flash("Aircraft updated successfully.", "success")
@@ -156,7 +196,6 @@ def edit_aircraft(aircraft_id):
                             Registration,
                             MSN,
                             Aircraft_Type,
-                            Times_Seen,
                             Departure,
                             Arrival,
                             Country_of_Reg,
@@ -170,7 +209,6 @@ def edit_aircraft(aircraft_id):
                             :Registration,
                             :MSN,
                             :Aircraft_Type,
-                            :Times_Seen,
                             :Departure,
                             :Arrival,
                             :Country_of_Reg,
@@ -185,7 +223,6 @@ def edit_aircraft(aircraft_id):
                         "Registration": registration,
                         "MSN": msn,
                         "Aircraft_Type": aircraft_type,
-                        "Times_Seen": times_seen,
                         "Departure": departure,
                         "Arrival": arrival,
                         "Country_of_Reg": country_of_reg,

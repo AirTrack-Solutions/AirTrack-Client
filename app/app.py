@@ -410,6 +410,15 @@ def inject_globals():
     return {"max": max, "min": min}
 
 
+@app.context_processor
+def inject_endpoint_check():
+    """Expose endpoint_exists() to all templates for graceful nav degradation."""
+    from flask import current_app
+    def endpoint_exists(name):
+        return name in current_app.url_map._rules_by_endpoint
+    return dict(endpoint_exists=endpoint_exists)
+
+
 @app.template_filter("format_datetime")
 
 def format_datetime(value):

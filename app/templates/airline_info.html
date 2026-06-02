@@ -12,6 +12,7 @@
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/airline_info.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
   <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
@@ -56,6 +57,20 @@
         </tr>
 
         <tr>
+          <th>Ceased Operations</th>
+          <td>
+            {% if airline['Ceased_Operations'] %}
+              <span class="badge bg-danger">Yes</span>
+              {% if airline['Ceased_Date'] %}
+                &nbsp;{{ airline['Ceased_Date'] }}
+              {% endif %}
+            {% else %}
+              No
+            {% endif %}
+          </td>
+        </tr>
+
+        <tr>
           <th>Last Updated</th>
           <td>{{ airline['Last_Updated'] }}</td>
         </tr>
@@ -91,11 +106,9 @@
                 <td>{{ a['Departure'] | airport if a['Departure'] else '—' }}</td>
                 <td>{{ a['Arrival']   | airport if a['Arrival']   else '—' }}</td>
 
-                <td>
-                  {{ a['First_Sighted'] | airport if a['First_Sighted'] else '—' }}
-                </td>
+                <td>{{ a['First_Sighted_Display'] }}</td>
 
-                <td>{{ a['Last_Updated'] or '—' }}</td>
+                <td>{{ a['Aircraft_Updated_Display'] }}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -106,9 +119,40 @@
       <p class="text-muted mt-4">No aircraft are currently recorded for this airline.</p>
     {% endif %}
 
+    {% if former_list %}
+      <h2 class="mt-4">Former Aircraft</h2>
+      <p class="text-muted" style="font-size:0.9rem;">Aircraft that were operated by {{ airline['AirlineName'] }} and have since moved to other operators.</p>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead class="table-dark">
+            <tr>
+              <th>Registration</th>
+              <th>Type</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in former_list %}
+              <tr>
+                <td><a href="{{ url_for('aircraft.aircraft_info', aircraft_id=a['AircraftID']) }}">{{ a['Registration'] }}</a></td>
+                <td>{{ a['Aircraft_Type'] or '—' }}</td>
+                <td>{{ a['From_Date'] or '—' }}</td>
+                <td>{{ a['To_Date'] or '—' }}</td>
+                <td>{{ a['Notes'] or '—' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
     <a href="{{ url_for('airlines.airlines_table') }}" class="btn btn-secondary mt-3">← Back to Airlines</a>
 
   </div>
+
+  {% include 'footer.html' %}
 
   <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>

@@ -100,26 +100,6 @@
       else showMsg(`❌ Push failed: ${r.detail || "unknown error"}`, "text-danger");
     },
 
-    async check() {  // GET is correct
-      showMsg("Checking for updates…");
-      const r = await getJSON("/admin_tools/check_updates");
-      if (r && (r.emergency_update || (Array.isArray(r.files_needing_update) && r.files_needing_update.length))) {
-        showMsg("⬆️ Updates available.", "text-info");
-      } else if (r.__http_status === 405) {
-        showMsg("❌ METHOD NOT ALLOWED — your UI is calling POST. Use GET for /admin_tools/check_updates.", "text-danger");
-      } else {
-        showMsg("✅ Up to date.", "text-success");
-      }
-    },
-
-    async updateNow() { // POST is correct, requires elevation
-      if (!(await isElevated())) { explain403("Update"); return; }
-      showMsg("Updating…");
-      const r = await postJSON("/admin_tools/run_updater?force=true", {});
-      if (r.status === "success") { showMsg("✅ Update complete. Reloading…", "text-success"); setTimeout(()=>location.reload(), 1200); }
-      else if (r.__http_status === 403) explain403("Update");
-      else showMsg(`❌ Update failed: ${r.detail || "unknown error"}`, "text-danger");
-    }
   };
 
   // Expose for your modal buttons:

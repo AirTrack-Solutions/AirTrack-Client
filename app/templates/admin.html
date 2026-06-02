@@ -172,6 +172,7 @@
     <a href="{{ url_for('airline_logo_linker.link_airline_logos') }}"><button type="button" class="cockpit-hud-button">Logos</button></a>
     <a href="{{ url_for('registry.registry_list') }}"><button type="button" class="cockpit-hud-button">Registries</button></a>
     <a href="{{ url_for('admin.woodland_roster') }}"><button type="button" class="cockpit-hud-button">Woodland Roster</button></a>
+    <a href="{{ url_for('admin.modules_page') }}"><button type="button" class="cockpit-hud-button">Modules</button></a>
 
     {% if is_server %}
     <form class="cockpit-hud-form" action="{{ url_for('admin_tools.check_airport_links') }}" method="post">
@@ -306,7 +307,7 @@
           >
 
           <small class="help">
-            Images copied into this folder will be automatically imported if the filename matches an existing aircraft registration.
+            Images copied into this folder will be automatically imported if the filename matches an existing aircraft registration — for example, <strong>VH-OQF.jpg</strong> will attach to aircraft VH-OQF.
           </small>
 
         </div>
@@ -341,6 +342,7 @@
           <div class="btn-row" style="margin-top:8px;">
             <button class="btn primary" onclick="gitCommit()">Commit</button>
             <button class="btn ghost" onclick="gitPush()">Push</button>
+            <button class="btn ghost" onclick="gitPull()">Pull</button>
           </div>
           <div id="gitStatus" class="status" style="margin-top:6px;"></div>
         </section>
@@ -654,6 +656,19 @@
 
       setStatus('gitStatus', 'Pushing…', true);
       await postJSON(API.git_push, {}, 'gitStatus').catch(() => null);
+    }
+
+    async function gitPull() {
+      if (!API.git_pull) return setStatus('gitStatus', 'Git pull endpoint not configured.', false);
+      if (!(await isElevated())) return explain403('Pull', 'gitStatus');
+
+      setStatus('gitStatus', 'Pulling…', true);
+      const r = await postJSON(API.git_pull, {}, 'gitStatus').catch(() => null);
+      if (r && r.restart_required) {
+        setStatus('gitStatus', '✅ Pull successful — restart required.', true);
+      } else if (r && r.status === 'noop') {
+        setStatus('gitStatus', 'ℹ️ Already up to date.', true);
+      }
     }
 
     async function checkUpdates() {

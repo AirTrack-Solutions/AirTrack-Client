@@ -95,7 +95,7 @@
 /* Center display (radar + confirmation) */
 #cockpit-center-display {
   position: absolute;
-  top: 43%;
+  top: 44.5%;
   left: 49.4%;
   transform: translateX(-50%);
   width: 200px;
@@ -257,4 +257,345 @@
 
 .cockpit-hud-form {
   display: contents;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COCKPIT SHUTDOWN SYSTEM
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── CSS variables ────────────────────────────────────────────────────────── */
+:root {
+  --hangar-offset-x:      50%;
+  --hangar-offset-y:      65%;
+  --hangar-brightness:    0.65;
+  --hangar-opacity:       0.85;
+  --hangar-blur:          0.4px;
+
+  --mask-opacity:         0;
+  --mask-brightness:      0.30;
+
+  --cockpit-transition:   2s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ── No-transition override (for instant restore on page load) ────────────── */
+body.cockpit--no-transition *,
+body.cockpit--no-transition *::before,
+body.cockpit--no-transition *::after {
+  transition: none !important;
+}
+
+/* ── Hangar background plate ─────────────────────────────────────────────── */
+.cockpit-hangar-plate {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/static/themes/hangar2.png');
+  background-size: cover;
+  background-position: 47% 53.5%;
+  background-repeat: no-repeat;
+  opacity: 0;
+  filter: brightness(var(--hangar-brightness))
+          contrast(0.85)
+          saturate(0.85)
+          blur(var(--hangar-blur));
+  pointer-events: none;
+  transition: opacity var(--cockpit-transition);
+}
+
+/* Hangar fades in at stage 4 only — cockpit bg is at 8% by then, crossfade is invisible */
+body.cockpit--stage-4 .cockpit-hangar-plate,
+body.cockpit--secured  .cockpit-hangar-plate {
+  opacity: var(--hangar-opacity);
+  transition: opacity var(--cockpit-transition) 350ms;
+}
+
+/* ── Secured cockpit mask (transparent overlay layer) ────────────────────── */
+.cockpit-secured-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background-image: url('/static/themes/cockpit_mask.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  filter: brightness(var(--mask-brightness));
+  pointer-events: none;
+  transition: opacity var(--cockpit-transition);
+}
+
+/* Mask layer disabled — Option A: hangar2.png used standalone */
+
+
+/* ── Click zones ─────────────────────────────────────────────────────────── */
+.cockpit-click-zones {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.cockpit-click-zone {
+  position: absolute;
+  pointer-events: all;
+  cursor: default;
+  /* Uncomment to debug zone positions:
+  background: rgba(255,0,0,0.2);
+  border: 1px solid red; */
+}
+
+/* ── Active cockpit dimming (stages 1–4) ─────────────────────────────────── */
+/* The .admin-background dims progressively as stages advance */
+body.cockpit--stage-1 .admin-background {
+  filter: brightness(0.85);
+  transition: filter var(--cockpit-transition);
+}
+body.cockpit--stage-2 .admin-background {
+  filter: brightness(0.55);
+  transition: filter var(--cockpit-transition);
+}
+body.cockpit--stage-3 .admin-background {
+  filter: brightness(0.25);
+  transition: filter var(--cockpit-transition);
+}
+body.cockpit--stage-4 .admin-background,
+body.cockpit--secured  .admin-background {
+  filter: brightness(0.08);
+  transition: filter var(--cockpit-transition);
+}
+
+/* ── Gauges and HUD dim with stages ─────────────────────────────────────── */
+body.cockpit--stage-2 .gauge,
+body.cockpit--stage-2 .cockpit-hud-column { opacity: 0.6; transition: opacity var(--cockpit-transition); }
+
+body.cockpit--stage-3 .gauge,
+body.cockpit--stage-3 .cockpit-hud-column { opacity: 0.2; transition: opacity var(--cockpit-transition); }
+
+body.cockpit--stage-4 .gauge,
+body.cockpit--stage-4 .cockpit-hud-column,
+body.cockpit--secured  .gauge,
+body.cockpit--secured  .cockpit-hud-column { opacity: 0; transition: opacity var(--cockpit-transition); pointer-events: none; }
+
+/* ── SECURED breathing indicator ─────────────────────────────────────────── */
+@keyframes cockpit-secured-breathe {
+  0%, 100% { opacity: 0.4; text-shadow: 0 0 4px rgba(180, 30, 30, 0.5); }
+  50%       { opacity: 0.9; text-shadow: 0 0 12px rgba(200, 40, 40, 0.9); }
+}
+
+.cockpit-secured-pulse {
+  color: #b41e1e !important;
+  text-shadow: 0 0 8px rgba(180, 30, 30, 0.7) !important;
+  animation: cockpit-secured-breathe 6s ease-in-out infinite;
+  cursor: default;
+}
+
+/* ── Cockpit centre display z-index (above all shutdown layers) ───────────── */
+#cockpit-center-display {
+  z-index: 10;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* ── Daily Briefing ─────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Nav link pulse — cockpit link in header when briefing is waiting */
+@keyframes briefing-nav-pulse {
+  0%, 100% { opacity: 1; color: inherit; }
+  50%       { opacity: 0.5; color: #f39c12; }
+}
+
+.cockpit-nav--briefing {
+  animation: briefing-nav-pulse 2s ease-in-out infinite;
+  color: #f39c12 !important;
+}
+
+/* REPORT indicator in radar-content */
+@keyframes briefing-report-breathe {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 6px rgba(243,156,18,0.4); }
+  50%       { opacity: 0.6; box-shadow: 0 0 14px rgba(243,156,18,0.8); }
+}
+
+#radar-content.briefing-report-pulse {
+  color: #f39c12 !important;
+  border-color: rgba(243,156,18,0.6) !important;
+  animation: briefing-report-breathe 3s ease-in-out infinite;
+  cursor: pointer;
+}
+
+/* ── Overlay backdrop ────────────────────────────────────────────────────── */
+.briefing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.briefing-overlay--open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.briefing-overlay[hidden] {
+  display: none;
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.briefing-card {
+  position: relative;
+  background: rgba(12, 14, 18, 0.96);
+  border: 1px solid rgba(243,156,18,0.3);
+  border-radius: 10px;
+  padding: 32px 36px 28px;
+  width: min(580px, 90vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 0 40px rgba(0,0,0,0.8), 0 0 20px rgba(243,156,18,0.08);
+  color: #c8c0b0;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* ── Close button ────────────────────────────────────────────────────────── */
+.briefing-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.5);
+  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.briefing-close:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,0.4);
+}
+
+/* ── Title row: status dot + name (left-aligned, above image) ───────────── */
+.briefing-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.briefing-critter-name {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #e8dcc8;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── Critter image — block, below name ───────────────────────────────────── */
+.briefing-critter-img {
+  display: block;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(243,156,18,0.2);
+  margin-bottom: 18px;
+}
+
+/* ── Status dot ──────────────────────────────────────────────────────────── */
+.briefing-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #555;
+  flex-shrink: 0;
+}
+
+.briefing-status-dot--ok      { background: #27ae60; }
+.briefing-status-dot--warning { background: #f39c12; }
+.briefing-status-dot--error   { background: #c0392b; }
+.briefing-status-dot--unknown { background: #555; }
+
+/* ── Report text ─────────────────────────────────────────────────────────── */
+.briefing-report-text {
+  font-size: 0.95em;
+  line-height: 1.7;
+  color: #b8b0a0;
+  margin: 0 0 24px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+/* ── QA section ─────────────────────────────────────────────────────────── */
+.briefing-qa {
+  font-size: 0.82em;
+  color: #8a9ba8;
+  margin-top: 4px;
+  padding: 0 2px;
+  line-height: 1.5;
+}
+.briefing-qa-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  color: #a8b8c0;
+  margin-bottom: 4px;
+}
+.briefing-qa-ts {
+  font-weight: normal;
+  font-size: 0.9em;
+  opacity: 0.6;
+}
+.briefing-qa-list {
+  margin: 3px 0 3px 16px;
+  padding: 0;
+  list-style: disc;
+}
+.briefing-qa-outstanding li {
+  color: #c0a060;
+}
+
+/* ── Navigation ──────────────────────────────────────────────────────────── */
+.briefing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 16px;
+}
+
+.briefing-arrow {
+  background: none;
+  border: 1px solid rgba(243,156,18,0.3);
+  border-radius: 4px;
+  color: rgba(243,156,18,0.7);
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  line-height: 1;
+}
+
+.briefing-arrow:hover {
+  background: rgba(243,156,18,0.1);
+  border-color: rgba(243,156,18,0.6);
+  color: #f39c12;
+}
+
+.briefing-counter {
+  font-size: 0.8em;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.1em;
 }

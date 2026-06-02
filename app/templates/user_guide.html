@@ -127,7 +127,7 @@
         <p>This page lets you add a new aircraft to your database.</p>
         <ul>
             <li>Fill in the <strong>Registration</strong>, <strong>Flight Number</strong>, <strong>Aircraft Type</strong>, and <strong>Airline</strong> at a minimum.</li>
-            <li>You can optionally add the <strong>MSN</strong>, <strong>Category</strong>, <strong>Country of Registration</strong>, <strong>Times Seen</strong>, <strong>Manufacture Year/Month</strong>, <strong>ICAO Address</strong>, and any notes.</li>
+            <li>You can optionally add the <strong>MSN</strong>, <strong>Category</strong>, <strong>Country of Registration</strong>, <strong>Times Seen</strong>, <strong>Manufacture Year/Month</strong>, <strong>ICAO Hex Code</strong>, and any notes.</li>
             <li>The <strong>Spotted At</strong>, <strong>Departure</strong>, and <strong>Arrival</strong> fields track recent flight info.</li>
             <li>Once submitted, the aircraft and an initial flight entry are both created in the system.</li>
         </ul>
@@ -160,7 +160,7 @@
     </div>
     </div>
 
-    <!-- Upload Aircraft Image Section -->
+        <!-- Upload Aircraft Image Section -->
     <div class="card mb-3">
     <div class="card-header" data-bs-toggle="collapse" data-bs-target="#uploadImageSection" style="cursor: pointer;">
         <h5 class="mb-0 text-center">Upload Aircraft Image</h5>
@@ -168,13 +168,50 @@
     <div id="uploadImageSection" class="collapse">
         <div class="card-body">
         <p>This page allows you to upload an image for a specific aircraft already in your database.</p>
+
         <ul>
             <li>Choose an <strong>airline</strong> from the dropdown. The list is sorted alphabetically.</li>
+
             <li>Once selected, a second dropdown will populate with aircraft registrations for that airline.</li>
+
             <li>Select the image you want to upload. Supported formats include JPG and PNG.</li>
-            <li>Click <strong>Upload</strong> to save the image to the server.</li>
+
+            <li>Click <strong>Upload</strong> to save the image to the server and link it to the selected aircraft.</li>
         </ul>
-        <p>Note: If the registration is not already in your database, you’ll need to add it first using the <em>Add Aircraft</em> form.</p>
+
+        <p>
+            AirTrack also supports a folder-based image import system for bulk or manual image collection.
+        </p>
+
+        <ul>
+            <li>
+                Images can be copied directly into the designated aircraft image folder on the server.
+            </li>
+
+            <li>
+                The image filename <strong>must match an aircraft registration already present in the database</strong>.
+            </li>
+
+            <li>
+                Example:
+                <code>VH-ABC.jpg</code>,
+                <code>N12345.png</code>,
+                <code>ZK-XYZ.jpg</code>
+            </li>
+
+            <li>
+                AirTrack will automatically match the filename to the existing aircraft registration and import the image into the database.
+            </li>
+
+            <li>
+                Images with filenames that do not match an existing aircraft registration will be ignored.
+            </li>
+        </ul>
+
+        <p>
+            Note: If the registration is not already in your database, you’ll need to add it first using the <em>Add Aircraft</em> form.
+        </p>
+
         </div>
     </div>
     </div>

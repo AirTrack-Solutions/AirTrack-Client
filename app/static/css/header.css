@@ -117,6 +117,166 @@
     text-decoration: underline;
 }
 
+/* ===== SMART ASK DRAWER ===== */
+
+/* Drawer is hidden inside header-container until toggled open */
+.smart-ask-drawer {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #d0dde3;
+}
+
+.smart-ask-drawer.smart-ask-drawer-open {
+    display: block;
+}
+
+.smart-ask-drawer-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.smart-ask-drawer-input {
+    flex: 1;
+    padding: 7px 12px;
+    border: 1px solid #b0c8d4;
+    border-radius: 6px;
+    font-size: 0.92rem;
+    font-family: "Times New Roman", Times, serif;
+    color: #1b4f62;
+    background: #f7fafc;
+    outline: none;
+}
+
+.smart-ask-drawer-input:focus {
+    border-color: #1b4f62;
+    background: #fff;
+}
+
+.smart-ask-drawer-btn {
+    padding: 7px 18px;
+    background: #1b4f62;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.92rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.smart-ask-drawer-btn:hover {
+    background: #163f52;
+}
+
+.smart-ask-drawer-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.smart-ask-drawer-close {
+    background: none;
+    border: none;
+    color: #7a9aaa;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    line-height: 1;
+}
+
+.smart-ask-drawer-close:hover {
+    color: #1b4f62;
+}
+
+.smart-ask-drawer-result {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #1b4f62;
+    font-family: "Times New Roman", Times, serif;
+}
+
+.smart-ask-loading {
+    font-style: italic;
+    color: #7a9aaa;
+}
+
+.smart-ask-error {
+    color: #a00;
+}
+
+.smart-ask-answer {
+    line-height: 1.5;
+}
+
+.smart-ask-explanation {
+    font-style: italic;
+    margin-bottom: 6px;
+    color: #5a7a8a;
+}
+
+.smart-ask-no-results {
+    font-style: italic;
+    color: #7a9aaa;
+}
+
+.smart-ask-nav-link {
+    color: #1b4f62;
+    font-weight: 600;
+    text-decoration: underline;
+    margin-left: 6px;
+}
+
+.smart-ask-table-wrap {
+    overflow-x: auto;
+    margin-top: 6px;
+}
+
+.smart-ask-table {
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    width: 100%;
+}
+
+.smart-ask-table th {
+    background: #1b4f62;
+    color: #fff;
+    padding: 5px 10px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.smart-ask-table td {
+    padding: 4px 10px;
+    border-bottom: 1px solid #e0eaee;
+}
+
+.smart-ask-table tr:nth-child(even) td {
+    background: #f4f9fb;
+}
+
+/* Toggle button row — sits below the header container */
+.smart-ask-toggle-row {
+    width: calc(100% - 100px);
+    margin: 0 auto 4px auto;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.smart-ask-toggle {
+    background: #1b4f62;
+    color: #fff;
+    border: none;
+    border-radius: 0 0 8px 8px;
+    padding: 4px 16px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+}
+
+.smart-ask-toggle:hover {
+    background: #163f52;
+}
+
 /* Mobile */
 
 @media (max-width: 768px) {
@@ -138,5 +298,9 @@
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
+    }
+
+    .smart-ask-toggle-row {
+        width: calc(100% - 20px);
     }
 }

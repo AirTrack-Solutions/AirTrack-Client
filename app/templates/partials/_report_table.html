@@ -25,10 +25,9 @@
                         <img src="{{ url_for('static', filename='flags/' + get_country_flag(code)) }}"
                              alt="{{ code }}" width="24" height="16" class="me-1">
                         {{ code.upper() }}
-                    {% elif column == "ICAO" %}
-                        {# Add ?from= so airport_info can show the right back button #}
-                            <a href="{{ url_for('airports.airport_info', icao=row[column]) }}" class="icao-key">
-                        {{ row[column] | airport }}
+                    {% elif column == "ICAO" or column == "Airport" %}
+                        <a href="{{ url_for('airports.airport_info', icao=row[column]) }}" class="icao-key">
+                            {{ row[column] | airport }}
                         </a>
                     {% else %}
                         {{ row[column] if row[column] is not none else '—' }}

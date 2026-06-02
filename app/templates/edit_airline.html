@@ -1,6 +1,6 @@
 <!--
   AirTrack 1.0.0
-  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
   SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
 -->
 
@@ -11,14 +11,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Edit Airline</title>
 
-  <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-
-  <!-- Custom CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/edit_airline.css') }}">
-  <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+  <style>
+    .enrichment-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .enrichment-row .form-group { flex: 1; min-width: 120px; }
+    .lookup-hint { font-size: 0.78rem; color: var(--text-muted, #888); margin-top: 0.25rem; min-height: 1.2em; }
+    .lookup-match { color: var(--teal, #20c997); }
+    .lookup-error { color: #dc3545; }
+  </style>
 </head>
 <body class="theme-{{ selected_theme }}">
   <div class="background"></div>
@@ -29,14 +34,79 @@
 
     <form method="POST" action="{{ url_for('edit_airline', airline_id=airline['AirlineID']) }}" class="edit-airline-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="form-group">
-        <label for="airlineName">Airline Name:</label>
-        <input type="text" class="form-control" id="airlineName" name="airlineName" value="{{ airline['AirlineName'] }}" required>
+
+      <!-- Airline name + lookup trigger -->
+      <div class="form-group mb-3">
+        <label for="airlineName">Airline Name</label>
+        <div class="input-group">
+          <input type="text" class="form-control" id="airlineName" name="airlineName"
+                 value="{{ airline['AirlineName'] }}" required autocomplete="off">
+          <button type="button" id="lookup-btn" class="teal-button">
+            Look up
+          </button>
+        </div>
+        <div class="lookup-hint" id="lookup-hint"></div>
       </div>
 
-      <div class="form-group">
-        <label for="lastUpdated">Last Updated:</label>
-        <input type="text" class="form-control" id="lastUpdated" name="lastUpdated" value="{{ airline['Last_Updated'] }}" readonly>
+      <!-- Enrichment fields -->
+      <div class="enrichment-row mb-3">
+        <div class="form-group">
+          <label for="IATA">IATA</label>
+          <input type="text" id="IATA" name="IATA"
+                 value="{{ airline['IATA'] or '' }}" class="form-control"
+                 placeholder="e.g. QF" maxlength="3">
+        </div>
+        <div class="form-group">
+          <label for="ICAO">ICAO</label>
+          <input type="text" id="ICAO" name="ICAO"
+                 value="{{ airline['ICAO'] or '' }}" class="form-control"
+                 placeholder="e.g. QFA" maxlength="4">
+        </div>
+        <div class="form-group" style="flex: 2; min-width: 160px;">
+          <label for="Callsign">Radio Callsign</label>
+          <input type="text" id="Callsign" name="Callsign"
+                 value="{{ airline['Callsign'] or '' }}" class="form-control"
+                 placeholder="e.g. QANTAS">
+        </div>
+        <div class="form-group" style="flex: 2; min-width: 160px;">
+          <label for="Country">Country</label>
+          <input type="text" id="Country" name="Country"
+                 value="{{ airline['Country'] or '' }}" class="form-control"
+                 placeholder="e.g. Australia">
+        </div>
+      </div>
+
+      <!-- Ceased Operations + Date -->
+      <div class="form-group mb-3">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="Ceased_Operations"
+                   name="Ceased_Operations" value="1"
+                   {% if airline['Ceased_Operations'] %}checked{% endif %}>
+            <label class="form-check-label" for="Ceased_Operations">
+              Ceased Operations
+            </label>
+          </div>
+          <div>
+            <input type="date" id="Ceased_Date" name="Ceased_Date"
+                   class="form-control form-control-sm"
+                   value="{{ airline['Ceased_Date'] or '' }}"
+                   placeholder="Cessation date"
+                   style="width: 160px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Lookup suggestions dropdown (hidden until populated) -->
+      <div id="lookup-suggestions" style="display:none;" class="mb-3">
+        <label class="form-label">Suggestions</label>
+        <div id="suggestion-list" class="list-group"></div>
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="lastUpdated">Last Updated</label>
+        <input type="text" class="form-control" id="lastUpdated" name="lastUpdated"
+               value="{{ airline['Last_Updated'] }}" readonly>
       </div>
 
       <div class="button-container">
@@ -46,9 +116,87 @@
     </form>
   </div>
 
-  <!-- jQuery and Bootstrap JS -->
+  {% include 'footer.html' %}
+
   <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+  <script>
+    const lookupUrl = "{{ url_for('airlines.airline_lookup') }}";
+
+    function applyResult(r) {
+      document.getElementById("airlineName").value = r.name || document.getElementById("airlineName").value;
+      document.getElementById("IATA").value         = r.iata     || "";
+      document.getElementById("ICAO").value         = r.icao     || "";
+      document.getElementById("Callsign").value     = r.callsign || "";
+      document.getElementById("Country").value      = r.country  || "";
+    }
+
+    function showHint(msg, cls) {
+      const el = document.getElementById("lookup-hint");
+      el.textContent = msg;
+      el.className = "lookup-hint " + (cls || "");
+    }
+
+    function showSuggestions(results) {
+      const wrap = document.getElementById("lookup-suggestions");
+      const list = document.getElementById("suggestion-list");
+      list.innerHTML = "";
+
+      if (!results || results.length === 0) {
+        wrap.style.display = "none";
+        return;
+      }
+
+      results.forEach(function(r) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "list-group-item list-group-item-action";
+        const codes = [r.iata, r.icao].filter(Boolean).join(" / ");
+        const country = r.country ? " — " + r.country : "";
+        btn.textContent = r.name + (codes ? " (" + codes + ")" : "") + country;
+        btn.addEventListener("click", function() {
+          applyResult(r);
+          wrap.style.display = "none";
+          showHint("Applied: " + r.name, "lookup-match");
+        });
+        list.appendChild(btn);
+      });
+
+      wrap.style.display = "block";
+    }
+
+    document.getElementById("lookup-btn").addEventListener("click", function() {
+      const q = document.getElementById("airlineName").value.trim();
+      if (!q) { showHint("Enter an airline name first.", "lookup-error"); return; }
+
+      showHint("Looking up…");
+      document.getElementById("lookup-suggestions").style.display = "none";
+
+      fetch(lookupUrl + "?q=" + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          const results = data.results || [];
+          if (results.length === 0) {
+            showHint("No matches found — fill in manually.", "lookup-error");
+            return;
+          }
+          if (results.length === 1) {
+            applyResult(results[0]);
+            showHint("Matched: " + results[0].name, "lookup-match");
+          } else {
+            showHint(results.length + " matches found — select one below.", "lookup-match");
+            showSuggestions(results);
+          }
+        })
+        .catch(function() {
+          showHint("Lookup unavailable — fill in manually.", "lookup-error");
+        });
+    });
+
+    document.getElementById("airlineName").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") { e.preventDefault(); document.getElementById("lookup-btn").click(); }
+    });
+  </script>
 </body>
 </html>

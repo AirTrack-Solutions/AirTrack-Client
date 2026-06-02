@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/add_aircraft.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="theme-{{ selected_theme }}">
     <div class="background"></div>
@@ -35,14 +36,18 @@
             <div class="row mb-3">
                 <div class="col-md-4">
                     <label>Registration</label>
-                    <input type="text" name="Registration" class="form-control uppercase-input" required value="{{ registration or request.form.get('Registration', '') }}">
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="text" name="Registration" id="reg-input" class="form-control uppercase-input" required value="{{ registration or request.form.get('Registration', '') }}">
+                        <button type="button" class="btn btn-success" id="btn-lookup">Lookup</button>
+                    </div>
+                    <div id="lookup-status" class="mt-1 small text-muted" style="min-height:1.2em;"></div>
                 </div>
                 <div class="col-md-4">
                     <label>Flight Number</label>
-                    <input type="text" name="FlightNumber" class="form-control uppercase-input" required value="{{ request.form.get('FlightNumber', '') }}">
+                    <input type="text" name="FlightNumber" class="form-control uppercase-input" value="{{ request.form.get('FlightNumber', '') }}">
                 </div>
                 <div class="col-md-4">
-                    <label>Aircraft Type</label>
+                    <label>Aircraft Type <img src="/static/images/shield.png" id="shield-Aircraft_Type" style="display:none;height:1.5em;width:auto;vertical-align:middle;" title="Suggested from registry"></label>
                     <input type="text" name="Aircraft_Type" class="form-control" required value="{{ request.form.get('Aircraft_Type', '') }}">
                 </div>
             </div>
@@ -50,11 +55,11 @@
             <!-- Airline Row -->
             <div class="row mb-3">
                 <div class="col-md-4">
-                    <label>MSN</label>
+                    <label>MSN <img src="/static/images/shield.png" id="shield-MSN" style="display:none;height:1.5em;width:auto;vertical-align:middle;" title="Suggested from registry"></label>
                     <input type="text" name="MSN" class="form-control" value="{{ request.form.get('MSN', '') }}">
                 </div>
                 <div class="col-md-4">
-                    <label>Airline</label>
+                    <label>Airline <img src="/static/images/shield.png" id="shield-Airline" style="display:none;height:1.5em;width:auto;vertical-align:middle;" title="Suggested from registry"></label>
                     <select name="AirlineID" class="form-control">
                         <option value="">— Select an airline —</option>
                         {% for airline in airlines %}
@@ -71,26 +76,22 @@
                 </div>
             </div>
 
-            <!-- Category / Country / Times Seen -->
+            <!-- Category / Country -->
             <div class="row mb-3">
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label>Category</label>
                     <input type="text" name="Category" class="form-control" value="{{ request.form.get('Category', '') }}">
                 </div>
-                <div class="col-md-4">
-                    <label>Country of Registration</label>
+                <div class="col-md-6">
+                    <label>Country of Registration <img src="/static/images/shield.png" id="shield-Country_of_Reg" style="display:none;height:1.5em;width:auto;vertical-align:middle;" title="Suggested from registry"></label>
                     <input type="text" name="Country_of_Reg" class="form-control" value="{{ request.form.get('Country_of_Reg', '') }}">
-                </div>
-                <div class="col-md-4">
-                    <label>Times Seen</label>
-                    <input type="number" name="Times_Seen" class="form-control" value="{{ request.form.get('Times_Seen', '1') }}">
                 </div>
             </div>
 
             <!-- Manufacture / ICAO -->
             <div class="row mb-3">
                 <div class="col-md-4">
-                    <label>Manufacture Year</label>
+                    <label>Manufacture Year <img src="/static/images/shield.png" id="shield-Manufacture_Year" style="display:none;height:1.5em;width:auto;vertical-align:middle;" title="Suggested from registry"></label>
                     <input type="number" name="Manufacture_Year" class="form-control" value="{{ request.form.get('Manufacture_Year', '') }}">
                 </div>
                 <div class="col-md-4">
@@ -105,7 +106,7 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label>ICAO Address</label>
+                    <label>ICAO Hex Code <img src="/static/images/shield.png" id="shield-ICAO_Address" style="display:none;height:1.5em;width:auto;vertical-align:middle;" title="Suggested from registry"></label>
                     <input type="text" name="ICAO_Address" class="form-control uppercase-input" value="{{ request.form.get('ICAO_Address', '') }}">
                 </div>
             </div>
@@ -135,6 +136,24 @@
             </div>
 
             <input type="hidden" name="registration" value="{{ registration }}">
+
+            <!-- Sighting Date / Time -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>Sighting Date</label>
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="date" name="Sighting_Date" id="sighting-date" class="form-control">
+                        <button type="button" class="btn btn-success" id="btn-today">Today</button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label>Sighting Time <small class="text-muted">(optional)</small></label>
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="time" name="Sighting_Time" id="sighting-time" class="form-control">
+                        <button type="button" class="btn btn-success" id="btn-now">Now</button>
+                    </div>
+                </div>
+            </div>
 
             <!-- Notes -->
             <div class="mb-3 mt-4">
@@ -269,6 +288,121 @@ $(document).ready(function() {
 });
 </script>
 
+
+<script>
+document.getElementById('btn-today').addEventListener('click', function() {
+    var d = new Date();
+    var yyyy = d.getFullYear();
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    document.getElementById('sighting-date').value = yyyy + '-' + mm + '-' + dd;
+});
+document.getElementById('btn-now').addEventListener('click', function() {
+    var d = new Date();
+    var hh = String(d.getHours()).padStart(2, '0');
+    var mi = String(d.getMinutes()).padStart(2, '0');
+    document.getElementById('sighting-time').value = hh + ':' + mi;
+});
+</script>
+
+<script>
+(function() {
+    const regInput = document.getElementById('reg-input');
+    const statusBox = document.getElementById('lookup-status');
+    const lookupBtn = document.getElementById('btn-lookup');
+
+    // Simple text field map: registry key -> { inputName, shieldId }
+    const fieldMap = {
+        aircraftmodel:   { name: 'Aircraft_Type',   shield: 'shield-Aircraft_Type' },
+        msn:             { name: 'MSN',              shield: 'shield-MSN' },
+        operatorcountry: { name: 'Country_of_Reg',  shield: 'shield-Country_of_Reg' },
+        yearmanu:        { name: 'Manufacture_Year', shield: 'shield-Manufacture_Year' },
+        hexcode:         { name: 'ICAO_Address',     shield: 'shield-ICAO_Address' },
+    };
+
+    function clearShields() {
+        Object.values(fieldMap).forEach(function(f) {
+            var el = document.getElementById(f.shield);
+            if (el) el.style.display = 'none';
+        });
+        var airlineShield = document.getElementById('shield-Airline');
+        if (airlineShield) airlineShield.style.display = 'none';
+    }
+
+    function setStatus(msg, colour) {
+        statusBox.textContent = msg;
+        statusBox.style.color = colour || '';
+    }
+
+    function tryMatchAirline(operatorName) {
+        if (!operatorName) return;
+        const select = document.querySelector('[name="AirlineID"]');
+        const shield = document.getElementById('shield-Airline');
+        if (!select) return;
+        const needle = operatorName.trim().toLowerCase();
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].text.trim().toLowerCase() === needle) {
+                select.value = select.options[i].value;
+                if (shield) shield.style.display = 'inline';
+                select.addEventListener('change', function once() {
+                    if (shield) shield.style.display = 'none';
+                    select.removeEventListener('change', once);
+                });
+                return;
+            }
+        }
+    }
+
+    async function doLookup() {
+        const reg = (regInput.value || '').trim().toUpperCase();
+        if (!reg) { clearShields(); setStatus(''); return; }
+
+        setStatus('Looking up…', '#888');
+        clearShields();
+
+        try {
+            const resp = await fetch('/admin/manual-aircraft/lookup?registration=' + encodeURIComponent(reg));
+            const payload = await resp.json();
+
+            if (!payload.ok) { setStatus('Lookup failed.', 'red'); return; }
+
+            if (!payload.found) {
+                setStatus('Not found in registry.', '#888');
+                return;
+            }
+
+            const data = payload.data || {};
+            let filled = 0;
+
+            Object.entries(fieldMap).forEach(function([regKey, f]) {
+                const val = data[regKey];
+                const input = document.querySelector('[name="' + f.name + '"]');
+                const shield = document.getElementById(f.shield);
+                if (input && val) {
+                    input.value = val;
+                    if (shield) shield.style.display = 'inline';
+                    filled++;
+                    input.addEventListener('input', function once() {
+                        if (shield) shield.style.display = 'none';
+                        input.removeEventListener('input', once);
+                    });
+                }
+            });
+
+            tryMatchAirline(data.operatorname);
+            if (document.getElementById('shield-Airline').style.display !== 'none') filled++;
+
+            setStatus('Registry match — ' + filled + ' field' + (filled !== 1 ? 's' : '') + ' suggested.', 'green');
+
+        } catch(err) {
+            setStatus('Lookup error.', 'red');
+        }
+    }
+
+    lookupBtn.addEventListener('click', doLookup);
+    regInput.addEventListener('blur', doLookup);
+})();
+</script>
 {% include 'footer.html' %}
 </body>
 </html>

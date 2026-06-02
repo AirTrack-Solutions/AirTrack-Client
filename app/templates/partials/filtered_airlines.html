@@ -10,7 +10,7 @@
 {% if filtered_airlines %}
   {% for airline in filtered_airlines %}
     <tr>
-      <td>{{ airline.AirlineName }}</td>
+      <td>{{ airline.AirlineName }}{% if airline.Ceased_Operations %} <span class="badge bg-danger" style="font-size:0.7em;">Ceased</span>{% endif %}</td>
       <td>{{ airline.TotalAircraft or 0 }}</td>
       <td>
         <a href="{{ url_for('airlines.airline_info', airline_id=airline.AirlineID) }}" class="btn btn-info btn-sm">Info</a>

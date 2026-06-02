@@ -22,6 +22,7 @@ from utils.country_importer import import_aircraft_row
 
 from extensions import db
 
+import json
 import os
 
 import logging
@@ -208,6 +209,7 @@ def admin_dashboard():
         "run_updater":   _endpoint_url('admin_tools.run_updater'),
         "git_commit":    _endpoint_url('admin_tools.git_commit'),
         "git_push":      _endpoint_url('admin_tools.git_push'),
+        "git_pull":      _endpoint_url('admin_tools.git_pull'),
         "housekeeping":  _endpoint_url('admin_tools.housekeeping'),
         "logs":          _endpoint_url('admin_tools.logs'),
         "logs_tail":     _endpoint_url('admin_tools.logs_tail'),
@@ -404,3 +406,54 @@ def woodland_roster():
     except Exception as e:
         content_html = '<p style="color:#cc4444">Could not load roster: ' + str(e) + '</p>'
     return render_template('admin_woodland.html', content=content_html)
+
+
+# ---------------------------------------------------------------------------
+# Modules page
+# ---------------------------------------------------------------------------
+
+@admin_bp.route('/modules')
+def modules_page():
+    modules_dir = Path(current_app.root_path) / 'modules'
+    modules = []
+    for d in sorted(modules_dir.iterdir()):
+        if not d.is_dir() or d.name.startswith('_') or d.name == 'tools':
+            continue
+        meta_path = d / 'module.json'
+        if not meta_path.exists():
+            continue
+        try:
+            meta = json.loads(meta_path.read_text(encoding='utf-8'))
+            meta['folder'] = d.name
+            modules.append(meta)
+        except Exception:
+            continue
+    return render_template('admin_modules.html', modules=modules)
+
+
+@admin_bp.route('/modules/toggle', methods=['POST'])
+def modules_toggle():
+    folder   = request.form.get('folder', '').strip()
+    enabled  = request.form.get('enabled') == '1'
+
+    if not folder or '/' in folder or folder.startswith('.'):
+        flash('Invalid module name.', 'danger')
+        return redirect(url_for('admin.modules_page'))
+
+    meta_path = Path(current_app.root_path) / 'modules' / folder / 'module.json'
+    if not meta_path.exists():
+        flash(f'Module {folder} not found.', 'danger')
+        return redirect(url_for('admin.modules_page'))
+
+    try:
+        meta = json.loads(meta_path.read_text(encoding='utf-8'))
+        meta['enabled'] = enabled
+        tmp = meta_path.with_suffix('.tmp')
+        tmp.write_text(json.dumps(meta, indent=2), encoding='utf-8')
+        tmp.replace(meta_path)
+        action = 'enabled' if enabled else 'disabled'
+        flash(f"{meta.get('title', folder)} {action}. Restart required to take effect.", 'success')
+    except Exception as e:
+        flash(f'Could not update module: {e}', 'danger')
+
+    return redirect(url_for('admin.modules_page'))
