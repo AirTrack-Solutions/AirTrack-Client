@@ -90,6 +90,8 @@ CREATE TABLE `airlines` (
   `IATA` varchar(10) DEFAULT NULL,
   `ICAO` varchar(10) DEFAULT NULL,
   `Callsign` varchar(50) DEFAULT NULL,
+  `Ceased_Operations` tinyint(1) DEFAULT 0,
+  `Ceased_Date` date DEFAULT NULL,
   PRIMARY KEY (`AirlineID`),
   UNIQUE KEY `AirlineName` (`AirlineName`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
