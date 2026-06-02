@@ -15,7 +15,7 @@ from sqlalchemy import text
 
 from extensions import db
 from security.guards import require_server
-from utils.settings_utils import get_current_timezone
+from utils.settings_utils import format_display_dt
 
 reports_bp = Blueprint("reports", __name__, url_prefix="/reports")
 
@@ -131,13 +131,7 @@ Rules:
 # -------------------------------------------------
 # Helpers
 # -------------------------------------------------
-def _to_tz(dt, tz):
-    """Normalize dates → datetime and convert UTC → user timezone."""
-    if not dt:
-        return None
-    if isinstance(dt, date) and not isinstance(dt, datetime):
-        dt = datetime.combine(dt, datetime.min.time())
-    return dt.replace(tzinfo=pytz.utc).astimezone(tz)
+
 
 
 def render_report(title, columns, data):
@@ -152,14 +146,9 @@ def safe_query(sql, params=None, title="", columns=None):
         result = db.session.execute(text(sql), params or {})
         rows = [dict(row._mapping) for row in result.fetchall()]
 
-        timezone = get_current_timezone()
         for row in rows:
             if "First_Sighted" in row:
-                dt = row["First_Sighted"]
-                converted = _to_tz(dt, timezone)
-                row["First_Sighted"] = (
-                    converted.strftime("%d-%m-%Y %H:%M:%S") if converted else "Unknown"
-                )
+                row["First_Sighted"] = format_display_dt(row["First_Sighted"])
 
         return render_report(title, columns or [], rows)
 
@@ -260,12 +249,10 @@ def ask():
             rows = [dict(row._mapping) for row in result.fetchall()]
 
             # Normalise datetimes
-            timezone = get_current_timezone()
             for row in rows:
                 for key, val in row.items():
                     if isinstance(val, datetime):
-                        converted = _to_tz(val, timezone)
-                        row[key] = converted.strftime("%d-%m-%Y %H:%M:%S") if converted else "Unknown"
+                        row[key] = format_display_dt(val)
                     elif isinstance(val, date):
                         row[key] = val.strftime("%d-%m-%Y")
 

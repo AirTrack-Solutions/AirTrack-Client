@@ -22,7 +22,7 @@
 
         <!-- Right: Cockpit -->
         <div class="header-right">
-            <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-link">🛠 Cockpit</a>
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-link" id="cockpit-nav-link">🛠 Cockpit</a>
         </div>
 
     </div>
@@ -43,6 +43,7 @@
             <a href="{{ url_for('aircraft.aircraft_table') }}">Aircraft</a>
             <a href="{{ url_for('add_aircraft.add_aircraft') }}">Add Aircraft</a>
             <a href="{{ url_for('reports') }}">Reports</a>
+            {% if endpoint_exists('notams.notams_page') %}<a href="{{ url_for('notams.notams_page') }}">NOTAMs</a>{% endif %}
             <a href="{{ url_for('aircraft.upload_aircraft_image') }}">Upload Aircraft Image</a>
             <a href="https://www.flightradar24.com/" target="_blank" rel="noopener noreferrer">Live Flights</a>
             <a href="{{ url_for('admin.user_guide') }}">User Guide</a>
@@ -110,3 +111,27 @@
 </script>
 {% endif %}
 {% endwith %}
+
+<style>
+@keyframes briefing-nav-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; color: #f39c12; }
+}
+.cockpit-nav--briefing {
+  animation: briefing-nav-pulse 2s ease-in-out infinite;
+  color: #f39c12 !important;
+}
+</style>
+<script>
+/* Briefing nav-link pulse — runs on every page */
+(function () {
+  fetch('/api/briefing')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.ready) return;
+      var link = document.getElementById('cockpit-nav-link');
+      if (link) link.classList.add('cockpit-nav--briefing');
+    })
+    .catch(function () {});
+})();
+</script>

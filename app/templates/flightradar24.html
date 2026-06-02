@@ -12,6 +12,7 @@
     <title>Live Flights</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/flightradar24.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
 </head>
@@ -30,6 +31,8 @@
             </iframe>
         </div>
     </div>
+  {% include 'footer.html' %}
+
 <script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
 </body>
 </html>

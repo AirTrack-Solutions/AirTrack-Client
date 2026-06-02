@@ -11,6 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AirTrack FAQ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
     <style>
         body { background-color: #f0f8f9; padding: 20px; font-family: Arial, sans-serif; }
@@ -40,6 +41,8 @@
         </div>
         <!-- Add more FAQs below as needed -->
     </div>
+
+    {% include 'footer.html' %}
 
     <script>
         document.getElementById('searchInput').addEventListener('keyup', function() {

@@ -19,8 +19,48 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
     {% block extra_styles %}{% endblock %}
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+    /* ------------------------------------------------------------------ */
+    /* AirTrack print disclaimer — hidden on screen, mandatory when printing */
+    /* ------------------------------------------------------------------ */
+    .at-print-disclaimer { display: none; }
+
+    @media print {
+      @page { margin-bottom: 2.5cm; }
+
+      .at-print-disclaimer {
+        display: block;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-top: 2px solid #c0392b;
+        background: #fff;
+        color: #333;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 8pt;
+        line-height: 1.4;
+        padding: 6pt 10pt 4pt;
+        text-align: left;
+      }
+
+      .at-print-disclaimer .at-pd-title {
+        font-weight: bold;
+        color: #c0392b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 2pt;
+        display: block;
+      }
+
+      .at-print-disclaimer .at-pd-body {
+        display: block;
+      }
+    }
+    </style>
 </head>
 <body class="theme-{{ selected_theme }}">
+    <div class="background"></div>
     {% include 'header.html' %}
 
     <main class="container-fluid mt-3">
@@ -31,7 +71,31 @@
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/datatables.min.js') }}"></script>
     {% block extra_scripts %}{% endblock %}
+    <script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
 
+    <!-- AirTrack mandatory print disclaimer — do not remove -->
+    <div class="at-print-disclaimer" aria-hidden="true">
+      <span class="at-pd-title">⚠ AirTrack Safety Notice — Not for Operational Use</span>
+      <span class="at-pd-body">
+        AirTrack is a hobbyist aviation data tool. Data displayed is for informational purposes only and may be incomplete, out of date, or incorrect.
+        AirTrack is NOT certified by CASA, Airservices Australia, ICAO, or any aviation authority.
+        NEVER use AirTrack for flight planning, navigation, pre-flight decisions, or any purpose where safety depends on data accuracy.
+        For all operational purposes use official sources: Australia — NAIPS (airservicesaustralia.com) · New Zealand — AIP NZ (aip.net.nz).
+        AirTrack Solutions accepts no liability for any decision made or harm resulting from use of this data.
+        Printed from AirTrack — <span id="at-print-ts"></span> · airtracksolutions.com.au
+      </span>
+    </div>
+
+    <script>
+    // Inject print timestamp into disclaimer footer
+    (function() {
+      var ts = document.getElementById('at-print-ts');
+      if (ts) {
+        var d = new Date();
+        ts.textContent = d.toISOString().replace('T', ' ').substring(0, 16) + ' UTC';
+      }
+    })();
+    </script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
       const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');

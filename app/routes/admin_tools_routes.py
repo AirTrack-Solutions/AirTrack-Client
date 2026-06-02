@@ -299,6 +299,36 @@ def git_push():
         return _err(f"❌ Push failed: {e}")
 
 
+@admin_tools_bp.route('/git_pull', methods=['POST'])
+@require_server
+
+def git_pull():
+    """Pull latest commits from remote into the server repo."""
+    repo = _repo_root()
+    if not repo:
+        return _err("❌ Repo root not found.")
+
+    try:
+        rc, out, err = _run_cmd("git fetch origin", cwd=repo, extra_env=_git_env())
+        if rc != 0:
+            return _err(f"❌ git fetch failed: {err or out}")
+
+        rc2, behind_str, _ = _run_cmd("git rev-list --count HEAD..origin/main", cwd=repo)
+        behind = int(behind_str) if rc2 == 0 and behind_str.strip().isdigit() else 0
+
+        if behind == 0:
+            return _ok(status="noop", detail="ℹ️ Already up to date.", restart_required=False)
+
+        rc3, out3, err3 = _run_cmd("git reset --hard origin/main", cwd=repo, extra_env=_git_env())
+        if rc3 != 0:
+            return _err(f"❌ git reset failed: {err3 or out3}")
+
+        _run_cmd("git clean -fd", cwd=repo, extra_env=_git_env())
+        return _ok(status="ok", detail=out3 or "✅ Pull successful.", restart_required=True)
+    except Exception as e:
+        return _err(f"❌ Pull failed: {e}")
+
+
 @admin_tools_bp.get("/themes")
 
 def list_themes():
@@ -788,5 +818,4 @@ def update_municipality():
     except Exception as e:
         logging.exception("❌ update_municipality failed")
         return _err(f"❌ Database error: {e}")
-
 

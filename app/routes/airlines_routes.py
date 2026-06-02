@@ -1,5 +1,5 @@
 # AirTrack 1.0.0
-# Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+# Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
 # SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
 
 import logging
@@ -8,18 +8,14 @@ from datetime import date, datetime
 
 from extensions import db
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
 from sqlalchemy import text
 
 from utils.settings_utils import get_current_theme
 
 # Optional local-time converter (safe fallback)
-try:
-    from utils.timezone_utils import convert_to_local  # type: ignore
-except Exception:
-    def convert_to_local(dt):  # noqa: D401
-        return dt
+from utils.settings_utils import convert_to_local, format_display_dt
 
 airlines_bp = Blueprint("airlines", __name__, url_prefix="/airlines")
 
@@ -79,11 +75,12 @@ def airlines_table():
             text(
                 """
                 SELECT a.AirlineID, a.AirlineName, a.Logo,
+                       a.Ceased_Operations,
                        COUNT(ac.AircraftID) AS TotalAircraft
                 FROM airlines a
                 LEFT JOIN aircraft ac ON a.AirlineID = ac.AirlineID
                 WHERE a.AirlineName LIKE :search
-                GROUP BY a.AirlineID, a.AirlineName, a.Logo
+                GROUP BY a.AirlineID, a.AirlineName, a.Logo, a.Ceased_Operations
                 ORDER BY a.AirlineName
                 LIMIT :limit OFFSET :offset
                 """
@@ -144,11 +141,12 @@ def airline_info(airline_id: int):
     Templates should link via: url_for('airlines.airline_info', airline_id=ID)
     """
     try:
-        # --- Airline row (now actually fetches Country / IATA / ICAO / Callsign)
+        # --- Airline row
         airline_row = db.session.execute(
             text(
                 """
-                SELECT AirlineID, AirlineName, Logo, Country, IATA, ICAO, Callsign, Last_Updated
+                SELECT AirlineID, AirlineName, Logo, Country, IATA, ICAO, Callsign,
+                       Ceased_Operations, Ceased_Date, Last_Updated
                 FROM airlines
                 WHERE AirlineID = :id
                 """
@@ -177,11 +175,7 @@ def airline_info(airline_id: int):
         if isinstance(lu, date) and not isinstance(lu, datetime):
             lu = datetime.combine(lu, datetime.min.time())
 
-        if lu:
-            local_lu = convert_to_local(lu)
-            airline["Last_Updated_Display"] = local_lu.strftime("%d-%m-%Y %H:%M:%S")
-        else:
-            airline["Last_Updated_Display"] = "—"
+        airline["Last_Updated_Display"] = format_display_dt(lu, default="—")
 
         # --- Aircraft operated by this airline ---
         rows = db.session.execute(
@@ -218,23 +212,34 @@ def airline_info(airline_id: int):
                 up = datetime.combine(up, datetime.min.time())
 
             # Format to display strings
-            local_fs = convert_to_local(fs) if fs else None
-            local_up = convert_to_local(up) if up else None
-
-            d["First_Sighted_Display"] = (
-                local_fs.strftime("%Y-%m-%d %H:%M:%S") if local_fs else "—"
-            )
-            d["Aircraft_Updated_Display"] = (
-                local_up.strftime("%Y-%m-%d %H:%M:%S") if local_up else "—"
-            )
+            d["First_Sighted_Display"] = format_display_dt(fs, default="—")
+            d["Aircraft_Updated_Display"] = format_display_dt(up, default="—")
 
             aircraft_list.append(d)
+
+        # --- Former aircraft (historical operators via aircraft_owners) ---
+        former_rows = db.session.execute(
+            text(
+                """
+                SELECT ac.AircraftID, ac.Registration, ac.Aircraft_Type,
+                       ao.From_Date, ao.To_Date, ao.Notes
+                FROM aircraft_owners ao
+                JOIN aircraft ac ON ao.AircraftID = ac.AircraftID
+                WHERE ao.AirlineID = :id
+                  AND ao.To_Date IS NOT NULL
+                ORDER BY ao.To_Date DESC
+                """
+            ),
+            {"id": airline_id},
+        ).fetchall()
+        former_list = [dict(r._mapping) for r in former_rows]
 
         current_theme = get_current_theme()
         return render_template(
             "airline_info.html",
             airline=airline,
             aircraft_list=aircraft_list,
+            former_list=former_list,
             selected_theme=current_theme,
             cache_bust=datetime.utcnow().strftime("%Y%m%d%H%M%S"),
         )
@@ -244,18 +249,98 @@ def airline_info(airline_id: int):
         return redirect(url_for("airlines.airlines_table"))
 
 
+@airlines_bp.route("/lookup", methods=["GET"], endpoint="airline_lookup")
+def airline_lookup():
+    """
+    JSON endpoint: search airline_codes staging table for form pre-fill suggestions.
+    GET /airlines/lookup?q=<name>
+    Returns: { results: [ {name, iata, icao, callsign, country}, ... ] }
+
+    Searches airline_codes where status != 'rejected' only.
+    Results are suggestions only — saving always writes to airlines via the form.
+    Ranking: exact name/code match first, then starts-with, then contains.
+    """
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"results": []})
+    try:
+        q_upper = q.upper()
+        rows = db.session.execute(
+            text("""
+                SELECT airline_name, iata, icao, callsign, country
+                FROM airline_codes
+                WHERE status != 'rejected'
+                  AND (
+                      airline_name LIKE :contains
+                      OR UPPER(iata) = :exact_upper
+                      OR UPPER(icao) = :exact_upper
+                  )
+                ORDER BY
+                    CASE
+                        WHEN UPPER(airline_name) = :exact_upper THEN 0
+                        WHEN UPPER(iata)         = :exact_upper THEN 0
+                        WHEN UPPER(icao)         = :exact_upper THEN 0
+                        WHEN airline_name LIKE :starts          THEN 1
+                        ELSE 2
+                    END,
+                    airline_name
+                LIMIT 5
+            """),
+            {
+                "contains":    f"%{q}%",
+                "starts":      f"{q}%",
+                "exact_upper": q_upper,
+            },
+        ).fetchall()
+
+        results = [
+            {
+                "name":     r[0],
+                "iata":     r[1] or "",
+                "icao":     r[2] or "",
+                "callsign": r[3] or "",
+                "country":  r[4] or "",
+            }
+            for r in rows
+        ]
+        return jsonify({"results": results})
+    except Exception as exc:
+        logging.warning("airline_lookup: DB error: %s", exc)
+        return jsonify({"results": [], "error": str(exc)})
+
+
 @airlines_bp.route("/add", methods=["GET", "POST"], endpoint="add_airline")
 def add_airline():
     settings = load_settings() or {}
+    current_theme = get_current_theme()
+
     if request.method == "POST":
         airline_name = request.form.get("AirlineName", "").strip()
         if not airline_name:
             flash("Airline name is required.", "danger")
             return redirect(url_for("airlines.add_airline"))
         try:
+            iata     = request.form.get("IATA", "").strip() or None
+            icao     = request.form.get("ICAO", "").strip() or None
+            callsign = request.form.get("Callsign", "").strip() or None
+            country  = request.form.get("Country", "").strip() or None
+            ceased      = 1 if request.form.get("Ceased_Operations") else 0
+            ceased_date = request.form.get("Ceased_Date", "").strip() or None
+
             db.session.execute(
-                text("INSERT INTO airlines (AirlineName) VALUES (:name)"),
-                {"name": airline_name},
+                text(
+                    "INSERT INTO airlines (AirlineName, IATA, ICAO, Callsign, Country, Ceased_Operations, Ceased_Date) "
+                    "VALUES (:name, :iata, :icao, :callsign, :country, :ceased, :ceased_date)"
+                ),
+                {
+                    "name":        airline_name,
+                    "iata":        iata,
+                    "icao":        icao,
+                    "callsign":    callsign,
+                    "country":     country,
+                    "ceased":      ceased,
+                    "ceased_date": ceased_date,
+                },
             )
             db.session.commit()
             flash("Airline added successfully!", "success")
@@ -265,4 +350,12 @@ def add_airline():
             flash("Failed to add airline.", "danger")
             return redirect(url_for("airlines.add_airline"))
 
-    return render_template("add_airline.html", settings=settings)
+    return render_template(
+        "add_airline.html",
+        settings=settings,
+        selected_theme=current_theme,
+        cache_bust=datetime.utcnow().strftime("%Y%m%d%H%M%S"),
+        AirlineName="",
+        IATA="", ICAO="", Callsign="", Country="",
+        Ceased_Operations=0, Ceased_Date="",
+    )

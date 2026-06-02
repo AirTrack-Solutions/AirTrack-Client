@@ -12,7 +12,7 @@ from sqlalchemy import text
 
 from extensions import db
 
-from utils.timezone_utils import convert_to_local
+from utils.settings_utils import format_display_dt
 
 flight_history_bp = Blueprint(
     'flight_history', __name__, url_prefix='/add_flight_history'
@@ -54,14 +54,7 @@ def view_flight_history(aircraft_id):
             rec = dict(row._mapping)
 
             # Timestamp → datetime → local → formatted
-            ts = rec.get("Timestamp")
-            if isinstance(ts, date) and not isinstance(ts, datetime):
-                ts = datetime.combine(ts, datetime.min.time())
-
-            local_ts = convert_to_local(ts) if ts else None
-            rec["local_timestamp"] = (
-                local_ts.strftime("%d-%m-%Y %H:%M:%S") if local_ts else "—"
-            )
+            rec["local_timestamp"] = format_display_dt(rec.get("Timestamp"), default="—")
 
             history.append(rec)
 
@@ -100,11 +93,11 @@ def record_flight_history(aircraft_id):
                 """
                 INSERT INTO flights (
                     AircraftID, AirlineID, FlightNumber, Registration, MSN,
-                    Aircraft_Type, Times_Seen, Departure, Arrival,
+                    Aircraft_Type, Departure, Arrival,
                     Country_of_Reg, Timestamp, Spotted_At
                 ) VALUES (
                     :AircraftID, :AirlineID, :FlightNumber, :Registration,
-                    :MSN, :Aircraft_Type, :Times_Seen, :Departure, :Arrival,
+                    :MSN, :Aircraft_Type, :Departure, :Arrival,
                     :Country_of_Reg, :Timestamp, :Spotted_At
                 )
                 """
@@ -116,7 +109,6 @@ def record_flight_history(aircraft_id):
                 "Registration": aircraft.get("Registration"),
                 "MSN": aircraft.get("MSN"),
                 "Aircraft_Type": aircraft.get("Aircraft_Type"),
-                "Times_Seen": aircraft.get("Times_Seen"),
                 "Departure": aircraft.get("Departure"),
                 "Arrival": aircraft.get("Arrival"),
                 "Country_of_Reg": aircraft.get("Country_of_Reg"),

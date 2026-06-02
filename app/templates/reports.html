@@ -52,32 +52,6 @@
                     </p>
                     {% endif %}
                     <hr>
-                    {% if is_server and has_api_key %}
-                    <p>
-                        <strong>Smart Ask</strong> lets you ask natural language questions about your logbook,
-                        powered by Claude AI. For example: <em>"Which airline have I seen the most?"</em>
-                        or <em>"How many 737s have I logged?"</em>
-                        It appears below the report buttons.
-                    </p>
-                    <div class="form-check mb-2">
-                        <input type="checkbox" class="form-check-input" id="hideSmartAsk">
-                        <label class="form-check-label" for="hideSmartAsk">Hide Smart Ask — I don't need it</label>
-                    </div>
-                    {% elif is_server and not has_api_key %}
-                    <p>
-                        <strong>Smart Ask</strong> is available but requires an Anthropic API key.
-                        Add <code>ANTHROPIC_API_KEY=your-key-here</code> to the <code>.env</code> file
-                        in your AirTrack folder and restart.
-                        Get a key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.
-                    </p>
-                    {% elif not is_server %}
-                    <p>
-                        <strong>Smart Ask</strong> is a server feature that lets you query your logbook using plain English,
-                        powered by Claude AI. It is available on server installations with an Anthropic API key.
-                        Get a key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.
-                    </p>
-                    {% endif %}
-                    <hr>
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="hideDisclaimer">
                         <label class="form-check-label" for="hideDisclaimer">Don't show this again</label>
@@ -106,22 +80,6 @@
         <a href="#" class="btn btn-default report-link" data-report="different_aircraft">Different Aircraft Types</a>
         <a href="#" class="btn btn-default report-link" data-report="orphaned_aircraft">Orphaned Aircraft</a>
     </div>
-
-    <!-- Smart Ask Box (server + API key only) -->
-    {% if is_server and has_api_key %}
-    <div class="smart-ask-container" id="smartAskContainer">
-        <div class="smart-ask-inner">
-            <div class="smart-ask-label">Ask about your logbook</div>
-            <div class="smart-ask-input-row">
-                <input type="text" id="smartAskInput" class="smart-ask-input"
-                    placeholder="e.g. Which airline have I logged the most? or How many 737s have I seen?"
-                    autocomplete="off" />
-                <button id="smartAskBtn" class="smart-ask-btn">Ask</button>
-            </div>
-            <div id="smartAskResult" class="smart-ask-result" style="display:none;"></div>
-        </div>
-    </div>
-    {% endif %}
 
     <!-- Report Results Container -->
     <div id="reportResults" class="report-results-area">
@@ -154,74 +112,6 @@
             });
         });
 
-        // ── Smart Ask ──
-        const askInput  = document.getElementById("smartAskInput");
-        const askBtn    = document.getElementById("smartAskBtn");
-        const askResult = document.getElementById("smartAskResult");
-        const smartAskContainer = document.getElementById("smartAskContainer");
-
-        // Apply stored preference immediately
-        if (smartAskContainer && localStorage.getItem("smartAskHidden") === "1") {
-            smartAskContainer.style.display = "none";
-        }
-
-        function buildResultTable(columns, rows) {
-            if (!rows.length) return "<p class='smart-ask-no-results'>No results found.</p>";
-            let html = '<div class="report-table-card"><table class="table table-sm table-hover mb-0"><thead class="report-table-header"><tr>';
-            columns.forEach(col => { html += `<th>${col}</th>`; });
-            html += "</tr></thead><tbody>";
-            rows.forEach(row => {
-                html += "<tr>";
-                columns.forEach(col => { html += `<td>${row[col] ?? ""}</td>`; });
-                html += "</tr>";
-            });
-            html += "</tbody></table></div>";
-            return html;
-        }
-
-        async function doAsk() {
-            if (!askInput) return;
-            const question = askInput.value.trim();
-            if (!question) return;
-
-            askBtn.disabled = true;
-            askBtn.textContent = "Thinking...";
-            askResult.style.display = "block";
-            askResult.className = "smart-ask-result smart-ask-loading";
-            askResult.innerHTML = "Asking AirTrack Intelligence...";
-
-            try {
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || "";
-                const resp = await fetch("/reports/ask", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
-                    body: JSON.stringify({ question })
-                });
-                const data = await resp.json();
-                askResult.className = "smart-ask-result";
-
-                if (data.type === "answer") {
-                    askResult.innerHTML = `<div class="smart-ask-answer">${data.text}</div>`;
-                } else if (data.type === "query") {
-                    let html = data.explanation ? `<div class="smart-ask-explanation">${data.explanation}</div>` : "";
-                    html += buildResultTable(data.columns, data.rows);
-                    askResult.innerHTML = html;
-                } else {
-                    askResult.className = "smart-ask-result smart-ask-error";
-                    askResult.innerHTML = `<div class="smart-ask-answer">⚠️ ${data.text || "Something went wrong."}</div>`;
-                }
-            } catch (err) {
-                askResult.className = "smart-ask-result smart-ask-error";
-                askResult.innerHTML = `<div class="smart-ask-answer">⚠️ Failed to reach the server. Please try again.</div>`;
-            }
-
-            askBtn.disabled = false;
-            askBtn.textContent = "Ask";
-        }
-
-        if (askBtn)   askBtn.addEventListener("click", doAsk);
-        if (askInput) askInput.addEventListener("keydown", e => { if (e.key === "Enter") doAsk(); });
-
         // ── Welcome / Disclaimer modal ──
         const disclaimerModal = document.getElementById("disclaimerModal");
         const acceptBtn = document.getElementById("acceptDisclaimer");
@@ -238,11 +128,6 @@
                             localStorage.setItem("disclaimerDismissed", "1");
                             // Also tell the server if possible
                             fetch("/hide_disclaimer", { method: "POST" }).catch(() => {});
-                        }
-                        const hideSmartAsk = document.getElementById("hideSmartAsk");
-                        if (hideSmartAsk?.checked) {
-                            localStorage.setItem("smartAskHidden", "1");
-                            if (smartAskContainer) smartAskContainer.style.display = "none";
                         }
                         modal.hide();
                     });

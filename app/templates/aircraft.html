@@ -53,7 +53,6 @@
                             <th>Flight</th>
                             <th>Registration</th>
                             <th>Aircraft Type</th>
-                            <th>Times Seen</th>
                             <th>Departure</th>
                             <th>Arrival</th>
                             <th>Country of Reg.</th>
@@ -68,7 +67,6 @@
                             <td>{{ aircraft["FlightNumber"] }}</td>
                             <td>{{ aircraft["Registration"] }}</td>
                             <td>{{ aircraft["Aircraft_Type"] }}</td>
-                            <td>{{ aircraft["Times_Seen"] }}</td>
                             <td>{{ aircraft["Departure"] | airport if aircraft["Departure"] else "—" }}</td>
                             <td>{{ aircraft["Arrival"]   | airport if aircraft["Arrival"]   else "—" }}</td>
                             <td>{{ aircraft["Country_of_Reg"] }}</td>

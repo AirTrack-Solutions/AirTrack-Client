@@ -6,7 +6,6 @@
 
 from datetime import date, datetime
 
-import pytz
 
 import logging
 
@@ -18,7 +17,7 @@ from sqlalchemy import text
 
 from utils.country_flags import get_country_flag
 
-from utils.settings_utils import get_current_timezone
+from utils.settings_utils import format_display_dt
 
 search_unified_bp = Blueprint('search_unified', __name__)
 
@@ -84,7 +83,6 @@ def search_unified():
             {"q": like_query, "limit": per_page, "offset": offset},
         )
 
-        timezone = get_current_timezone()
 
         for row in result:
             aircraft = dict(row._mapping)
@@ -107,35 +105,9 @@ def search_unified():
                     aircraft["AirlineName"] = "—"
 
             # --- Timestamps ---
-            dt_fs = aircraft.get("First_Sighted")
-            if dt_fs:
-                if isinstance(dt_fs, date) and not isinstance(dt_fs, datetime):
-                    dt_fs = datetime.combine(dt_fs, datetime.min.time())
-                if dt_fs.tzinfo is None:
-                    dt_fs = dt_fs.replace(tzinfo=pytz.utc)
-                aircraft["First_Sighted"] = dt_fs.astimezone(timezone).strftime("%Y-%m-%d %H:%M")
-            else:
-                aircraft["First_Sighted"] = "—"
-
-            dt_ls = aircraft.get("Last_Sighted")
-            if dt_ls:
-                if isinstance(dt_ls, date) and not isinstance(dt_ls, datetime):
-                    dt_ls = datetime.combine(dt_ls, datetime.min.time())
-                if dt_ls.tzinfo is None:
-                    dt_ls = dt_ls.replace(tzinfo=pytz.utc)
-                aircraft["Last_Sighted"] = dt_ls.astimezone(timezone).strftime("%Y-%m-%d %H:%M")
-            else:
-                aircraft["Last_Sighted"] = "—"
-
-            dt_upd = aircraft.get("Timestamp")
-            if dt_upd:
-                if isinstance(dt_upd, date) and not isinstance(dt_upd, datetime):
-                    dt_upd = datetime.combine(dt_upd, datetime.min.time())
-                if dt_upd.tzinfo is None:
-                    dt_upd = dt_upd.replace(tzinfo=pytz.utc)
-                aircraft["Timestamp"] = dt_upd.astimezone(timezone).strftime("%Y-%m-%d %H:%M")
-            else:
-                aircraft["Timestamp"] = "—"
+            aircraft["First_Sighted"] = format_display_dt(aircraft.get("First_Sighted"), default="—")
+            aircraft["Last_Sighted"] = format_display_dt(aircraft.get("Last_Sighted"), default="—")
+            aircraft["Timestamp"] = format_display_dt(aircraft.get("Timestamp"), default="—")
 
             # --- Country Flag ---
             aircraft["Country_Flag"] = get_country_flag(aircraft.get("Country_of_Reg"))
@@ -165,11 +137,12 @@ def search_unified():
         result = db.session.execute(
             text("""
                 SELECT al.AirlineID, al.AirlineName,
+                       al.Ceased_Operations,
                        COUNT(a.AircraftID) AS TotalAircraft
                 FROM airlines al
                 LEFT JOIN aircraft a ON al.AirlineID = a.AirlineID
                 WHERE LOWER(al.AirlineName) LIKE :q
-                GROUP BY al.AirlineID, al.AirlineName
+                GROUP BY al.AirlineID, al.AirlineName, al.Ceased_Operations
                 ORDER BY al.AirlineName ASC
                 LIMIT :limit OFFSET :offset
             """),
