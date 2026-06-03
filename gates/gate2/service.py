@@ -1,13 +1,39 @@
-# Gate 2 proof of concept — pywin32 Windows service wrapping Flask + Waitress
-# Build 013 — reverted to original structure that produced the first PASS.
+# Gate 2 — build 014 — diagnose Flask() constructor crash step by step
 
 import sys
+import os
 import threading
 
 import servicemanager
 import win32event
 import win32service
 import win32serviceutil
+
+import flask
+import werkzeug
+import jinja2
+import markupsafe
+import waitress
+from flask import Flask
+from waitress import serve as _serve
+
+
+class _DiagFlask(Flask):
+    """Flask subclass that logs each constructor phase to the event log."""
+
+    def create_jinja_environment(self):
+        servicemanager.LogInfoMsg("[Gate2] Flask: create_jinja_environment()")
+        result = super().create_jinja_environment()
+        servicemanager.LogInfoMsg("[Gate2] Flask: create_jinja_environment() done")
+        return result
+
+    def make_config(self, instance_relative=False):
+        servicemanager.LogInfoMsg("[Gate2] Flask: make_config()")
+        return super().make_config(instance_relative)
+
+    def _get_instance_path(self):
+        servicemanager.LogInfoMsg("[Gate2] Flask: _get_instance_path()")
+        return super()._get_instance_path()
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
@@ -33,32 +59,30 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
     def _start_server(self):
-        import os
-        from flask import Flask
-        from waitress import serve
-
         if getattr(sys, 'frozen', False):
             root = os.path.dirname(sys.executable)
         else:
             root = os.path.dirname(os.path.abspath(__file__))
 
-        servicemanager.LogInfoMsg(f"[Gate2] build 013: root={root}")
+        servicemanager.LogInfoMsg(f"[Gate2] build 014: root={root}")
+        servicemanager.LogInfoMsg("[Gate2] build 014: constructing _DiagFlask")
 
-        flask_app = Flask(__name__, root_path=root)
+        flask_app = _DiagFlask(__name__, root_path=root)
+
+        servicemanager.LogInfoMsg("[Gate2] build 014: Flask constructed, registering route")
 
         @flask_app.route('/')
         def index():
-            return 'Gate2 Test OK — build 013'
+            return 'Gate2 Test OK — build 014'
 
-        servicemanager.LogInfoMsg("[Gate2] build 013: starting waitress")
-
+        servicemanager.LogInfoMsg("[Gate2] build 014: starting waitress")
         t = threading.Thread(
-            target=serve,
+            target=_serve,
             kwargs={'app': flask_app, 'host': '127.0.0.1', 'port': 5000},
             daemon=True,
         )
         t.start()
-        servicemanager.LogInfoMsg("[Gate2] build 013: thread started")
+        servicemanager.LogInfoMsg("[Gate2] build 014: thread started")
 
 
 def _configure_auto_start(svc_name):
@@ -67,16 +91,11 @@ def _configure_auto_start(svc_name):
         svc = win32service.OpenService(scm, svc_name, win32service.SERVICE_CHANGE_CONFIG)
         try:
             win32service.ChangeServiceConfig(
-                svc,
-                win32service.SERVICE_NO_CHANGE,
-                win32service.SERVICE_AUTO_START,
-                win32service.SERVICE_NO_CHANGE,
-                None, None, 0, None, None, None, None,
+                svc, win32service.SERVICE_NO_CHANGE, win32service.SERVICE_AUTO_START,
+                win32service.SERVICE_NO_CHANGE, None, None, 0, None, None, None, None,
             )
             win32service.ChangeServiceConfig2(
-                svc,
-                win32service.SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
-                True,
+                svc, win32service.SERVICE_CONFIG_DELAYED_AUTO_START_INFO, True,
             )
             print(f'{svc_name}: start type set to Automatic (Delayed).')
         finally:
