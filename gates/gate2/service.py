@@ -1,4 +1,6 @@
-# Gate 2 -- build 018 -- step-by-step socket diagnosis
+# Gate 2 -- build 019
+# Test whether allocating objects and creating sockets works in a
+# Python-created thread (as opposed to the Windows service thread).
 
 import sys
 import os
@@ -9,6 +11,21 @@ import servicemanager
 import win32event
 import win32service
 import win32serviceutil
+
+
+def _worker(sm):
+    sm.LogInfoMsg("[Gate2] build 019: worker thread running")
+
+    sm.LogInfoMsg("[Gate2] build 019: worker: socket.socket()")
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sm.LogInfoMsg("[Gate2] build 019: worker: socket created!")
+
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('127.0.0.1', 5000))
+    s.listen(5)
+    sm.LogInfoMsg("[Gate2] build 019: worker: bound and listening on 5000")
+    s.close()
+    sm.LogInfoMsg("[Gate2] build 019: worker: all OK")
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
@@ -30,28 +47,20 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
             servicemanager.PYS_SERVICE_STARTED,
             (self._svc_name_, ''),
         )
-        servicemanager.LogInfoMsg("[Gate2] build 018: step 1 -- socket.socket()")
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        servicemanager.LogInfoMsg("[Gate2] build 019: SvcDoRun -- allocating list")
+        x = [1, 2, 3]
+        servicemanager.LogInfoMsg(f"[Gate2] build 019: list OK id={id(x)}")
 
-        servicemanager.LogInfoMsg("[Gate2] build 018: step 2 -- setsockopt")
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        servicemanager.LogInfoMsg("[Gate2] build 019: creating Thread")
+        t = threading.Thread(target=_worker, args=(servicemanager,), daemon=True)
 
-        servicemanager.LogInfoMsg("[Gate2] build 018: step 3 -- bind")
-        s.bind(('127.0.0.1', 5000))
-
-        servicemanager.LogInfoMsg("[Gate2] build 018: step 4 -- listen")
-        s.listen(5)
-
-        servicemanager.LogInfoMsg("[Gate2] build 018: step 5 -- socket OK, closing")
-        s.close()
-
-        servicemanager.LogInfoMsg("[Gate2] build 018: step 6 -- creating Thread (no server)")
-        t = threading.Thread(target=lambda: None, daemon=True)
-
-        servicemanager.LogInfoMsg("[Gate2] build 018: step 7 -- t.start()")
+        servicemanager.LogInfoMsg("[Gate2] build 019: t.start()")
         t.start()
 
-        servicemanager.LogInfoMsg("[Gate2] build 018: all steps passed -- waiting")
+        servicemanager.LogInfoMsg("[Gate2] build 019: joining worker thread")
+        t.join(timeout=10)
+
+        servicemanager.LogInfoMsg("[Gate2] build 019: done -- waiting on stop event")
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
 
