@@ -1,6 +1,5 @@
 @echo off
-:: Gate 2 build — anchored to its own directory.
-:: Cleans stale artifacts before every build.
+:: Gate 2 build — build 005 — Flask inline, no gate2_test_app module
 cd /d "%~dp0"
 
 echo [1/4] Cleaning stale build artifacts...
@@ -31,7 +30,6 @@ python -m PyInstaller ^
   --hidden-import waitress ^
   --hidden-import flask ^
   --hidden-import werkzeug ^
-  --hidden-import gate2_test_app ^
   service.py
 
 echo [4/4] Checking output...
