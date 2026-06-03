@@ -2,7 +2,7 @@
 # Service name: AirTrackGate2 (avoids collision with future production installs)
 #
 # Run with admin rights from the dist\AirTrack\ folder:
-#   AirTrack.exe install   — register the service
+#   AirTrack.exe install   — register the service (sets Automatic / Delayed start)
 #   AirTrack.exe start     — start the service
 #   AirTrack.exe stop      — stop the service
 #   AirTrack.exe remove    — unregister the service
@@ -50,11 +50,41 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
         t.start()
 
 
+def _configure_auto_start(svc_name):
+    """Upgrade the registered service from DEMAND_START to AUTO_START (delayed)."""
+    scm = win32service.OpenSCManager(None, None, win32service.SC_MANAGER_CONNECT)
+    try:
+        svc = win32service.OpenService(scm, svc_name, win32service.SERVICE_CHANGE_CONFIG)
+        try:
+            # Set start type to AUTO_START
+            win32service.ChangeServiceConfig(
+                svc,
+                win32service.SERVICE_NO_CHANGE,   # serviceType
+                win32service.SERVICE_AUTO_START,   # startType
+                win32service.SERVICE_NO_CHANGE,   # errorControl
+                None, None, 0, None, None, None, None,
+            )
+            # Set delayed auto-start (starts after other AUTO_START services)
+            win32service.ChangeServiceConfig2(
+                svc,
+                win32service.SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
+                True,
+            )
+            print(f'{svc_name}: start type set to Automatic (Delayed).')
+        finally:
+            win32service.CloseServiceHandle(svc)
+    finally:
+        win32service.CloseServiceHandle(scm)
+
+
 def main():
     if len(sys.argv) == 1:
         servicemanager.Initialize()
         servicemanager.PrepareToHostSingle(AirTrackGate2Service)
         servicemanager.StartServiceCtrlDispatcher()
+    elif len(sys.argv) >= 2 and sys.argv[1].lower() == 'install':
+        win32serviceutil.HandleCommandLine(AirTrackGate2Service)
+        _configure_auto_start(AirTrackGate2Service._svc_name_)
     else:
         win32serviceutil.HandleCommandLine(AirTrackGate2Service)
 
