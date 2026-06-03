@@ -1,11 +1,5 @@
 # Gate 2 proof of concept — pywin32 Windows service wrapping Flask + Waitress
-# Service name: AirTrackGate2 (avoids collision with future production installs)
-#
-# Run with admin rights from the dist\AirTrack\ folder:
-#   AirTrack.exe install   — register the service (sets Automatic / Delayed start)
-#   AirTrack.exe start     — start the service
-#   AirTrack.exe stop      — stop the service
-#   AirTrack.exe remove    — unregister the service
+# Build 005 — Flask app defined inline (no separate gate2_test_app module)
 
 import sys
 import threading
@@ -39,34 +33,37 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
     def _start_server(self):
-        import servicemanager as _sm
+        sm = servicemanager
 
-        _sm.LogInfoMsg("[Gate2] step 1: importing gate2_test_app")
-        import gate2_test_app
+        sm.LogInfoMsg("[Gate2] step 1: importing Flask")
+        from flask import Flask
 
-        _sm.LogInfoMsg(f"[Gate2] step 2: loaded from {gate2_test_app.__file__}")
+        sm.LogInfoMsg("[Gate2] step 2: calling Flask('gate2_inline')")
+        flask_app = Flask('gate2_inline')
 
-        _sm.LogInfoMsg("[Gate2] step 3: getting flask_app from gate2_test_app")
-        from gate2_test_app import app as flask_app
+        sm.LogInfoMsg("[Gate2] step 3: registering route")
 
-        _sm.LogInfoMsg("[Gate2] step 4: importing waitress.serve")
+        @flask_app.route('/')
+        def index():
+            return 'Gate2 Test OK — build 005 — inline Flask'
+
+        sm.LogInfoMsg("[Gate2] step 4: importing waitress.serve")
         from waitress import serve
 
-        _sm.LogInfoMsg("[Gate2] step 5: creating Thread")
+        sm.LogInfoMsg("[Gate2] step 5: creating thread")
         t = threading.Thread(
             target=serve,
             kwargs={'app': flask_app, 'host': '127.0.0.1', 'port': 5000},
             daemon=True,
         )
 
-        _sm.LogInfoMsg("[Gate2] step 6: starting Thread")
+        sm.LogInfoMsg("[Gate2] step 6: starting thread")
         t.start()
 
-        _sm.LogInfoMsg("[Gate2] step 7: thread started — waitress running")
+        sm.LogInfoMsg("[Gate2] step 7: thread started — build 005 running")
 
 
 def _configure_auto_start(svc_name):
-    """Upgrade the registered service from DEMAND_START to AUTO_START (delayed)."""
     scm = win32service.OpenSCManager(None, None, win32service.SC_MANAGER_CONNECT)
     try:
         svc = win32service.OpenService(scm, svc_name, win32service.SERVICE_CHANGE_CONFIG)
