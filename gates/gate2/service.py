@@ -1,5 +1,4 @@
-# Gate 2 proof of concept — pywin32 Windows service wrapping Flask + Waitress
-# Build 005 — Flask app defined inline (no separate gate2_test_app module)
+# Gate 2 — build 006 — diagnose which Flask sub-import crashes
 
 import sys
 import threading
@@ -35,7 +34,19 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
     def _start_server(self):
         sm = servicemanager
 
-        sm.LogInfoMsg("[Gate2] step 1: importing Flask")
+        sm.LogInfoMsg("[Gate2] step 1a: importing markupsafe")
+        import markupsafe
+
+        sm.LogInfoMsg("[Gate2] step 1b: importing jinja2")
+        import jinja2
+
+        sm.LogInfoMsg("[Gate2] step 1c: importing werkzeug")
+        import werkzeug
+
+        sm.LogInfoMsg("[Gate2] step 1d: importing flask (module)")
+        import flask
+
+        sm.LogInfoMsg("[Gate2] step 1e: getting Flask class")
         from flask import Flask
 
         sm.LogInfoMsg("[Gate2] step 2: calling Flask('gate2_inline')")
@@ -45,22 +56,20 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
 
         @flask_app.route('/')
         def index():
-            return 'Gate2 Test OK — build 005 — inline Flask'
+            return 'Gate2 Test OK — build 006'
 
         sm.LogInfoMsg("[Gate2] step 4: importing waitress.serve")
         from waitress import serve
 
-        sm.LogInfoMsg("[Gate2] step 5: creating thread")
+        sm.LogInfoMsg("[Gate2] step 5: starting thread")
         t = threading.Thread(
             target=serve,
             kwargs={'app': flask_app, 'host': '127.0.0.1', 'port': 5000},
             daemon=True,
         )
-
-        sm.LogInfoMsg("[Gate2] step 6: starting thread")
         t.start()
 
-        sm.LogInfoMsg("[Gate2] step 7: thread started — build 005 running")
+        sm.LogInfoMsg("[Gate2] step 6: thread started — build 006 running")
 
 
 def _configure_auto_start(svc_name):
