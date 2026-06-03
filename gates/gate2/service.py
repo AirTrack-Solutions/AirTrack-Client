@@ -1,7 +1,6 @@
-# Gate 2 — build 010
-# All Flask/waitress imports done at module level (main thread, before
-# StartServiceCtrlDispatcher). Inside SvcDoRun these are sys.modules lookups
-# only — avoids import-lock crash in the Windows service thread.
+# Gate 2 — build 011
+# All imports AND Flask app creation done at module level (main thread).
+# SvcDoRun only starts the already-constructed waitress server.
 
 import sys
 import threading
@@ -11,16 +10,19 @@ import win32event
 import win32service
 import win32serviceutil
 
-# --- Preload everything needed by _start_server ---
-import re          # noqa: E402
-import markupsafe  # noqa: E402
-import jinja2      # noqa: E402
-import werkzeug    # noqa: E402
-import flask       # noqa: E402
+import flask
 from flask import Flask
-import waitress    # noqa: E402
+import waitress
 from waitress import serve as _waitress_serve
-# --------------------------------------------------
+
+# Build Flask app at module level — avoids import-machinery calls in service thread
+_flask_app = Flask('gate2_inline')
+
+@_flask_app.route('/')
+def index():
+    return 'Gate2 Test OK — build 011'
+
+servicemanager.LogInfoMsg("[Gate2] build 011: module loaded, app ready")
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
@@ -42,27 +44,15 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
             servicemanager.PYS_SERVICE_STARTED,
             (self._svc_name_, ''),
         )
-        self._start_server()
-        win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
-
-    def _start_server(self):
-        sm = servicemanager
-
-        sm.LogInfoMsg("[Gate2] build 010: creating Flask app")
-        flask_app = Flask('gate2_inline')
-
-        @flask_app.route('/')
-        def index():
-            return 'Gate2 Test OK — build 010 — preloaded imports'
-
-        sm.LogInfoMsg("[Gate2] build 010: starting waitress thread")
+        servicemanager.LogInfoMsg("[Gate2] build 011: SvcDoRun — starting waitress")
         t = threading.Thread(
             target=_waitress_serve,
-            kwargs={'app': flask_app, 'host': '127.0.0.1', 'port': 5000},
+            kwargs={'app': _flask_app, 'host': '127.0.0.1', 'port': 5000},
             daemon=True,
         )
         t.start()
-        sm.LogInfoMsg("[Gate2] build 010: thread started")
+        servicemanager.LogInfoMsg("[Gate2] build 011: thread started")
+        win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
 
 def _configure_auto_start(svc_name):
