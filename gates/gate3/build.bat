@@ -4,7 +4,7 @@
 :: Output: gates\gate3\dist\AirTrack\
 
 :: Move to repo root so 'app' package is resolvable
-cd /d "%~dp0..\.."
+pushd "%~dp0..\.."
 
 pip install -r gates\gate3\requirements.txt
 
