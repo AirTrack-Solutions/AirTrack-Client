@@ -1,5 +1,7 @@
 # Gate 2 proof of concept — pywin32 Windows service wrapping Flask + Waitress
-# Run with admin rights:
+# Service name: AirTrackGate2 (avoids collision with future production installs)
+#
+# Run with admin rights from the dist\AirTrack\ folder:
 #   AirTrack.exe install   — register the service
 #   AirTrack.exe start     — start the service
 #   AirTrack.exe stop      — stop the service
@@ -14,10 +16,10 @@ import win32service
 import win32serviceutil
 
 
-class AirTrackService(win32serviceutil.ServiceFramework):
-    _svc_name_ = 'AirTrack'
-    _svc_display_name_ = 'AirTrack'
-    _svc_description_ = 'AirTrack Gate 2 proof of concept'
+class AirTrackGate2Service(win32serviceutil.ServiceFramework):
+    _svc_name_ = 'AirTrackGate2'
+    _svc_display_name_ = 'AirTrack Gate 2 Test'
+    _svc_description_ = 'AirTrack Gate 2 proof of concept — safe to remove'
 
     def __init__(self, args):
         win32serviceutil.ServiceFramework.__init__(self, args)
@@ -34,7 +36,6 @@ class AirTrackService(win32serviceutil.ServiceFramework):
             (self._svc_name_, ''),
         )
         self._start_server()
-        # Block until stop signal
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
     def _start_server(self):
@@ -51,13 +52,11 @@ class AirTrackService(win32serviceutil.ServiceFramework):
 
 def main():
     if len(sys.argv) == 1:
-        # Called by the Windows service dispatcher — no CLI args
         servicemanager.Initialize()
-        servicemanager.PrepareToHostSingle(AirTrackService)
+        servicemanager.PrepareToHostSingle(AirTrackGate2Service)
         servicemanager.StartServiceCtrlDispatcher()
     else:
-        # Called with install / start / stop / remove
-        win32serviceutil.HandleCommandLine(AirTrackService)
+        win32serviceutil.HandleCommandLine(AirTrackGate2Service)
 
 
 if __name__ == '__main__':
