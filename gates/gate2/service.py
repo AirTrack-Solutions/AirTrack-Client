@@ -39,6 +39,10 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
     def _start_server(self):
+        import gate2_test_app
+        import servicemanager as _sm
+        _sm.LogInfoMsg(f"[Gate2] loading from: {gate2_test_app.__file__}")
+        print(f"[Gate2] loading from: {gate2_test_app.__file__}", flush=True)
         from gate2_test_app import app as flask_app
         from waitress import serve
 
