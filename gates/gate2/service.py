@@ -1,4 +1,4 @@
-# Gate 2 — build 015 — pure waitress, no Flask, to isolate crash
+# Gate 2 -- build 016 -- narrow down thread crash + avoid lazy imports in thread
 
 import sys
 import os
@@ -9,21 +9,28 @@ import win32event
 import win32service
 import win32serviceutil
 
+# Preload all waitress internals so the new thread does no imports
 import waitress
-from waitress import serve as _serve
+import waitress.server
+import waitress.task
+import waitress.channel
+import waitress.utilities
+import waitress.buffers
+import waitress.adjustments
+from waitress import create_server
 
 
 def _simple_app(environ, start_response):
     status = '200 OK'
     headers = [('Content-Type', 'text/plain; charset=utf-8')]
     start_response(status, headers)
-    return [b'Gate2 Test OK -- build 015 -- no Flask']
+    return [b'Gate2 OK -- build 016']
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
     _svc_name_ = 'AirTrackGate2'
     _svc_display_name_ = 'AirTrack Gate 2 Test'
-    _svc_description_ = 'AirTrack Gate 2 proof of concept — safe to remove'
+    _svc_description_ = 'AirTrack Gate 2 proof of concept -- safe to remove'
 
     def __init__(self, args):
         win32serviceutil.ServiceFramework.__init__(self, args)
@@ -39,14 +46,16 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
             servicemanager.PYS_SERVICE_STARTED,
             (self._svc_name_, ''),
         )
-        servicemanager.LogInfoMsg("[Gate2] build 015: starting waitress (no Flask)")
-        t = threading.Thread(
-            target=_serve,
-            kwargs={'app': _simple_app, 'host': '127.0.0.1', 'port': 5000},
-            daemon=True,
-        )
+        servicemanager.LogInfoMsg("[Gate2] build 016: creating server")
+        server = create_server(_simple_app, host='127.0.0.1', port=5000)
+
+        servicemanager.LogInfoMsg("[Gate2] build 016: creating Thread")
+        t = threading.Thread(target=server.run, daemon=True)
+
+        servicemanager.LogInfoMsg("[Gate2] build 016: calling t.start()")
         t.start()
-        servicemanager.LogInfoMsg("[Gate2] build 015: thread started")
+
+        servicemanager.LogInfoMsg("[Gate2] build 016: thread started -- waiting")
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
 
