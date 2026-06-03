@@ -1,14 +1,18 @@
-# Gate 3 proof of concept — pywin32 Windows service wrapping Flask + Waitress
-# Service name: AirTrackGate3
+# AirTrack Windows Service
+# Reads airtrack.cfg from the install directory, sets environment, then starts
+# the real AirTrack Client Flask application under Waitress.
 #
-# Run with admin rights from the install directory:
-#   AirTrack.exe install   — register the service (Automatic / Delayed start)
+# Run with admin rights:
+#   AirTrack.exe install   — register service (Automatic / Delayed start)
 #   AirTrack.exe start     — start the service
 #   AirTrack.exe stop      — stop the service
 #   AirTrack.exe remove    — unregister the service
 
+import configparser
+import os
 import sys
 import threading
+from pathlib import Path
 
 import servicemanager
 import win32event
@@ -16,10 +20,56 @@ import win32service
 import win32serviceutil
 
 
-class AirTrackGate3Service(win32serviceutil.ServiceFramework):
-    _svc_name_ = 'AirTrackGate3'
-    _svc_display_name_ = 'AirTrack Gate 3 Test'
-    _svc_description_ = 'AirTrack Gate 3 proof of concept — safe to remove'
+# ---------------------------------------------------------------------------
+# Configuration — must happen before any app import
+# ---------------------------------------------------------------------------
+
+def _load_config():
+    """Read airtrack.cfg from alongside the executable and populate os.environ."""
+    if getattr(sys, 'frozen', False):
+        exe_dir = Path(sys.executable).parent
+    else:
+        exe_dir = Path(__file__).parent
+
+    cfg = configparser.ConfigParser()
+    cfg.read(exe_dir / 'airtrack.cfg')
+
+    # DATABASE_URI includes host, port, user, password, db name in one string.
+    # app.py prefers DATABASE_URI over the individual DB_* vars, so we set this
+    # directly to ensure port 3307 is honoured (app.py's URI builder omits port).
+    os.environ.setdefault(
+        'DATABASE_URI',
+        cfg.get('database', 'uri',
+                fallback='mysql+pymysql://airtrack:change-me@127.0.0.1:3307/airtrack?charset=utf8mb4')
+    )
+
+    # Individual vars — used by mysqldump in admin backup route (future use).
+    os.environ.setdefault('DB_HOST',     cfg.get('database', 'host',     fallback='127.0.0.1'))
+    os.environ.setdefault('DB_PORT',     cfg.get('database', 'port',     fallback='3307'))
+    os.environ.setdefault('DB_NAME',     cfg.get('database', 'name',     fallback='airtrack'))
+    os.environ.setdefault('DB_USER',     cfg.get('database', 'user',     fallback='airtrack'))
+    os.environ.setdefault('DB_PASSWORD', cfg.get('database', 'password', fallback=''))
+
+    os.environ.setdefault('SECRET_KEY',     cfg.get('app', 'secret_key', fallback='change-me'))
+    os.environ.setdefault('AIRTRACK_ROLE',  cfg.get('app', 'role',       fallback='client'))
+
+    # Log dir alongside the executable so it survives reinstalls
+    log_dir = exe_dir / 'logs'
+    log_dir.mkdir(exist_ok=True)
+    os.environ.setdefault('AIRTRACK_LOG_DIR', str(log_dir))
+
+
+_load_config()
+
+
+# ---------------------------------------------------------------------------
+# Windows service
+# ---------------------------------------------------------------------------
+
+class AirTrackService(win32serviceutil.ServiceFramework):
+    _svc_name_        = 'AirTrackClient'
+    _svc_display_name_ = 'AirTrack Client'
+    _svc_description_ = 'AirTrack Client — planespotting logbook'
 
     def __init__(self, args):
         win32serviceutil.ServiceFramework.__init__(self, args)
@@ -39,7 +89,7 @@ class AirTrackGate3Service(win32serviceutil.ServiceFramework):
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
     def _start_server(self):
-        from app import app as flask_app
+        from app.app import app as flask_app
         from waitress import serve
 
         t = threading.Thread(
@@ -50,8 +100,12 @@ class AirTrackGate3Service(win32serviceutil.ServiceFramework):
         t.start()
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
 def _configure_auto_start(svc_name):
-    """Set Automatic (Delayed) start — pywin32 default is DEMAND_START."""
+    """Upgrade from DEMAND_START to Automatic (Delayed)."""
     scm = win32service.OpenSCManager(None, None, win32service.SC_MANAGER_CONNECT)
     try:
         svc = win32service.OpenService(scm, svc_name, win32service.SERVICE_CHANGE_CONFIG)
@@ -78,13 +132,13 @@ def _configure_auto_start(svc_name):
 def main():
     if len(sys.argv) == 1:
         servicemanager.Initialize()
-        servicemanager.PrepareToHostSingle(AirTrackGate3Service)
+        servicemanager.PrepareToHostSingle(AirTrackService)
         servicemanager.StartServiceCtrlDispatcher()
     elif len(sys.argv) >= 2 and sys.argv[1].lower() == 'install':
-        win32serviceutil.HandleCommandLine(AirTrackGate3Service)
-        _configure_auto_start(AirTrackGate3Service._svc_name_)
+        win32serviceutil.HandleCommandLine(AirTrackService)
+        _configure_auto_start(AirTrackService._svc_name_)
     else:
-        win32serviceutil.HandleCommandLine(AirTrackGate3Service)
+        win32serviceutil.HandleCommandLine(AirTrackService)
 
 
 if __name__ == '__main__':
