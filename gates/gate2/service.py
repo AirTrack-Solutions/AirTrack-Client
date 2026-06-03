@@ -1,7 +1,7 @@
-# Gate 2 — build 011
-# All imports AND Flask app creation done at module level (main thread).
-# SvcDoRun only starts the already-constructed waitress server.
+# Gate 2 — build 012
+# Pass root_path explicitly to Flask so it never calls importlib.util.find_spec.
 
+import os
 import sys
 import threading
 
@@ -15,14 +15,22 @@ from flask import Flask
 import waitress
 from waitress import serve as _waitress_serve
 
-# Build Flask app at module level — avoids import-machinery calls in service thread
-_flask_app = Flask('gate2_inline')
+# Resolve the bundle/script root at import time (main thread).
+if getattr(sys, 'frozen', False):
+    _root = os.path.dirname(sys.executable)
+else:
+    _root = os.path.dirname(os.path.abspath(__file__))
+
+servicemanager.LogInfoMsg(f"[Gate2] build 012: root={_root}")
+
+# Build Flask app at module level with explicit root_path.
+_flask_app = Flask(__name__, root_path=_root)
 
 @_flask_app.route('/')
 def index():
-    return 'Gate2 Test OK — build 011'
+    return 'Gate2 Test OK — build 012'
 
-servicemanager.LogInfoMsg("[Gate2] build 011: module loaded, app ready")
+servicemanager.LogInfoMsg("[Gate2] build 012: module ready")
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
@@ -44,14 +52,14 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
             servicemanager.PYS_SERVICE_STARTED,
             (self._svc_name_, ''),
         )
-        servicemanager.LogInfoMsg("[Gate2] build 011: SvcDoRun — starting waitress")
+        servicemanager.LogInfoMsg("[Gate2] build 012: starting waitress")
         t = threading.Thread(
             target=_waitress_serve,
             kwargs={'app': _flask_app, 'host': '127.0.0.1', 'port': 5000},
             daemon=True,
         )
         t.start()
-        servicemanager.LogInfoMsg("[Gate2] build 011: thread started")
+        servicemanager.LogInfoMsg("[Gate2] build 012: thread started")
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
 
