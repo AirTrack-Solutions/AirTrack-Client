@@ -1,10 +1,7 @@
-# Gate 2 -- build 019
-# Test whether allocating objects and creating sockets works in a
-# Python-created thread (as opposed to the Windows service thread).
+# Gate 2 -- build 020 -- Flask + Waitress + pywin32 311
 
 import sys
 import os
-import socket
 import threading
 
 import servicemanager
@@ -12,20 +9,25 @@ import win32event
 import win32service
 import win32serviceutil
 
+from flask import Flask
+from waitress import serve as _serve
 
-def _worker(sm):
-    sm.LogInfoMsg("[Gate2] build 019: worker thread running")
 
-    sm.LogInfoMsg("[Gate2] build 019: worker: socket.socket()")
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sm.LogInfoMsg("[Gate2] build 019: worker: socket created!")
+def _make_app():
+    if getattr(sys, 'frozen', False):
+        root = os.path.dirname(sys.executable)
+    else:
+        root = os.path.dirname(os.path.abspath(__file__))
+    app = Flask(__name__, root_path=root)
 
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(('127.0.0.1', 5000))
-    s.listen(5)
-    sm.LogInfoMsg("[Gate2] build 019: worker: bound and listening on 5000")
-    s.close()
-    sm.LogInfoMsg("[Gate2] build 019: worker: all OK")
+    @app.route('/')
+    def index():
+        return 'Gate2 Test OK -- build 020 -- pywin32 311'
+
+    return app
+
+
+_flask_app = _make_app()
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
@@ -47,20 +49,14 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
             servicemanager.PYS_SERVICE_STARTED,
             (self._svc_name_, ''),
         )
-        servicemanager.LogInfoMsg("[Gate2] build 019: SvcDoRun -- allocating list")
-        x = [1, 2, 3]
-        servicemanager.LogInfoMsg(f"[Gate2] build 019: list OK id={id(x)}")
-
-        servicemanager.LogInfoMsg("[Gate2] build 019: creating Thread")
-        t = threading.Thread(target=_worker, args=(servicemanager,), daemon=True)
-
-        servicemanager.LogInfoMsg("[Gate2] build 019: t.start()")
+        servicemanager.LogInfoMsg("[Gate2] build 020: starting waitress thread")
+        t = threading.Thread(
+            target=_serve,
+            kwargs={'app': _flask_app, 'host': '127.0.0.1', 'port': 5000},
+            daemon=True,
+        )
         t.start()
-
-        servicemanager.LogInfoMsg("[Gate2] build 019: joining worker thread")
-        t.join(timeout=10)
-
-        servicemanager.LogInfoMsg("[Gate2] build 019: done -- waiting on stop event")
+        servicemanager.LogInfoMsg("[Gate2] build 020: waitress running")
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
 
