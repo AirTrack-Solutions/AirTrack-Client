@@ -26,6 +26,8 @@ python -m PyInstaller ^
   --hidden-import win32event ^
   --hidden-import servicemanager ^
   --hidden-import pywintypes ^
+  --hidden-import pythoncom ^
+  --collect-binaries pywin32 ^
   --hidden-import waitress ^
   --hidden-import flask ^
   --hidden-import werkzeug ^
