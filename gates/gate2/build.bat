@@ -1,5 +1,5 @@
 @echo off
-:: Gate 2 build — build 005 — Flask inline, no gate2_test_app module
+:: Gate 2 build — build 007 — exclude markupsafe._speedups (C ext crashes on target)
 cd /d "%~dp0"
 
 echo [1/4] Cleaning stale build artifacts...
@@ -30,6 +30,7 @@ python -m PyInstaller ^
   --hidden-import waitress ^
   --hidden-import flask ^
   --hidden-import werkzeug ^
+  --exclude-module markupsafe._speedups ^
   service.py
 
 echo [4/4] Checking output...
