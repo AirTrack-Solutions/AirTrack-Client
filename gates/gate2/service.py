@@ -1,30 +1,27 @@
-# Gate 2 -- build 016 -- narrow down thread crash + avoid lazy imports in thread
+# Gate 2 -- build 017 -- use stdlib http.server instead of waitress, no Flask
 
 import sys
 import os
 import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import servicemanager
 import win32event
 import win32service
 import win32serviceutil
 
-# Preload all waitress internals so the new thread does no imports
-import waitress
-import waitress.server
-import waitress.task
-import waitress.channel
-import waitress.utilities
-import waitress.buffers
-import waitress.adjustments
-from waitress import create_server
 
+class _Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = b'Gate2 OK -- build 017 -- stdlib http.server'
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/plain')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
-def _simple_app(environ, start_response):
-    status = '200 OK'
-    headers = [('Content-Type', 'text/plain; charset=utf-8')]
-    start_response(status, headers)
-    return [b'Gate2 OK -- build 016']
+    def log_message(self, format, *args):
+        pass  # suppress console output in service context
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
@@ -46,16 +43,16 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
             servicemanager.PYS_SERVICE_STARTED,
             (self._svc_name_, ''),
         )
-        servicemanager.LogInfoMsg("[Gate2] build 016: creating server")
-        server = create_server(_simple_app, host='127.0.0.1', port=5000)
+        servicemanager.LogInfoMsg("[Gate2] build 017: creating HTTPServer")
+        httpd = HTTPServer(('127.0.0.1', 5000), _Handler)
 
-        servicemanager.LogInfoMsg("[Gate2] build 016: creating Thread")
-        t = threading.Thread(target=server.run, daemon=True)
+        servicemanager.LogInfoMsg("[Gate2] build 017: creating Thread")
+        t = threading.Thread(target=httpd.serve_forever, daemon=True)
 
-        servicemanager.LogInfoMsg("[Gate2] build 016: calling t.start()")
+        servicemanager.LogInfoMsg("[Gate2] build 017: calling t.start()")
         t.start()
 
-        servicemanager.LogInfoMsg("[Gate2] build 016: thread started -- waiting")
+        servicemanager.LogInfoMsg("[Gate2] build 017: thread started -- waiting")
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
 
