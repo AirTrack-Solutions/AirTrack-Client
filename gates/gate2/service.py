@@ -1,27 +1,14 @@
-# Gate 2 -- build 017 -- use stdlib http.server instead of waitress, no Flask
+# Gate 2 -- build 018 -- step-by-step socket diagnosis
 
 import sys
 import os
+import socket
 import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import servicemanager
 import win32event
 import win32service
 import win32serviceutil
-
-
-class _Handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        body = b'Gate2 OK -- build 017 -- stdlib http.server'
-        self.send_response(200)
-        self.send_header('Content-Type', 'text/plain')
-        self.send_header('Content-Length', str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def log_message(self, format, *args):
-        pass  # suppress console output in service context
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
@@ -43,16 +30,28 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
             servicemanager.PYS_SERVICE_STARTED,
             (self._svc_name_, ''),
         )
-        servicemanager.LogInfoMsg("[Gate2] build 017: creating HTTPServer")
-        httpd = HTTPServer(('127.0.0.1', 5000), _Handler)
+        servicemanager.LogInfoMsg("[Gate2] build 018: step 1 -- socket.socket()")
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        servicemanager.LogInfoMsg("[Gate2] build 017: creating Thread")
-        t = threading.Thread(target=httpd.serve_forever, daemon=True)
+        servicemanager.LogInfoMsg("[Gate2] build 018: step 2 -- setsockopt")
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        servicemanager.LogInfoMsg("[Gate2] build 017: calling t.start()")
+        servicemanager.LogInfoMsg("[Gate2] build 018: step 3 -- bind")
+        s.bind(('127.0.0.1', 5000))
+
+        servicemanager.LogInfoMsg("[Gate2] build 018: step 4 -- listen")
+        s.listen(5)
+
+        servicemanager.LogInfoMsg("[Gate2] build 018: step 5 -- socket OK, closing")
+        s.close()
+
+        servicemanager.LogInfoMsg("[Gate2] build 018: step 6 -- creating Thread (no server)")
+        t = threading.Thread(target=lambda: None, daemon=True)
+
+        servicemanager.LogInfoMsg("[Gate2] build 018: step 7 -- t.start()")
         t.start()
 
-        servicemanager.LogInfoMsg("[Gate2] build 017: thread started -- waiting")
+        servicemanager.LogInfoMsg("[Gate2] build 018: all steps passed -- waiting")
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
 
