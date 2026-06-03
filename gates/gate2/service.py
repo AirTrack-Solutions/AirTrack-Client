@@ -1,4 +1,7 @@
-# Gate 2 — build 009 — granular markupsafe import diagnosis
+# Gate 2 — build 010
+# All Flask/waitress imports done at module level (main thread, before
+# StartServiceCtrlDispatcher). Inside SvcDoRun these are sys.modules lookups
+# only — avoids import-lock crash in the Windows service thread.
 
 import sys
 import threading
@@ -7,6 +10,17 @@ import servicemanager
 import win32event
 import win32service
 import win32serviceutil
+
+# --- Preload everything needed by _start_server ---
+import re          # noqa: E402
+import markupsafe  # noqa: E402
+import jinja2      # noqa: E402
+import werkzeug    # noqa: E402
+import flask       # noqa: E402
+from flask import Flask
+import waitress    # noqa: E402
+from waitress import serve as _waitress_serve
+# --------------------------------------------------
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
@@ -34,54 +48,21 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
     def _start_server(self):
         sm = servicemanager
 
-        sm.LogInfoMsg("[Gate2] 1: import re")
-        import re
-
-        sm.LogInfoMsg("[Gate2] 2: import string")
-        import string
-
-        sm.LogInfoMsg("[Gate2] 3: import typing")
-        import typing
-
-        sm.LogInfoMsg("[Gate2] 4: import functools")
-        import functools
-
-        sm.LogInfoMsg("[Gate2] 5: import markupsafe._native")
-        import markupsafe._native
-
-        sm.LogInfoMsg("[Gate2] 6: import markupsafe")
-        import markupsafe
-
-        sm.LogInfoMsg("[Gate2] 7: import jinja2")
-        import jinja2
-
-        sm.LogInfoMsg("[Gate2] 8: import werkzeug")
-        import werkzeug
-
-        sm.LogInfoMsg("[Gate2] 9: from flask import Flask")
-        from flask import Flask
-
-        sm.LogInfoMsg("[Gate2] 10: Flask('gate2_inline')")
+        sm.LogInfoMsg("[Gate2] build 010: creating Flask app")
         flask_app = Flask('gate2_inline')
-
-        sm.LogInfoMsg("[Gate2] 11: registering route")
 
         @flask_app.route('/')
         def index():
-            return 'Gate2 OK — build 009'
+            return 'Gate2 Test OK — build 010 — preloaded imports'
 
-        sm.LogInfoMsg("[Gate2] 12: from waitress import serve")
-        from waitress import serve
-
-        sm.LogInfoMsg("[Gate2] 13: starting thread")
+        sm.LogInfoMsg("[Gate2] build 010: starting waitress thread")
         t = threading.Thread(
-            target=serve,
+            target=_waitress_serve,
             kwargs={'app': flask_app, 'host': '127.0.0.1', 'port': 5000},
             daemon=True,
         )
         t.start()
-
-        sm.LogInfoMsg("[Gate2] 14: thread started — build 009 running")
+        sm.LogInfoMsg("[Gate2] build 010: thread started")
 
 
 def _configure_auto_start(svc_name):
