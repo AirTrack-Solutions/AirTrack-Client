@@ -1,21 +1,22 @@
 @echo off
 :: AirTrack Windows — PyInstaller build
-:: Run from gates\gate3\ on Trevor's Windows laptop.
+:: Run from anywhere — all paths are relative to this script's location.
 :: Output: gates\gate3\dist\AirTrack\
 
-:: Move to repo root so 'app' package is resolvable
+set GATE3=%~dp0
+set REPO=%~dp0..\..\
 
-pip install -r gates\gate3\requirements.txt
+pip install -r "%GATE3%requirements.txt"
 
 pyinstaller ^
   --onedir ^
   --name AirTrack ^
-  --paths app ^
-  --add-data "app\templates;app\templates" ^
-  --add-data "app\static;app\static" ^
-  --add-data "app\migrations;app\migrations" ^
-  --add-data "app\scripts\airports.csv;app\scripts" ^
-  --add-data "app\core\airtrack_solutions.pub;app\core" ^
+  --paths "%REPO%app" ^
+  --add-data "%REPO%app\templates;app\templates" ^
+  --add-data "%REPO%app\static;app\static" ^
+  --add-data "%REPO%app\migrations;app\migrations" ^
+  --add-data "%REPO%app\scripts\airports.csv;app\scripts" ^
+  --add-data "%REPO%app\core\airtrack_solutions.pub;app\core" ^
   --hidden-import win32timezone ^
   --hidden-import win32service ^
   --hidden-import win32serviceutil ^
@@ -35,10 +36,10 @@ pyinstaller ^
   --hidden-import apscheduler ^
   --hidden-import stripe ^
   --hidden-import paramiko ^
-  --distpath gates\gate3\dist ^
-  --workpath gates\gate3\build ^
-  --specpath gates\gate3 ^
-  gates\gate3\service.py
+  --distpath "%GATE3%dist" ^
+  --workpath "%GATE3%build" ^
+  --specpath "%GATE3%" ^
+  "%GATE3%service.py"
 
 echo.
-echo Build complete. Bundle: gates\gate3\dist\AirTrack\
+echo Build complete. Bundle: %GATE3%dist\AirTrack\
