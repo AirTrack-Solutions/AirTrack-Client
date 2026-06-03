@@ -1,0 +1,5 @@
+flask==3.0.3
+waitress==3.0.0
+pymysql==1.1.1
+pywin32==306
+pyinstaller==6.3.0
