@@ -44,8 +44,11 @@ def _load_config():
     )
 
     # Individual vars — used by mysqldump in admin backup route (future use).
-    os.environ.setdefault('DB_HOST',     cfg.get('database', 'host',     fallback='127.0.0.1'))
-    os.environ.setdefault('DB_PORT',     cfg.get('database', 'port',     fallback='3307'))
+    _db_host = cfg.get('database', 'host', fallback='127.0.0.1')
+    _db_port = cfg.get('database', 'port', fallback='3307')
+    # Include port in DB_HOST so app.py's second URI construction gets the right port
+    os.environ.setdefault('DB_HOST', f'{_db_host}:{_db_port}')
+    os.environ.setdefault('DB_PORT', _db_port)
     os.environ.setdefault('DB_NAME',     cfg.get('database', 'name',     fallback='airtrack'))
     os.environ.setdefault('DB_USER',     cfg.get('database', 'user',     fallback='airtrack'))
     os.environ.setdefault('DB_PASSWORD', cfg.get('database', 'password', fallback=''))
