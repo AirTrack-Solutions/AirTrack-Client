@@ -39,19 +39,30 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
     def _start_server(self):
-        import gate2_test_app
         import servicemanager as _sm
-        _sm.LogInfoMsg(f"[Gate2] loading from: {gate2_test_app.__file__}")
-        print(f"[Gate2] loading from: {gate2_test_app.__file__}", flush=True)
+
+        _sm.LogInfoMsg("[Gate2] step 1: importing gate2_test_app")
+        import gate2_test_app
+
+        _sm.LogInfoMsg(f"[Gate2] step 2: loaded from {gate2_test_app.__file__}")
+
+        _sm.LogInfoMsg("[Gate2] step 3: getting flask_app from gate2_test_app")
         from gate2_test_app import app as flask_app
+
+        _sm.LogInfoMsg("[Gate2] step 4: importing waitress.serve")
         from waitress import serve
 
+        _sm.LogInfoMsg("[Gate2] step 5: creating Thread")
         t = threading.Thread(
             target=serve,
             kwargs={'app': flask_app, 'host': '127.0.0.1', 'port': 5000},
             daemon=True,
         )
+
+        _sm.LogInfoMsg("[Gate2] step 6: starting Thread")
         t.start()
+
+        _sm.LogInfoMsg("[Gate2] step 7: thread started — waitress running")
 
 
 def _configure_auto_start(svc_name):
@@ -60,15 +71,13 @@ def _configure_auto_start(svc_name):
     try:
         svc = win32service.OpenService(scm, svc_name, win32service.SERVICE_CHANGE_CONFIG)
         try:
-            # Set start type to AUTO_START
             win32service.ChangeServiceConfig(
                 svc,
-                win32service.SERVICE_NO_CHANGE,   # serviceType
-                win32service.SERVICE_AUTO_START,   # startType
-                win32service.SERVICE_NO_CHANGE,   # errorControl
+                win32service.SERVICE_NO_CHANGE,
+                win32service.SERVICE_AUTO_START,
+                win32service.SERVICE_NO_CHANGE,
                 None, None, 0, None, None, None, None,
             )
-            # Set delayed auto-start (starts after other AUTO_START services)
             win32service.ChangeServiceConfig2(
                 svc,
                 win32service.SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
