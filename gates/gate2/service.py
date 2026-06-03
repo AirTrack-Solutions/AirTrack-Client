@@ -1,4 +1,4 @@
-# Gate 2 — build 006 — diagnose which Flask sub-import crashes
+# Gate 2 — build 009 — granular markupsafe import diagnosis
 
 import sys
 import threading
@@ -34,34 +34,46 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
     def _start_server(self):
         sm = servicemanager
 
-        sm.LogInfoMsg("[Gate2] step 1a: importing markupsafe")
+        sm.LogInfoMsg("[Gate2] 1: import re")
+        import re
+
+        sm.LogInfoMsg("[Gate2] 2: import string")
+        import string
+
+        sm.LogInfoMsg("[Gate2] 3: import typing")
+        import typing
+
+        sm.LogInfoMsg("[Gate2] 4: import functools")
+        import functools
+
+        sm.LogInfoMsg("[Gate2] 5: import markupsafe._native")
+        import markupsafe._native
+
+        sm.LogInfoMsg("[Gate2] 6: import markupsafe")
         import markupsafe
 
-        sm.LogInfoMsg("[Gate2] step 1b: importing jinja2")
+        sm.LogInfoMsg("[Gate2] 7: import jinja2")
         import jinja2
 
-        sm.LogInfoMsg("[Gate2] step 1c: importing werkzeug")
+        sm.LogInfoMsg("[Gate2] 8: import werkzeug")
         import werkzeug
 
-        sm.LogInfoMsg("[Gate2] step 1d: importing flask (module)")
-        import flask
-
-        sm.LogInfoMsg("[Gate2] step 1e: getting Flask class")
+        sm.LogInfoMsg("[Gate2] 9: from flask import Flask")
         from flask import Flask
 
-        sm.LogInfoMsg("[Gate2] step 2: calling Flask('gate2_inline')")
+        sm.LogInfoMsg("[Gate2] 10: Flask('gate2_inline')")
         flask_app = Flask('gate2_inline')
 
-        sm.LogInfoMsg("[Gate2] step 3: registering route")
+        sm.LogInfoMsg("[Gate2] 11: registering route")
 
         @flask_app.route('/')
         def index():
-            return 'Gate2 Test OK — build 006'
+            return 'Gate2 OK — build 009'
 
-        sm.LogInfoMsg("[Gate2] step 4: importing waitress.serve")
+        sm.LogInfoMsg("[Gate2] 12: from waitress import serve")
         from waitress import serve
 
-        sm.LogInfoMsg("[Gate2] step 5: starting thread")
+        sm.LogInfoMsg("[Gate2] 13: starting thread")
         t = threading.Thread(
             target=serve,
             kwargs={'app': flask_app, 'host': '127.0.0.1', 'port': 5000},
@@ -69,7 +81,7 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
         )
         t.start()
 
-        sm.LogInfoMsg("[Gate2] step 6: thread started — build 006 running")
+        sm.LogInfoMsg("[Gate2] 14: thread started — build 009 running")
 
 
 def _configure_auto_start(svc_name):
