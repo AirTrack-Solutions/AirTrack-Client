@@ -17,7 +17,7 @@ def _simple_app(environ, start_response):
     status = '200 OK'
     headers = [('Content-Type', 'text/plain; charset=utf-8')]
     start_response(status, headers)
-    return [b'Gate2 Test OK — build 015 — no Flask']
+    return [b'Gate2 Test OK -- build 015 -- no Flask']
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
