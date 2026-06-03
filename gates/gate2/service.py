@@ -1,7 +1,6 @@
-# Gate 2 — build 012
-# Pass root_path explicitly to Flask so it never calls importlib.util.find_spec.
+# Gate 2 proof of concept — pywin32 Windows service wrapping Flask + Waitress
+# Build 013 — reverted to original structure that produced the first PASS.
 
-import os
 import sys
 import threading
 
@@ -9,28 +8,6 @@ import servicemanager
 import win32event
 import win32service
 import win32serviceutil
-
-import flask
-from flask import Flask
-import waitress
-from waitress import serve as _waitress_serve
-
-# Resolve the bundle/script root at import time (main thread).
-if getattr(sys, 'frozen', False):
-    _root = os.path.dirname(sys.executable)
-else:
-    _root = os.path.dirname(os.path.abspath(__file__))
-
-servicemanager.LogInfoMsg(f"[Gate2] build 012: root={_root}")
-
-# Build Flask app at module level with explicit root_path.
-_flask_app = Flask(__name__, root_path=_root)
-
-@_flask_app.route('/')
-def index():
-    return 'Gate2 Test OK — build 012'
-
-servicemanager.LogInfoMsg("[Gate2] build 012: module ready")
 
 
 class AirTrackGate2Service(win32serviceutil.ServiceFramework):
@@ -52,15 +29,36 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
             servicemanager.PYS_SERVICE_STARTED,
             (self._svc_name_, ''),
         )
-        servicemanager.LogInfoMsg("[Gate2] build 012: starting waitress")
+        self._start_server()
+        win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
+
+    def _start_server(self):
+        import os
+        from flask import Flask
+        from waitress import serve
+
+        if getattr(sys, 'frozen', False):
+            root = os.path.dirname(sys.executable)
+        else:
+            root = os.path.dirname(os.path.abspath(__file__))
+
+        servicemanager.LogInfoMsg(f"[Gate2] build 013: root={root}")
+
+        flask_app = Flask(__name__, root_path=root)
+
+        @flask_app.route('/')
+        def index():
+            return 'Gate2 Test OK — build 013'
+
+        servicemanager.LogInfoMsg("[Gate2] build 013: starting waitress")
+
         t = threading.Thread(
-            target=_waitress_serve,
-            kwargs={'app': _flask_app, 'host': '127.0.0.1', 'port': 5000},
+            target=serve,
+            kwargs={'app': flask_app, 'host': '127.0.0.1', 'port': 5000},
             daemon=True,
         )
         t.start()
-        servicemanager.LogInfoMsg("[Gate2] build 012: thread started")
-        win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
+        servicemanager.LogInfoMsg("[Gate2] build 013: thread started")
 
 
 def _configure_auto_start(svc_name):
