@@ -29,6 +29,7 @@ python -m PyInstaller ^
   --hidden-import waitress ^
   --hidden-import flask ^
   --hidden-import werkzeug ^
+  --hidden-import gate2_test_app ^
   service.py
 
 echo [4/4] Checking output...

@@ -39,7 +39,7 @@ class AirTrackGate2Service(win32serviceutil.ServiceFramework):
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
     def _start_server(self):
-        from app import app as flask_app
+        from gate2_test_app import app as flask_app
         from waitress import serve
 
         t = threading.Thread(
