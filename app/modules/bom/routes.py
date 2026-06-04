@@ -34,7 +34,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify, redirect, request, url_for
-from app import csrf
+from extensions import csrf
 
 
 MODULE_DIR = Path(__file__).resolve().parent
