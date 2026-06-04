@@ -18,7 +18,7 @@ pyinstaller --noconfirm ^
   --add-data "%REPO%app\static;app\static" ^
   --add-data "%REPO%app\migrations;app\migrations" ^
   --add-data "%REPO%app\scripts\airports.csv;app\scripts" ^
-  --add-data "%REPO%app\core\airtrack_solutions.pub;app\core" ^
+  --add-data "%REPO%app\core;app\core" ^
   --hidden-import win32timezone ^
   --hidden-import win32service ^
   --hidden-import win32serviceutil ^

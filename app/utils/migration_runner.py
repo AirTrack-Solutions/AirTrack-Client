@@ -8,7 +8,13 @@ from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
-MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
+import sys as _sys
+if getattr(_sys, 'frozen', False):
+    # Frozen: migrations are at _internal/app/migrations/
+    MIGRATIONS_DIR = Path(_sys.executable).parent / '_internal' / 'app' / 'migrations'
+else:
+    MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / 'migrations'
+del _sys
 
 
 def run_migrations(db):
