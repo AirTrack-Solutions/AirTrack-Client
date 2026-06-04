@@ -680,7 +680,7 @@ def check_updates():
     """
     repo = _repo_root()
     if not repo:
-        return _err("Repo root not found.", code=500)
+        return _ok(behind=0, ahead=0, files_needing_update=[], emergency_update=False, status="unavailable", detail="Update check not available on installed client.")
 
     try:
         # Fetch quietly — don't fail if offline
@@ -725,7 +725,7 @@ def run_updater():
     """
     repo = _repo_root()
     if not repo:
-        return _err("Repo root not found.", code=500)
+        return _ok(behind=0, ahead=0, files_needing_update=[], emergency_update=False, status="unavailable", detail="Update check not available on installed client.")
 
     try:
         # Fetch latest from origin
