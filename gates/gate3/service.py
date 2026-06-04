@@ -90,35 +90,18 @@ def _bootstrap_core():
     core_dest.mkdir(parents=True, exist_ok=True)
 
     if getattr(sys, 'frozen', False):
-        # PyInstaller --onedir: exe is in the dist root, data is in _internal/
         bundle_core = Path(sys.executable).parent / '_internal' / 'app' / 'core'
     else:
-        # Running from source
         bundle_core = Path(__file__).resolve().parent.parent.parent / 'app' / 'core'
 
-    # Write diagnostic log next to the exe — fixed location, always findable
-    _diag_log = Path(sys.executable).parent / 'bootstrap_diag.txt'
     try:
-        with open(_diag_log, 'w', encoding='utf-8') as _f:
-            _f.write(f"exe={sys.executable}\n")
-            _f.write(f"frozen={getattr(sys, 'frozen', False)}\n")
-            _f.write(f"airtrack_home={airtrack_home}\n")
-            _f.write(f"core_dest={core_dest}\n")
-            _f.write(f"bundle_core={bundle_core}\n")
-            _f.write(f"bundle_core.exists()={bundle_core.exists()}\n")
-            for filename in ('airtrack_solutions.pub', 'package_installer.py'):
-                dest_file = core_dest / filename
-                src_file = bundle_core / filename
-                _f.write(f"{filename}: src_is_file={src_file.is_file()} dest_exists={dest_file.exists()}\n")
-                if not dest_file.exists() and src_file.is_file():
-                    shutil.copy2(src_file, dest_file)
-                    _f.write(f"  -> copied OK\n")
-    except Exception as _e:
-        try:
-            with open(_diag_log, 'a', encoding='utf-8') as _f:
-                _f.write(f"EXCEPTION: {_e}\n")
-        except Exception:
-            pass
+        for filename in ('airtrack_solutions.pub', 'package_installer.py'):
+            dest_file = core_dest / filename
+            src_file = bundle_core / filename
+            if not dest_file.exists() and src_file.is_file():
+                shutil.copy2(src_file, dest_file)
+    except Exception:
+        pass
 
 
 _load_config()
