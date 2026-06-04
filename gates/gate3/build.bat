@@ -1,16 +1,18 @@
 @echo off
 :: AirTrack Windows — PyInstaller build
-:: Run from anywhere — all paths are relative to this script's location.
+:: Run from inside gates\gate3\
 :: Output: gates\gate3\dist\AirTrack\
 
 set GATE3=%~dp0
 set REPO=%~dp0..\..\
 
+pip install jaraco.text
 pip install -r "%GATE3%requirements.txt"
 
-pyinstaller ^
+pyinstaller --noconfirm ^
   --onedir ^
   --name AirTrack ^
+  --paths "%REPO%" ^
   --paths "%REPO%app" ^
   --add-data "%REPO%app\templates;app\templates" ^
   --add-data "%REPO%app\static;app\static" ^
@@ -36,6 +38,11 @@ pyinstaller ^
   --hidden-import apscheduler ^
   --hidden-import stripe ^
   --hidden-import paramiko ^
+  --hidden-import app.app ^
+  --hidden-import version ^
+  --hidden-import extensions ^
+  --hidden-import routes ^
+  --collect-data jaraco ^
   --distpath "%GATE3%dist" ^
   --workpath "%GATE3%build" ^
   --specpath "%GATE3%" ^
