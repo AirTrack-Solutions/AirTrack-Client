@@ -92,6 +92,16 @@ class AirTrackService(win32serviceutil.ServiceFramework):
         win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
     def _start_server(self):
+        import io
+        # Windows service has no console — redirect stdout/stderr to UTF-8 to handle emoji in app.py
+        try:
+            if sys.stdout is not None and hasattr(sys.stdout, 'buffer'):
+                sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+            if sys.stderr is not None and hasattr(sys.stderr, 'buffer'):
+                sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+
         from app.app import app as flask_app
         from waitress import serve
 
