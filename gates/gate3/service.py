@@ -56,6 +56,22 @@ def _load_config():
     os.environ.setdefault('SECRET_KEY',     cfg.get('app', 'secret_key', fallback='change-me'))
     os.environ.setdefault('AIRTRACK_ROLE',  cfg.get('app', 'role',       fallback='client'))
 
+    # Marmot (Wombat delivery agent)
+    wombat_url = cfg.get('wombat', 'url', fallback='')
+    customer_id = cfg.get('wombat', 'customer_id', fallback='')
+    if wombat_url:
+        os.environ.setdefault('WOMBAT_URL', wombat_url)
+    if customer_id:
+        os.environ.setdefault('AIRTRACK_CUSTOMER_ID', customer_id)
+
+    # AIRTRACK_HOME — where Marmot stores capabilities, registries, logs
+    import sys as _sys
+    if _sys.platform == 'win32':
+        _default_home = os.path.join(os.environ.get('ProgramData', 'C:\\ProgramData'), 'AirTrack')
+    else:
+        _default_home = '/airtrack_data'
+    os.environ.setdefault('AIRTRACK_HOME', cfg.get('app', 'data_dir', fallback=_default_home))
+
     # Log dir alongside the executable so it survives reinstalls
     log_dir = exe_dir / 'logs'
     log_dir.mkdir(exist_ok=True)

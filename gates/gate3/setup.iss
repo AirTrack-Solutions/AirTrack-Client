@@ -51,6 +51,8 @@ Filename: "{app}\airtrack.cfg"; Section: "database"; Key: "user";     String: "a
 Filename: "{app}\airtrack.cfg"; Section: "database"; Key: "password"; String: "Gate1UserPass!"
 Filename: "{app}\airtrack.cfg"; Section: "app";      Key: "secret_key"; String: "change-me-before-production"
 Filename: "{app}\airtrack.cfg"; Section: "app";      Key: "role";     String: "client"
+Filename: "{app}\airtrack.cfg"; Section: "wombat";   Key: "url";          String: ""
+Filename: "{app}\airtrack.cfg"; Section: "wombat";   Key: "customer_id";  String: ""
 
 [Run]
 ; Step 1 — Install MariaDB silently on port 3307

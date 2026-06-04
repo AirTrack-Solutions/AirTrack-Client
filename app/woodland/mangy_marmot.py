@@ -40,7 +40,12 @@ from urllib.request import Request, urlopen
 # ---------------------------------------------------------------------------
 
 WOMBAT_URL       = os.getenv("WOMBAT_URL", "").rstrip("/")
-AIRTRACK_HOME    = Path(os.getenv("AIRTRACK_HOME", "/airtrack_data"))
+_default_home = (
+    Path(os.environ.get("ProgramData", "C:/ProgramData")) / "AirTrack"
+    if sys.platform == "win32"
+    else Path("/airtrack_data")
+)
+AIRTRACK_HOME    = Path(os.getenv("AIRTRACK_HOME", str(_default_home)))
 CUSTOMER_ID      = os.getenv("AIRTRACK_CUSTOMER_ID", "")
 LICENSE_KEY      = os.getenv("AIRTRACK_LICENSE_KEY", "")
 WOMBAT_TIMEOUT   = int(os.getenv("WOMBAT_TIMEOUT", "30"))
@@ -51,7 +56,10 @@ STAGING_DIR      = AIRTRACK_HOME / "staging"
 STATUS_DIR       = AIRTRACK_HOME / "status" / "capabilities"
 CORE_DIR         = AIRTRACK_HOME / "core"
 PUBLIC_KEY_PATH  = CORE_DIR / "airtrack_solutions.pub"
-LOG_DIR          = AIRTRACK_HOME / "logs"
+LOG_DIR              = AIRTRACK_HOME / "logs"
+REGISTRIES_INCOMING  = AIRTRACK_HOME / "registries" / "incoming"
+REGISTRIES_INSTALLED = AIRTRACK_HOME / "registries" / "installed"
+REGISTRIES_MANIFESTS = AIRTRACK_HOME / "registries" / "manifests"
 
 # Public key source from git repo (copied to AIRTRACK_HOME on first run)
 _REPO_PUBLIC_KEY = Path(__file__).resolve().parent.parent / "core" / "airtrack_solutions.pub"
@@ -307,7 +315,8 @@ def _report(installed: list[dict], missing: list[str], delivered: list[str]) -> 
 def main() -> None:
     _log("Mangy Marmot starting.")
 
-    for d in (CAPABILITIES_DIR, DOWNLOADS_DIR, STAGING_DIR, STATUS_DIR, CORE_DIR, LOG_DIR):
+    for d in (CAPABILITIES_DIR, DOWNLOADS_DIR, STAGING_DIR, STATUS_DIR, CORE_DIR, LOG_DIR,
+               REGISTRIES_INCOMING, REGISTRIES_INSTALLED, REGISTRIES_MANIFESTS):
         d.mkdir(parents=True, exist_ok=True)
 
     _bootstrap_core()
