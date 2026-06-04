@@ -288,6 +288,189 @@ def _deliver(capability: str) -> bool:
     return True
 
 
+
+# ---------------------------------------------------------------------------
+# Registry inventory
+# ---------------------------------------------------------------------------
+
+def _scan_installed_registries() -> list[dict]:
+    """Return list of installed registries from REGISTRIES_INSTALLED/."""
+    if not REGISTRIES_INSTALLED.exists():
+        return []
+    installed = []
+    for reg_dir in sorted(REGISTRIES_INSTALLED.iterdir()):
+        if not reg_dir.is_dir():
+            continue
+        manifest_path = reg_dir / "installed.json"
+        try:
+            m = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+            installed.append({"name": reg_dir.name, "version": m.get("version", "unknown")})
+        except Exception:
+            installed.append({"name": reg_dir.name, "version": "unknown"})
+    return installed
+
+
+# ---------------------------------------------------------------------------
+# Registry installation
+# ---------------------------------------------------------------------------
+
+def _install_registry(package_path: Path, registry_name: str) -> None:
+    """Extract SQL from registry package and import into MariaDB."""
+    import re
+    import zipfile as _zf
+
+    with _zf.ZipFile(package_path, "r") as zf:
+        manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
+        sql_file = manifest.get("sql_file", "registry.sql")
+        sql_content = zf.read(sql_file).decode("utf-8")
+
+    table_name = manifest.get("table_name", registry_name)
+
+    # Extract INSERT statements only — safer than executing the full dump
+    inserts = re.findall(r"INSERT INTO.*?;", sql_content, re.DOTALL)
+    if not inserts:
+        raise RuntimeError(f"No INSERT statements found in {sql_file}")
+
+    # Parse DB connection from DATABASE_URI env var
+    try:
+        import pymysql
+        from urllib.parse import urlparse
+        db_uri = os.environ.get("DATABASE_URI", "")
+        if db_uri:
+            # mysql+pymysql://user:pass@host:port/dbname?...
+            parsed = urlparse(db_uri.replace("mysql+pymysql://", "mysql://"))
+            host     = parsed.hostname or "127.0.0.1"
+            port     = parsed.port or 3306
+            user     = parsed.username or "airtrack"
+            password = parsed.password or ""
+            database = (parsed.path or "/airtrack").lstrip("/")
+        else:
+            host_port = os.environ.get("DB_HOST", "127.0.0.1:3306").split(":")
+            host     = host_port[0]
+            port     = int(host_port[1]) if len(host_port) > 1 else 3306
+            user     = os.environ.get("DB_USER", "airtrack")
+            password = os.environ.get("DB_PASSWORD", "")
+            database = os.environ.get("DB_NAME", "airtrack")
+
+        conn = pymysql.connect(
+            host=host, port=int(port), user=user, password=password,
+            database=database, charset="utf8mb4",
+            connect_timeout=10,
+        )
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(f"DELETE FROM `{table_name}`")
+                for stmt in inserts:
+                    cursor.execute(stmt)
+            conn.commit()
+            _log(f"Registry '{registry_name}': imported {len(inserts)} INSERT block(s) into `{table_name}`")
+        finally:
+            conn.close()
+    except Exception as exc:
+        raise RuntimeError(f"DB import failed: {exc}")
+
+    # Write installed manifest
+    installed_dir = REGISTRIES_INSTALLED / registry_name
+    installed_dir.mkdir(parents=True, exist_ok=True)
+    installed_manifest = {
+        "name":         registry_name,
+        "version":      manifest.get("version", "1.0.0"),
+        "table_name":   table_name,
+        "installed_at": _now_iso(),
+    }
+    (installed_dir / "installed.json").write_text(
+        json.dumps(installed_manifest, indent=2), encoding="utf-8"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Registry delivery cycle
+# ---------------------------------------------------------------------------
+
+def _deliver_registry(registry: str) -> bool:
+    _log(f"Registry delivery: starting for '{registry}'")
+
+    try:
+        manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
+    except Exception as exc:
+        _log(f"Registry delivery: manifest fetch failed — {exc}"); return False
+
+    if manifest.get("error"):
+        _log(f"Registry delivery: manifest error — {manifest['error']}"); return False
+
+    matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == registry]
+    if not matching:
+        _log(f"Registry delivery: no dispatched delivery for '{registry}' — requesting")
+        try:
+            reg_req = _post("/api/wombat/request-registry", {
+                "customer_id": CUSTOMER_ID,
+                "registry":    registry,
+            })
+        except Exception as exc:
+            _log(f"Registry delivery: request-registry failed — {exc}"); return False
+        if reg_req.get("status") != "dispatched":
+            _log(f"Registry delivery: request returned '{reg_req.get('status')}' — {reg_req.get('note', reg_req.get('error', ''))}"); return False
+        try:
+            manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
+        except Exception as exc:
+            _log(f"Registry delivery: manifest re-fetch failed — {exc}"); return False
+        matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == registry]
+        if not matching:
+            _log(f"Registry delivery: dispatched but manifest not yet updated — will retry"); return False
+
+    delivery   = matching[0]
+    request_id = delivery["request_id"]
+    pkg_sha    = delivery["package_sha256"]
+    _log(f"Registry delivery: request_id={request_id}")
+
+    try:
+        pickup = _post("/api/wombat/request-pickup", {"customer_id": CUSTOMER_ID, "request_id": request_id})
+    except Exception as exc:
+        _log(f"Registry delivery: request-pickup failed — {exc}"); return False
+    if not pickup.get("allowed"):
+        _log(f"Registry delivery: pickup not allowed — {pickup.get('error')}"); return False
+
+    token = pickup["pickup_token"]
+
+    try:
+        retrieval = _post("/api/wombat/retrieve-package", {"customer_id": CUSTOMER_ID, "token": token})
+    except Exception as exc:
+        _log(f"Registry delivery: retrieve failed — {exc}"); return False
+    if not retrieval.get("ok"):
+        _log(f"Registry delivery: retrieve error — {retrieval.get('error')}"); return False
+
+    zip_bytes = base64.b64decode(retrieval["package_bytes"])
+
+    dl_dir = DOWNLOADS_DIR / request_id
+    dl_dir.mkdir(parents=True, exist_ok=True)
+    package_path = dl_dir / "package.zip"
+    package_path.write_bytes(zip_bytes)
+    _log(f"Registry delivery: saved {len(zip_bytes)} bytes")
+
+    err = _verify_package(zip_bytes, pkg_sha)
+    if err:
+        _log(f"Registry delivery: verification failed — {err}")
+        package_path.unlink(missing_ok=True)
+        return False
+    _log("Registry delivery: signature + SHA-256 verified")
+
+    try:
+        _install_registry(package_path, registry)
+    except Exception as exc:
+        _log(f"Registry delivery: install error — {exc}"); return False
+
+    try:
+        confirm = _post("/api/wombat/confirm-pickup", {
+            "customer_id":     CUSTOMER_ID,
+            "token":           token,
+            "received_sha256": hashlib.sha256(zip_bytes).hexdigest(),
+        })
+        _log(f"Registry delivery: confirmed — {confirm.get('status', confirm.get('error'))}")
+    except Exception as exc:
+        _log(f"Registry delivery: confirm failed (non-fatal) — {exc}")
+
+    return True
+
 # ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
@@ -348,7 +531,21 @@ def main() -> None:
 
     installed = _scan_installed()
     _report(installed, missing, delivered)
-    _log(f"Finished. Delivered: {delivered or 'none'}")
+
+    # Registry delivery
+    required_registries      = wh_manifest.get("required_registries", [])
+    installed_registries     = _scan_installed_registries()
+    installed_registry_names = {r["name"] for r in installed_registries}
+    missing_registries       = [r for r in required_registries if r not in installed_registry_names]
+    delivered_registries     = []
+
+    if required_registries:
+        _log(f"Registries — Required: {required_registries} | Installed: {sorted(installed_registry_names) or 'none'} | Missing: {missing_registries}")
+        for reg in missing_registries:
+            if _deliver_registry(reg):
+                delivered_registries.append(reg)
+
+    _log(f"Finished. Delivered: {(delivered + delivered_registries) or 'none'}")
 
 
 if __name__ == "__main__":
