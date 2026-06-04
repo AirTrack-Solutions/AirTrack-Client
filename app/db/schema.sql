@@ -169,6 +169,7 @@ CREATE TABLE `audit_country_updates` (
 DROP TABLE IF EXISTS `australia`;
 CREATE TABLE `australia` (
   `registration` varchar(10) NOT NULL,
+  `hexcode` varchar(10) DEFAULT NULL,
   `aircraftmanufacturer` varchar(100) DEFAULT NULL,
   `aircraftmodel` varchar(50) DEFAULT NULL,
   `msn` varchar(50) DEFAULT NULL,
@@ -190,6 +191,7 @@ CREATE TABLE `australia` (
   `typecert` varchar(50) DEFAULT NULL,
   `countrymanu` varchar(50) DEFAULT NULL,
   `yearmanu` int(11) DEFAULT NULL,
+  `monthmanu` int(11) DEFAULT NULL,
   `icaotypedesig` varchar(10) DEFAULT NULL,
   PRIMARY KEY (`registration`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
