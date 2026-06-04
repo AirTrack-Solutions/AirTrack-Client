@@ -19,7 +19,11 @@ import tempfile
 
 from pathlib import Path
 # NEW: file lock so multiple workers don't regenerate at once
-import fcntl
+try:
+    import fcntl
+    _HAVE_FCNTL = True
+except ImportError:
+    _HAVE_FCNTL = False
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # /app
 
@@ -103,7 +107,8 @@ def _acquire_lock() -> int | None:
     try:
         THEMES_DIR.mkdir(parents=True, exist_ok=True)
         fd = os.open(LOCKFILE, os.O_CREAT | os.O_RDWR, 0o644)
-        fcntl.flock(fd, fcntl.LOCK_EX)
+        if _HAVE_FCNTL:
+            fcntl.flock(fd, fcntl.LOCK_EX)
         return fd
     except Exception:
         # If we can't lock (exotic FS), just continue without it.
@@ -114,7 +119,8 @@ def _release_lock(fd: int | None):
     if fd is None:
         return
     try:
-        fcntl.flock(fd, fcntl.LOCK_UN)
+        if _HAVE_FCNTL:
+            fcntl.flock(fd, fcntl.LOCK_UN)
     finally:
         try:
             os.close(fd)
