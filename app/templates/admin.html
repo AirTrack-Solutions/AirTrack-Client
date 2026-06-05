@@ -119,11 +119,6 @@
     <div class="cockpit-hud-column hud-left">
       <a href="{{ url_for('index') }}"><button type="button" class="cockpit-hud-button" title="Fasten your seat belts and trays in the upright position.">Home</button></a>
 
-      <button class="cockpit-hud-button"
-          onclick="window.location.href='/admin/manual_aircraft';"
-          title="Do some of the work for yourself, add an aircraft manually.">
-        Manual Aircraft Entry
-      </button>
 
       <form class="cockpit-hud-form" action="{{ url_for('backup_database') }}" method="post" onsubmit="showCockpitConfirmation('Backup completed');">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -158,7 +153,6 @@
         <button class="cockpit-hud-button">Restore Backup</button>
       </form>
 
-      <a href="http://bugs.airtracksolutions.com" target="_blank"><button type="button" class="cockpit-hud-button">Launch Bug Tracker</button></a>
       <a href="https://discord.gg/NsmUxZmuY" target="_blank"><button type="button" class="cockpit-hud-button">Discord</button></a>
       {% if aria_enabled %}<button type="button" class="cockpit-hud-button" onclick="if(window.ariaTogglePanel) window.ariaTogglePanel()">Aria</button>{% endif %}
     </div>
@@ -185,6 +179,12 @@
     </form>
     {% endif %}
 
+    <button class="cockpit-hud-button"
+        onclick="window.location.href='/admin/manual_aircraft';"
+        title="Do some of the work for yourself, add an aircraft manually.">
+      Manual Aircraft Entry
+    </button>
+    <a href="http://bugs.airtracksolutions.com" target="_blank"><button type="button" class="cockpit-hud-button">Launch Bug Tracker</button></a>
     <button class="cockpit-hud-button" onclick="openSettings()">Settings</button>
     <button class="cockpit-hud-button" onclick="openMunicipalityModal()" title="Set city name for an airport">Set Municipality</button>
 
