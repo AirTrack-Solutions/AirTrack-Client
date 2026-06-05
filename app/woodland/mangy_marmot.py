@@ -1,5 +1,5 @@
 """
-AirTrack — Mangy Marmot
+AirTrack - Mangy Marmot
 woodland/mangy_marmot.py v0.2
 
 Capability delivery agent. Runs on a schedule inside the AirTrack client.
@@ -8,7 +8,7 @@ Responsibilities:
   1. Fetch warehouse manifest from Wombat (required_core_packages).
   2. Scan installed capabilities from $AIRTRACK_HOME/capabilities/.
   3. Report installed_capabilities to Wombat.
-  4. For each missing required core package — run the full HTTP delivery cycle:
+  4. For each missing required core package - run the full HTTP delivery cycle:
        request pickup → retrieve package → verify signature + SHA-256 → install → confirm.
 
 Environment:
@@ -208,31 +208,31 @@ def _deliver(capability: str) -> bool:
     try:
         manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
     except Exception as exc:
-        _log(f"Delivery: manifest fetch failed — {exc}"); return False
+        _log(f"Delivery: manifest fetch failed - {exc}"); return False
 
     if manifest.get("error"):
-        _log(f"Delivery: manifest error — {manifest['error']}"); return False
+        _log(f"Delivery: manifest error - {manifest['error']}"); return False
 
     matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == capability]
     if not matching:
-        _log(f"Delivery: no dispatched delivery for '{capability}' — requesting from warehouse")
+        _log(f"Delivery: no dispatched delivery for '{capability}' - requesting from warehouse")
         try:
             cap_req = _post("/api/wombat/request-capability", {
                 "customer_id": CUSTOMER_ID,
                 "capability":  capability,
             })
         except Exception as exc:
-            _log(f"Delivery: request-capability failed — {exc}"); return False
+            _log(f"Delivery: request-capability failed - {exc}"); return False
         if cap_req.get("status") != "dispatched":
-            _log(f"Delivery: request-capability returned '{cap_req.get('status')}' — {cap_req.get('note', cap_req.get('error', ''))}"); return False
+            _log(f"Delivery: request-capability returned '{cap_req.get('status')}' - {cap_req.get('note', cap_req.get('error', ''))}"); return False
         # Re-fetch manifest so we have the freshly dispatched delivery
         try:
             manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
         except Exception as exc:
-            _log(f"Delivery: manifest re-fetch failed — {exc}"); return False
+            _log(f"Delivery: manifest re-fetch failed - {exc}"); return False
         matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == capability]
         if not matching:
-            _log(f"Delivery: warehouse dispatched but manifest not yet updated — will retry"); return False
+            _log(f"Delivery: warehouse dispatched but manifest not yet updated - will retry"); return False
 
     delivery   = matching[0]
     request_id = delivery["request_id"]
@@ -242,18 +242,18 @@ def _deliver(capability: str) -> bool:
     try:
         pickup = _post("/api/wombat/request-pickup", {"customer_id": CUSTOMER_ID, "request_id": request_id})
     except Exception as exc:
-        _log(f"Delivery: request-pickup failed — {exc}"); return False
+        _log(f"Delivery: request-pickup failed - {exc}"); return False
     if not pickup.get("allowed"):
-        _log(f"Delivery: pickup not allowed — {pickup.get('error')}"); return False
+        _log(f"Delivery: pickup not allowed - {pickup.get('error')}"); return False
 
     token = pickup["pickup_token"]
 
     try:
         retrieval = _post("/api/wombat/retrieve-package", {"customer_id": CUSTOMER_ID, "token": token})
     except Exception as exc:
-        _log(f"Delivery: retrieve failed — {exc}"); return False
+        _log(f"Delivery: retrieve failed - {exc}"); return False
     if not retrieval.get("ok"):
-        _log(f"Delivery: retrieve error — {retrieval.get('error')}"); return False
+        _log(f"Delivery: retrieve error - {retrieval.get('error')}"); return False
 
     zip_bytes = base64.b64decode(retrieval["package_bytes"])
 
@@ -265,7 +265,7 @@ def _deliver(capability: str) -> bool:
 
     err = _verify_package(zip_bytes, pkg_sha)
     if err:
-        _log(f"Delivery: verification failed — {err}")
+        _log(f"Delivery: verification failed - {err}")
         package_path.unlink(missing_ok=True)
         return False
     _log("Delivery: signature + SHA-256 verified")
@@ -273,7 +273,7 @@ def _deliver(capability: str) -> bool:
     try:
         _install_package(package_path)
     except Exception as exc:
-        _log(f"Delivery: install error — {exc}"); return False
+        _log(f"Delivery: install error - {exc}"); return False
 
     try:
         confirm = _post("/api/wombat/confirm-pickup", {
@@ -281,9 +281,9 @@ def _deliver(capability: str) -> bool:
             "token":           token,
             "received_sha256": hashlib.sha256(zip_bytes).hexdigest(),
         })
-        _log(f"Delivery: confirmed — {confirm.get('status', confirm.get('error'))}")
+        _log(f"Delivery: confirmed - {confirm.get('status', confirm.get('error'))}")
     except Exception as exc:
-        _log(f"Delivery: confirm failed (non-fatal) — {exc}")
+        _log(f"Delivery: confirm failed (non-fatal) - {exc}")
 
     return True
 
@@ -326,7 +326,7 @@ def _install_registry(package_path: Path, registry_name: str) -> None:
 
     table_name = manifest.get("table_name", registry_name)
 
-    # Extract INSERT statements only — safer than executing the full dump
+    # Extract INSERT statements only - safer than executing the full dump
     inserts = re.findall(r"INSERT INTO.*?;", sql_content, re.DOTALL)
     if not inserts:
         raise RuntimeError(f"No INSERT statements found in {sql_file}")
@@ -393,30 +393,30 @@ def _deliver_registry(registry: str) -> bool:
     try:
         manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
     except Exception as exc:
-        _log(f"Registry delivery: manifest fetch failed — {exc}"); return False
+        _log(f"Registry delivery: manifest fetch failed - {exc}"); return False
 
     if manifest.get("error"):
-        _log(f"Registry delivery: manifest error — {manifest['error']}"); return False
+        _log(f"Registry delivery: manifest error - {manifest['error']}"); return False
 
     matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == registry]
     if not matching:
-        _log(f"Registry delivery: no dispatched delivery for '{registry}' — requesting")
+        _log(f"Registry delivery: no dispatched delivery for '{registry}' - requesting")
         try:
             reg_req = _post("/api/wombat/request-registry", {
                 "customer_id": CUSTOMER_ID,
                 "registry":    registry,
             })
         except Exception as exc:
-            _log(f"Registry delivery: request-registry failed — {exc}"); return False
+            _log(f"Registry delivery: request-registry failed - {exc}"); return False
         if reg_req.get("status") != "dispatched":
-            _log(f"Registry delivery: request returned '{reg_req.get('status')}' — {reg_req.get('note', reg_req.get('error', ''))}"); return False
+            _log(f"Registry delivery: request returned '{reg_req.get('status')}' - {reg_req.get('note', reg_req.get('error', ''))}"); return False
         try:
             manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
         except Exception as exc:
-            _log(f"Registry delivery: manifest re-fetch failed — {exc}"); return False
+            _log(f"Registry delivery: manifest re-fetch failed - {exc}"); return False
         matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == registry]
         if not matching:
-            _log(f"Registry delivery: dispatched but manifest not yet updated — will retry"); return False
+            _log(f"Registry delivery: dispatched but manifest not yet updated - will retry"); return False
 
     delivery   = matching[0]
     request_id = delivery["request_id"]
@@ -426,18 +426,18 @@ def _deliver_registry(registry: str) -> bool:
     try:
         pickup = _post("/api/wombat/request-pickup", {"customer_id": CUSTOMER_ID, "request_id": request_id})
     except Exception as exc:
-        _log(f"Registry delivery: request-pickup failed — {exc}"); return False
+        _log(f"Registry delivery: request-pickup failed - {exc}"); return False
     if not pickup.get("allowed"):
-        _log(f"Registry delivery: pickup not allowed — {pickup.get('error')}"); return False
+        _log(f"Registry delivery: pickup not allowed - {pickup.get('error')}"); return False
 
     token = pickup["pickup_token"]
 
     try:
         retrieval = _post("/api/wombat/retrieve-package", {"customer_id": CUSTOMER_ID, "token": token})
     except Exception as exc:
-        _log(f"Registry delivery: retrieve failed — {exc}"); return False
+        _log(f"Registry delivery: retrieve failed - {exc}"); return False
     if not retrieval.get("ok"):
-        _log(f"Registry delivery: retrieve error — {retrieval.get('error')}"); return False
+        _log(f"Registry delivery: retrieve error - {retrieval.get('error')}"); return False
 
     zip_bytes = base64.b64decode(retrieval["package_bytes"])
 
@@ -449,7 +449,7 @@ def _deliver_registry(registry: str) -> bool:
 
     err = _verify_package(zip_bytes, pkg_sha)
     if err:
-        _log(f"Registry delivery: verification failed — {err}")
+        _log(f"Registry delivery: verification failed - {err}")
         package_path.unlink(missing_ok=True)
         return False
     _log("Registry delivery: signature + SHA-256 verified")
@@ -457,7 +457,7 @@ def _deliver_registry(registry: str) -> bool:
     try:
         _install_registry(package_path, registry)
     except Exception as exc:
-        _log(f"Registry delivery: install error — {exc}"); return False
+        _log(f"Registry delivery: install error - {exc}"); return False
 
     try:
         confirm = _post("/api/wombat/confirm-pickup", {
@@ -465,9 +465,9 @@ def _deliver_registry(registry: str) -> bool:
             "token":           token,
             "received_sha256": hashlib.sha256(zip_bytes).hexdigest(),
         })
-        _log(f"Registry delivery: confirmed — {confirm.get('status', confirm.get('error'))}")
+        _log(f"Registry delivery: confirmed - {confirm.get('status', confirm.get('error'))}")
     except Exception as exc:
-        _log(f"Registry delivery: confirm failed (non-fatal) — {exc}")
+        _log(f"Registry delivery: confirm failed (non-fatal) - {exc}")
 
     return True
 
@@ -488,7 +488,7 @@ def _report(installed: list[dict], missing: list[str], delivered: list[str]) -> 
             "delivered_this_cycle":   delivered,
         })
     except Exception as exc:
-        _log(f"Report: failed — {exc}")
+        _log(f"Report: failed - {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -505,17 +505,17 @@ def main() -> None:
     _bootstrap_core()
 
     if not WOMBAT_URL:
-        _log("WOMBAT_URL not set — standing by."); return
+        _log("WOMBAT_URL not set - standing by."); return
     if not CUSTOMER_ID:
-        _log("AIRTRACK_CUSTOMER_ID not set — standing by."); return
+        _log("AIRTRACK_CUSTOMER_ID not set - standing by."); return
 
     try:
         wh_manifest = _get("/api/wombat/manifest")
     except Exception as exc:
-        _log(f"Warehouse manifest unavailable — {exc}"); return
+        _log(f"Warehouse manifest unavailable - {exc}"); return
 
     if wh_manifest.get("embargo_active"):
-        _log("Embargo active — standing by."); return
+        _log("Embargo active - standing by."); return
 
     required        = wh_manifest.get("required_core_packages", [])
     installed       = _scan_installed()
@@ -540,7 +540,7 @@ def main() -> None:
     delivered_registries     = []
 
     if required_registries:
-        _log(f"Registries — Required: {required_registries} | Installed: {sorted(installed_registry_names) or 'none'} | Missing: {missing_registries}")
+        _log(f"Registries - Required: {required_registries} | Installed: {sorted(installed_registry_names) or 'none'} | Missing: {missing_registries}")
         for reg in missing_registries:
             if _deliver_registry(reg):
                 delivered_registries.append(reg)
