@@ -145,6 +145,15 @@ class AirTrackService(win32serviceutil.ServiceFramework):
         except Exception:
             pass
 
+        # Add _internal/app to sys.path so legacy absolute imports work
+        # (version, utils.x, security.x etc. live inside app/ but are imported as top-level)
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            _app_dir = os.path.join(sys._MEIPASS, 'app')
+            if _app_dir not in sys.path:
+                sys.path.insert(0, _app_dir)
+            if sys._MEIPASS not in sys.path:
+                sys.path.insert(0, sys._MEIPASS)
+
         from app.app import app as flask_app
         from waitress import serve
 
