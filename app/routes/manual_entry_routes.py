@@ -18,6 +18,7 @@ manual_entry_bp = Blueprint(
 
 AIRTRACK_COLUMNS = [
     "registration",
+    "hexcode",
     "aircraftmanufacturer",
     "aircraftmodel",
     "msn",
@@ -39,6 +40,7 @@ AIRTRACK_COLUMNS = [
     "typecert",
     "countrymanu",
     "yearmanu",
+    "monthmanu",
     "icaotypedesig",
 ]
 
