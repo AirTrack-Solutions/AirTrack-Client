@@ -48,14 +48,19 @@ def run_migrations(db):
             logger.info("✅ All migrations already applied.")
             return
 
+        def _strip_leading_comments(s):
+            lines = s.strip().splitlines()
+            while lines and lines[0].strip().startswith("--"):
+                lines.pop(0)
+            return "\n".join(lines).strip()
+
         for migration_file in migration_files:
             logger.info("🔄 Applying migration: %s", migration_file.name)
             try:
                 sql = migration_file.read_text(encoding="utf-8")
                 statements = [
-                    stmt.strip()
-                    for stmt in sql.split(";")
-                    if stmt.strip() and not stmt.strip().startswith("--")
+                    cleaned for stmt in sql.split(";")
+                    if (cleaned := _strip_leading_comments(stmt))
                 ]
                 for statement in statements:
                     if statement:
