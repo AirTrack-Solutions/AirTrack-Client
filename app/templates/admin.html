@@ -171,7 +171,7 @@
     {% endif %}
     <a href="{{ url_for('airline_logo_linker.link_airline_logos') }}"><button type="button" class="cockpit-hud-button">Logos</button></a>
     <a href="{{ url_for('registry.registry_list') }}"><button type="button" class="cockpit-hud-button">Registries</button></a>
-    <a href="{{ url_for('admin.woodland_roster') }}"><button type="button" class="cockpit-hud-button">Woodland Roster</button></a>
+    {% if is_server %}<a href="{{ url_for('admin.woodland_roster') }}"><button type="button" class="cockpit-hud-button">Woodland Roster</button></a>{% endif %}
     <a href="{{ url_for('admin.modules_page') }}"><button type="button" class="cockpit-hud-button">Modules</button></a>
 
     {% if is_server %}
