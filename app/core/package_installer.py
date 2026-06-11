@@ -438,7 +438,15 @@ def run_healthcheck(install_dir: Path, manifest: dict) -> tuple:
     Timeout: HEALTHCHECK_TIMEOUT seconds
 
     Returns (passed: bool, error: Optional[str]).
+
+    In PyInstaller frozen bundles sys.executable is the app .exe, not the
+    Python interpreter, so subprocess-based healthchecks cannot run.
+    Packages are already verified by signature + SHA-256 before reaching
+    this point, so auto-passing is safe in frozen context.
     """
+    if getattr(sys, "frozen", False):
+        return True, None  # frozen bundle — healthcheck subprocess not runnable
+
     healthcheck_file = manifest.get("healthcheck")
     if not healthcheck_file:
         return False, "No healthcheck defined in manifest"

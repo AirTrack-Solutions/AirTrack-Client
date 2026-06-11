@@ -193,7 +193,10 @@ def _install_package(package_path: Path) -> None:
 
     result = module.validate_package(package_path)
     if not result.valid:
-        errs = "; ".join(result.errors or [])
+        parts = list(result.errors or [])
+        if getattr(result, "healthcheck_error", None):
+            parts.append(f"Healthcheck: {result.healthcheck_error}")
+        errs = "; ".join(parts)
         raise RuntimeError(f"Install failed: {errs}")
     _log(f"Install: '{result.package_name}' v{result.package_version} installed")
 
