@@ -61,6 +61,7 @@ Filename: "http://localhost:5000"; Flags: shellexec nowait postinstall skipifsil
 const
   MARIADB_ROOT_PASS = 'AirTrackRoot2024!';
   MARIADB_BIN = 'C:\Program Files\MariaDB 11.4\bin\mysql.exe';
+  DQ = '"';
 
 { Skip MariaDB MSI install if already present }
 function MariaDBNotInstalled: Boolean;
@@ -103,17 +104,17 @@ begin
     { Build init_db.bat using per-customer credentials }
     BatchContent :=
       '@echo off' + #13#10 +
-      #34 + MARIADB_BIN + #34 + ' --port=' + DbPort +
+      DQ + MARIADB_BIN + DQ + ' --port=' + DbPort +
         ' --host=127.0.0.1 --user=root --password=' + MARIADB_ROOT_PASS +
-        ' < ' + #34 + SqlFile + #34 + #13#10 +
+        ' < ' + DQ + SqlFile + DQ + #13#10 +
       'if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%' + #13#10;
 
     { Only load schema on fresh installs — migrations handle upgrades }
     if IsFreshInstall then
       BatchContent := BatchContent +
-        #34 + MARIADB_BIN + #34 + ' --port=' + DbPort +
+        DQ + MARIADB_BIN + DQ + ' --port=' + DbPort +
           ' --host=127.0.0.1 --user=' + DbUser + ' --password=' + DbPass +
-          ' ' + DbName + ' < ' + #34 + ExpandConstant('{tmp}\schema.sql') + #34 + #13#10 +
+          ' ' + DbName + ' < ' + DQ + ExpandConstant('{tmp}\schema.sql') + DQ + #13#10 +
         'if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%' + #13#10;
 
     BatchFile := ExpandConstant('{tmp}\init_db.bat');
