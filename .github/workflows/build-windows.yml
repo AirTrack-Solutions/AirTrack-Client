@@ -71,20 +71,42 @@ jobs:
             --specpath . `
             service.py
 
-      - name: Zip bundle
-        run: |
-          Compress-Archive -Path "gates\gate3\dist\AirTrack" -DestinationPath "AirTrack-windows.zip"
+      - name: Copy schema.sql into gate3
+        run: Copy-Item "app\db\schema.sql" "gates\gate3\schema.sql" -Force
 
-      - name: Upload build artifact
+      - name: Cache MariaDB MSI
+        uses: actions/cache@v4
+        id: cache-mariadb
+        with:
+          path: gates/gate3/mariadb-11.4.12-winx64.msi
+          key: mariadb-11.4.12-winx64
+
+      - name: Download MariaDB MSI
+        if: steps.cache-mariadb.outputs.cache-hit != 'true'
+        run: |
+          Invoke-WebRequest `
+            -Uri "https://downloads.mariadb.com/MariaDB/mariadb-11.4.12/winx64-packages/mariadb-11.4.12-winx64.msi" `
+            -OutFile "gates\gate3\mariadb-11.4.12-winx64.msi" `
+            -UseBasicParsing
+
+      - name: Install Inno Setup
+        run: choco install innosetup --yes --no-progress
+
+      - name: Compile installer
+        working-directory: gates/gate3
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
+
+      - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AirTrack-windows
-          path: AirTrack-windows.zip
+          name: AirTrack-installer
+          path: gates/gate3/Output/AirTrackSetup.exe
           retention-days: 90
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: AirTrack-windows.zip
+          files: gates/gate3/Output/AirTrackSetup.exe
           name: AirTrack ${{ github.ref_name }}
