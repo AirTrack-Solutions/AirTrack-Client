@@ -46,7 +46,7 @@ pyinstaller --noconfirm ^
   --collect-data jaraco ^
   --distpath "%GATE3%dist" ^
   --workpath "%GATE3%build" ^
-  --specpath "%GATE3%" ^
+  --specpath "." ^
   "%GATE3%service.py"
 
 echo.
