@@ -189,7 +189,8 @@ def inject_env_vars():
     try:
         return {
             "AIRTRACK_UPDATE_MODE": os.getenv("AIRTRACK_UPDATE_MODE", ""),
-            "AIRTRACK_SYNC_USER": os.getenv("AIRTRACK_SYNC_USER", ""),
+            "AIRTRACK_SYNC_USER":   os.getenv("AIRTRACK_SYNC_USER", ""),
+            "aria_enabled":         os.getenv("ARIA_ENABLED", "0").lower() in ("1", "true", "yes"),
         }
     except Exception:
         return {}
@@ -1226,7 +1227,9 @@ from routes.airports_api import bp as airports_api_bp
 
 from routes.manual_entry_routes import manual_entry_bp
 from routes.registry_routes import registry_bp
-from routes.aria_routes import aria_bp
+_ARIA_ENABLED = os.getenv("ARIA_ENABLED", "0").lower() in ("1", "true", "yes")
+if _ARIA_ENABLED:
+    from routes.aria_routes import aria_bp
 from modules.module_loader import register_optional_modules
 
 try:
@@ -1252,8 +1255,9 @@ app.register_blueprint(airline_logo_linker)
 app.register_blueprint(admin_tools_routes.admin_tools_bp)
 app.register_blueprint(manual_entry_bp)
 app.register_blueprint(registry_bp)
-app.register_blueprint(aria_bp)
-csrf.exempt(aria_bp)
+if _ARIA_ENABLED:
+    app.register_blueprint(aria_bp)
+    csrf.exempt(aria_bp)
 csrf.exempt(manual_entry_bp)
 csrf.exempt(admin_tools_routes.admin_tools_bp)
 csrf.exempt(admin_bp)
