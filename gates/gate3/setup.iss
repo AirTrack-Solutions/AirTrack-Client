@@ -1,5 +1,5 @@
 ; AirTrack Windows Installer
-; Gate 3 — full installer with per-customer config
+; Gate 3 - full installer with per-customer config
 ;
 ; BUILD:
 ;   Automated via .github/workflows/build-windows.yml
@@ -23,38 +23,38 @@ CreateUninstallRegKey=no
 Uninstallable=no
 
 [Files]
-; MariaDB MSI — bundled, extracted to temp and deleted after install
+; MariaDB MSI - bundled, extracted to temp and deleted after install
 Source: "mariadb-11.4.12-winx64.msi"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 ; MariaDB readiness check
 Source: "wait_for_db.ps1"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
-; AirTrack schema — used on fresh installs only
+; AirTrack schema - used on fresh installs only
 Source: "schema.sql"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 ; AirTrack bundle (built by build.bat / GitHub Actions)
 Source: "dist\AirTrack\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
 
 [Run]
-; Step 1 — Install MariaDB silently (skipped if already present)
+; Step 1 - Install MariaDB silently (skipped if already present)
 Filename: "msiexec.exe"; Parameters: "/i ""{tmp}\mariadb-11.4.12-winx64.msi"" /quiet /norestart SERVICENAME=AirTrackDB PORT=3307 PASSWORD=AirTrackRoot2024! ALLOWREMOTEMACHINE=0 BUFFERPOOLSIZE=64 DATADIR=C:\AirTrackData\"; StatusMsg: "Installing MariaDB..."; Flags: waituntilterminated; Check: MariaDBNotInstalled
 
-; Step 2 — Wait for MariaDB to accept connections
+; Step 2 - Wait for MariaDB to accept connections
 Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{tmp}\wait_for_db.ps1"""; StatusMsg: "Waiting for database..."; Flags: waituntilterminated
 
-; Step 3 — Init database (written dynamically by [Code] from sidecar airtrack.cfg)
+; Step 3 - Init database (written dynamically by [Code] from sidecar airtrack.cfg)
 Filename: "cmd.exe"; Parameters: "/c ""{tmp}\init_db.bat"""; StatusMsg: "Initialising database..."; Flags: waituntilterminated
 
-; Step 4 — Install AirTrack as Windows service
+; Step 4 - Install AirTrack as Windows service
 Filename: "{app}\AirTrack.exe"; Parameters: "install"; StatusMsg: "Installing AirTrack service..."; Flags: waituntilterminated
 
-; Step 5 — Service dependency: AirTrack waits for MariaDB on every boot
+; Step 5 - Service dependency: AirTrack waits for MariaDB on every boot
 Filename: "sc.exe"; Parameters: "config AirTrackClient depend= AirTrackDB"; StatusMsg: "Configuring service dependency..."; Flags: waituntilterminated
 
-; Step 6 — Start AirTrack
+; Step 6 - Start AirTrack
 Filename: "{app}\AirTrack.exe"; Parameters: "start"; StatusMsg: "Starting AirTrack..."; Flags: waituntilterminated
 
-; Step 7 — Open browser (interactive installs only)
+; Step 7 - Open browser (interactive installs only)
 Filename: "http://localhost:5000"; Flags: shellexec nowait postinstall skipifsilent; Description: "Open AirTrack in browser"
 
 [Code]
@@ -78,7 +78,7 @@ var
   LicSrc, LicDest: String;
   IsFreshInstall: Boolean;
 begin
-  { ssInstall fires before files are copied — write helper scripts to {tmp} }
+  // ssInstall fires before files are copied - write helper scripts to {tmp}
   if CurStep = ssInstall then
   begin
     CfgFile := ExpandConstant('{src}\airtrack.cfg');
@@ -109,7 +109,7 @@ begin
         ' < ' + DQ + SqlFile + DQ + #13#10 +
       'if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%' + #13#10;
 
-    { Only load schema on fresh installs — migrations handle upgrades }
+    { Only load schema on fresh installs - migrations handle upgrades }
     if IsFreshInstall then
       BatchContent := BatchContent +
         DQ + MARIADB_BIN + DQ + ' --port=' + DbPort +
@@ -124,7 +124,7 @@ begin
   { ssPostInstall fires after files are copied and [Run] items complete }
   if CurStep = ssPostInstall then
   begin
-    { Copy sidecar airtrack.cfg — preserve on reinstall }
+    { Copy sidecar airtrack.cfg - preserve on reinstall }
     if not FileExists(ExpandConstant('{app}\airtrack.cfg')) then
       FileCopy(ExpandConstant('{src}\airtrack.cfg'), ExpandConstant('{app}\airtrack.cfg'), False);
 
