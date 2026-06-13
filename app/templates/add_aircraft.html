@@ -1,6 +1,6 @@
 <!--
   AirTrack 1.0.0
-  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
   SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
 -->
 
@@ -161,9 +161,16 @@
                 <textarea name="Notes" class="form-control" rows="3">{{ request.form.get('Notes', '') }}</textarea>
             </div>
 
-            <div class="d-flex justify-content-between">
+            <div class="d-flex justify-content-between align-items-center">
                 <a href="{{ url_for('aircraft.aircraft_table') }}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-success">Add Aircraft</button>
+                <div class="text-end">
+                    <button type="submit" class="btn btn-success"{% if lite_limit_reached %} disabled{% endif %}>Add Aircraft</button>
+                    {% if is_lite %}
+                    <div class="mt-1" style="font-size:0.8rem; color: var(--text-muted, #999);">
+                        Lite Edition is limited to 100 aircraft.<br>Upgrade AirTrack to add more.
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </form>
     </div>
