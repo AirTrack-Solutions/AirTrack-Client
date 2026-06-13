@@ -1,196 +1,79 @@
 #!/bin/bash
+# AirTrack Linux Client — Installer
+# https://airtracksolutions.com
+
+set -e
+
+COMPOSE_FILE="docker-compose.client.yml"
+IMAGE="ghcr.io/airtrack-solutions/airtrack-client:latest"
+
 echo ""
-echo " ================================================"
-echo "  AirTrack Solutions - First Time Setup"
-echo " ================================================"
-echo ""
-echo " This will build and start AirTrack for the first time."
-echo " This may take several minutes. Please be patient."
-echo ""
-read -p " Press Enter to continue..."
+echo "  ✈  AirTrack Linux Client — Installer"
+echo "  ======================================="
 echo ""
 
-# ── Check supported OS ────────────────────────────────────────────────────────
-if [ -f /etc/os-release ]; then
-    DISTRO=$(grep ^ID= /etc/os-release | cut -d= -f2 | tr -d '"')
-else
-    DISTRO="unknown"
-fi
-if [[ "$DISTRO" != "ubuntu" && "$DISTRO" != "debian" && "$DISTRO" != "raspbian" ]]; then
-    echo " WARNING: This installer is designed for Ubuntu, Debian, or Raspberry Pi OS."
-    echo " Your system reports: $DISTRO"
-    echo " Docker may need to be installed manually on your distribution."
-    echo " Continuing anyway — press Ctrl+C to abort."
-    echo ""
-    sleep 5
-fi
-
-# ── Check for Docker ──────────────────────────────────────────────────────────
+# ── Checks ────────────────────────────────────────────────────────────────────
 if ! command -v docker &>/dev/null; then
-    echo " ERROR: Docker is not installed."
-    echo ""
-    echo " Please install Docker first, then run this script again."
-    echo ""
-    echo " On Raspberry Pi / Debian / Ubuntu:"
-    echo "   curl -fsSL https://get.docker.com | sh"
-    echo "   sudo usermod -aG docker \$USER"
-    echo "   Then log out and back in, and run this installer again."
-    echo ""
+    echo "  ✗  Docker is not installed."
+    echo "     Install it from: https://docs.docker.com/engine/install/"
     exit 1
 fi
 
-# ── Check Docker is accessible (user may not be in docker group yet) ──────────
-if ! docker info &>/dev/null; then
-    echo " ERROR: Docker is installed but cannot be accessed by your user."
-    echo ""
-    echo " This usually means you need to add yourself to the docker group."
-    echo " Run these commands, then log out and back in:"
-    echo ""
-    echo "   sudo usermod -aG docker \$USER"
-    echo "   newgrp docker"
-    echo ""
-    echo " Then run this installer again."
-    echo ""
+if ! docker compose version &>/dev/null 2>&1; then
+    echo "  ✗  Docker Compose plugin not found."
+    echo "     Install it from: https://docs.docker.com/compose/install/"
     exit 1
 fi
 
-# ── Check for Docker Compose ──────────────────────────────────────────────────
-if ! docker compose version &>/dev/null; then
-    echo " ERROR: Docker Compose is not available."
-    echo ""
-    echo " Try installing it with:"
-    echo "   sudo apt-get install docker-compose-plugin"
-    echo ""
-    exit 1
-fi
+echo "  ✓  Docker found: $(docker --version)"
 
-echo " Docker and Docker Compose are ready."
-echo ""
+# ── Directory structure ────────────────────────────────────────────────────────
+mkdir -p data logs keys
+echo "  ✓  Created data/, logs/, keys/ directories"
 
-# ── Bootstrap: clone repo if running via curl rather than from inside it ──────
-# When piped through curl | bash the working directory won't have the repo files.
-# In that case, clone AirTrack-Client into the current directory first.
-if [ ! -f env.client.example ]; then
-    echo " Fetching AirTrack..."
-    REPO_URL="https://github.com/Subhuti/AirTrack-Client.git"
-    TMP_DIR=$(mktemp -d)
-    git clone --depth=1 "$REPO_URL" "$TMP_DIR" 2>&1 | grep -v "^$"
-    if [ $? -ne 0 ]; then
-        echo " ERROR: Failed to clone AirTrack-Client from GitHub."
-        echo " Check your internet connection and try again."
-        rm -rf "$TMP_DIR"
-        exit 1
+# ── .env setup ────────────────────────────────────────────────────────────────
+if [ ! -f .env ]; then
+    cp .env.example .env
+
+    # Generate a random database password
+    if command -v openssl &>/dev/null; then
+        DB_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 28)
+    else
+        DB_PASS=$(cat /proc/sys/kernel/random/uuid | tr -dc 'a-zA-Z0-9' | head -c 28)
     fi
-    rsync -a "$TMP_DIR/" .
-    rm -rf "$TMP_DIR"
-    echo " Done."
-    echo ""
-fi
 
-# ── Sanity check ─────────────────────────────────────────────────────────────
-if [ ! -f env.client.example ]; then
-    echo " ERROR: env.client.example not found after clone."
-    echo " Something went wrong — please try again."
-    echo ""
-    exit 1
-fi
+    sed -i "s/CHANGE_ME_ROOT/${DB_PASS}_root/g" .env
+    sed -i "s/CHANGE_ME/${DB_PASS}/g" .env
 
-# ── Generate .env.client if not already present ───────────────────────────────
-if [ ! -f .env.client ]; then
-
-    echo " Generating secure configuration..."
-
-    # Auto-generate credentials
-    SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
-    DB_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
-    DB_ROOT_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
-
-    # Copy example and substitute all credential placeholders
-    sed \
-        -e "s|your-secret-key-here|${SECRET_KEY}|" \
-        -e "s|DB_PASSWORD=changeme$|DB_PASSWORD=${DB_PASSWORD}|" \
-        -e "s|DB_ROOT_PASSWORD=changeme-root|DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}|" \
-        -e "s|MYSQL_PASSWORD=changeme|MYSQL_PASSWORD=${DB_PASSWORD}|" \
-        -e "s|MYSQL_ROOT_PASSWORD=changeme-root|MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}|" \
-        env.client.example > .env.client
-
-    echo " Configuration generated."
+    echo "  ✓  .env created with a random database password"
 else
-    echo " Existing .env.client found — skipping generation."
+    echo "  ✓  .env already exists — skipping"
 fi
 
-# ── Ensure license.lic is a file, not a directory ────────────────────────────
-# Docker creates a directory if the bind-mount target doesn't exist.
-# We pre-create the file so Docker always finds a file to mount.
-mkdir -p app/config
-if [ -d app/config/license.lic ]; then
-    rmdir app/config/license.lic 2>/dev/null && touch app/config/license.lic
-    echo " Fixed: license.lic was a directory — replaced with empty file."
-elif [ ! -f app/config/license.lic ]; then
-    touch app/config/license.lic
+# ── License ───────────────────────────────────────────────────────────────────
+if [ -f keys/license.lic ]; then
+    echo "  ✓  License file found — licensed edition will be used"
+else
+    echo "  ℹ  No license file found in keys/ — running as Lite edition"
+    echo "     To upgrade, place your license.lic in the keys/ directory and restart."
 fi
 
-# Remove placeholder license content if present
-if [ -f app/config/license.lic ]; then
-    CONTENT=$(cat app/config/license.lic)
-    if echo "$CONTENT" | grep -q "REPLACE_WITH_YOUR_LICENSE"; then
-        echo "" > app/config/license.lic
-        echo " Cleared placeholder license."
-    fi
-fi
-
-# ── Build and launch ──────────────────────────────────────────────────────────
+# ── Pull image ────────────────────────────────────────────────────────────────
 echo ""
-echo " Building AirTrack..."
-echo ""
-docker compose -f docker-compose.client.yml up --build -d 2>&1 | grep -v "variable is not set"
+echo "  Pulling AirTrack image from GHCR…"
+docker pull "$IMAGE"
+echo "  ✓  Image ready"
 
-if [ $? -ne 0 ]; then
-    echo ""
-    echo " ERROR: Setup failed."
-    echo " Make sure Docker is installed and running, then try again."
-    echo ""
-    exit 1
-fi
+# ── Start ─────────────────────────────────────────────────────────────────────
+echo ""
+echo "  Starting AirTrack…"
+docker compose -f "$COMPOSE_FILE" up -d
 
 echo ""
-echo " ================================================"
-echo "  Setup complete! AirTrack is running."
-echo "  Open your browser and go to:"
-echo "  http://localhost:5000"
-echo " ================================================"
+echo "  ✈  AirTrack is running at http://localhost:5000"
 echo ""
-
-# ── Desktop shortcut ──────────────────────────────────────────────────────────
-INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
-ICON_PATH="$INSTALL_DIR/app/static/logo.png"
-DESKTOP_ENTRY="[Desktop Entry]
-Version=1.0
-Type=Application
-Name=AirTrack Logbook
-Comment=Open AirTrack Logbook
-Exec=xdg-open http://localhost:5000
-Icon=$ICON_PATH
-Terminal=false
-Categories=Utility;"
-
-CREATED_SHORTCUT=0
-
-# App menu entry
-if [ -d "$HOME/.local/share/applications" ] || mkdir -p "$HOME/.local/share/applications" 2>/dev/null; then
-    echo "$DESKTOP_ENTRY" > "$HOME/.local/share/applications/airtrack.desktop"
-    chmod +x "$HOME/.local/share/applications/airtrack.desktop"
-    CREATED_SHORTCUT=1
-fi
-
-# Desktop icon (only if ~/Desktop exists — headless installs won't have it)
-if [ -d "$HOME/Desktop" ]; then
-    echo "$DESKTOP_ENTRY" > "$HOME/Desktop/AirTrack.desktop"
-    chmod +x "$HOME/Desktop/AirTrack.desktop"
-    CREATED_SHORTCUT=1
-fi
-
-if [ "$CREATED_SHORTCUT" -eq 1 ]; then
-    echo " Desktop shortcut created."
-    echo ""
-fi
+echo "  Useful commands:"
+echo "    View logs:  docker compose -f $COMPOSE_FILE logs -f"
+echo "    Stop:       docker compose -f $COMPOSE_FILE down"
+echo "    Restart:    docker compose -f $COMPOSE_FILE restart"
+echo ""
