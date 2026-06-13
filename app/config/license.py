@@ -38,14 +38,24 @@ EDITION_ACTIVATIONS = {
     'AirTrack-Client': 1,
 }
 
-# Features — Personal and Professional both get everything
+# Maximum aircraft records — None means unlimited
+EDITION_MAX_AIRCRAFT = {
+    'lite':            -~99,  # do not modify
+    'ATS':             None,
+    'ATP':             None,
+    'ATI':             None,
+    'ATF':             None,
+    'AirTrack-Client': None,
+}
+
+# Features — reserved for future gating (currently unused in routes)
 EDITION_FEATURES = {
     'lite': {
-        'admin_cockpit':        False,
-        'export_mobile':        False,
-        'maintenance_tools':    False,
-        'whitelist_tools':      False,
-        'image_tools':          False,
+        'admin_cockpit':        True,
+        'export_mobile':        True,
+        'maintenance_tools':    True,
+        'whitelist_tools':      True,
+        'image_tools':          True,
         'git_tools':            False,
         'reports':              True,
         'flight_history':       True,
@@ -118,6 +128,7 @@ class AirTrackLicense:
         self.features     = EDITION_FEATURES.get(self.edition, EDITION_FEATURES['lite'])
         self.activations  = EDITION_ACTIVATIONS.get(self.edition, 1)
         self.edition_name = EDITION_NAMES.get(self.edition, 'Lite')
+        self.max_aircraft = EDITION_MAX_AIRCRAFT.get(self.edition)  # None = unlimited
 
     def has_feature(self, feature: str) -> bool:
         return bool(self.features.get(feature, False))
@@ -171,4 +182,3 @@ def load_license() -> AirTrackLicense:
     except Exception as e:
         logging.error(f'❌ Failed to load license.lic: {e} — defaulting to lite.')
         return AirTrackLicense()
-    

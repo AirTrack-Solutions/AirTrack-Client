@@ -1,5 +1,5 @@
 # AirTrack 1.0.0
-# Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+# Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
 # SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
 
 from datetime import datetime
@@ -24,6 +24,30 @@ from extensions import db, csrf
 load_dotenv()
 
 add_aircraft_bp = Blueprint('add_aircraft', __name__, url_prefix='/aircraft')
+
+
+
+def _get_aircraft_count():
+    """Return total number of aircraft records in the database."""
+    return db.session.execute(text("SELECT COUNT(*) FROM aircraft")).scalar() or 0
+
+
+def _lite_limit_check():
+    """
+    Returns (is_lite, limit_reached, current_count).
+    is_lite     — True if the running edition is lite (no license.lic)
+    limit_reached — True if at or over the cap
+    current_count — current aircraft count (only queried for lite)
+    """
+    try:
+        from config.license import load_license
+        lic = load_license()
+        if lic.max_aircraft is None:
+            return False, False, 0
+        count = _get_aircraft_count()
+        return True, count >= lic.max_aircraft, count
+    except Exception:
+        return False, False, 0
 
 
 def extract_icao_from_display(display_name):
@@ -90,7 +114,31 @@ def add_aircraft():
     except Exception:
         pass
 
+    # ── Lite edition cap check ──────────────────────────────────────────────
+    is_lite, lite_limit_reached, aircraft_count = _lite_limit_check()
+
     if request.method == "POST":
+        # Hard block — reject before any DB work
+        if lite_limit_reached:
+            flash(
+                
+                "Lite Edition limit reached. "
+                "Upgrade AirTrack to add more.",
+                "warning",
+            )
+            settings = load_settings() or {}
+            settings.setdefault("Callsign", "")
+            return render_template(
+                "add_aircraft.html",
+                registration=request.form.get("Registration", "").strip().upper(),
+                airlines=airlines,
+                selected_airline_id=None,
+                settings=settings,
+                current_theme=session.get("current_theme", "default"),
+                is_lite=is_lite,
+                lite_limit_reached=True,
+            )
+
         # Normalise registration
         registration_form = request.form.get("Registration", "")
         registration_form = registration_form.strip().upper()
@@ -124,6 +172,8 @@ def add_aircraft():
                 selected_airline_id=selected_airline_id,
                 settings=settings,
                 current_theme=session.get("current_theme", "default"),
+                is_lite=is_lite,
+                lite_limit_reached=lite_limit_reached,
             )
 
         try:
@@ -320,6 +370,8 @@ def add_aircraft():
                 selected_airline_id=selected_airline_id,
                 settings=settings,
                 current_theme=session.get("current_theme", "default"),
+                is_lite=is_lite,
+                lite_limit_reached=lite_limit_reached,
             )
 
     # GET path
@@ -336,4 +388,6 @@ def add_aircraft():
         selected_airline_id=selected_airline_id,
         settings=settings,
         current_theme=session.get("current_theme", "default"),
+        is_lite=is_lite,
+        lite_limit_reached=lite_limit_reached,
     )
