@@ -330,7 +330,8 @@ def _install_registry(package_path: Path, registry_name: str) -> None:
     table_name = manifest.get("table_name", registry_name)
 
     # Extract INSERT statements only - safer than executing the full dump
-    inserts = re.findall(r"INSERT INTO.*?;", sql_content, re.DOTALL)
+    # Matches both INSERT INTO and INSERT IGNORE INTO
+    inserts = re.findall(r"INSERT\s+(?:IGNORE\s+)?INTO.*?;", sql_content, re.DOTALL | re.IGNORECASE)
     if not inserts:
         raise RuntimeError(f"No INSERT statements found in {sql_file}")
 
@@ -360,13 +361,16 @@ def _install_registry(package_path: Path, registry_name: str) -> None:
             database=database, charset="utf8mb4",
             connect_timeout=10,
         )
+        merge_mode = manifest.get("merge", False)
         try:
             with conn.cursor() as cursor:
-                cursor.execute(f"DELETE FROM `{table_name}`")
+                if not merge_mode:
+                    cursor.execute(f"DELETE FROM `{table_name}`")
                 for stmt in inserts:
                     cursor.execute(stmt)
             conn.commit()
-            _log(f"Registry '{registry_name}': imported {len(inserts)} INSERT block(s) into `{table_name}`")
+            mode_label = "merged" if merge_mode else "replaced"
+            _log(f"Registry '{registry_name}': {mode_label} {len(inserts)} row(s) into `{table_name}`")
         finally:
             conn.close()
     except Exception as exc:
