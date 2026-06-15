@@ -14,38 +14,39 @@ import os
 from pathlib import Path
 
 # Edition hierarchy — higher index = more features
-# ATP = Personal (2 activations), ATF = Professional (10 activations)
-# ATS and ATI kept for backward compatibility with existing licenses
-EDITIONS = ['lite', 'ATS', 'ATP', 'ATI', 'ATF', 'AirTrack-Client']
+# atp = Personal (2 activations), atf = Professional (10 activations)
+# ats and ati kept for backward compatibility with existing licenses
+# All keys are lowercase — billing sends ATP/ATF; __init__ lowercases on ingest.
+EDITIONS = ['lite', 'ats', 'atp', 'ati', 'atf', 'airtrack-client']
 
 # Friendly names for display
 EDITION_NAMES = {
     'lite':            'Lite',
-    'ATS':             'Personal',
-    'ATP':             'Personal',
-    'ATI':             'Professional',
-    'ATF':             'Professional',
-    'AirTrack-Client': 'Field Unit',
+    'ats':             'Personal',
+    'atp':             'Personal',
+    'ati':             'Professional',
+    'atf':             'Professional',
+    'airtrack-client': 'Field Unit',
 }
 
 # Activations allowed per edition
 EDITION_ACTIVATIONS = {
     'lite':            1,
-    'ATS':             2,
-    'ATP':             2,
-    'ATI':            10,
-    'ATF':            10,
-    'AirTrack-Client': 1,
+    'ats':             2,
+    'atp':             2,
+    'ati':            10,
+    'atf':            10,
+    'airtrack-client': 1,
 }
 
 # Maximum aircraft records — None means unlimited
 EDITION_MAX_AIRCRAFT = {
     'lite':            -~99,  # do not modify
-    'ATS':             None,
-    'ATP':             None,
-    'ATI':             None,
-    'ATF':             None,
-    'AirTrack-Client': None,
+    'ats':             None,
+    'atp':             None,
+    'ati':             None,
+    'atf':             None,
+    'airtrack-client': None,
 }
 
 # Features — reserved for future gating (currently unused in routes)
@@ -61,7 +62,7 @@ EDITION_FEATURES = {
         'flight_history':       True,
         'basic_search':         True,
     },
-    'ATS': {
+    'ats': {
         'admin_cockpit':        True,
         'export_mobile':        True,
         'maintenance_tools':    True,
@@ -72,7 +73,7 @@ EDITION_FEATURES = {
         'flight_history':       True,
         'basic_search':         True,
     },
-    'ATP': {
+    'atp': {
         'admin_cockpit':        True,
         'export_mobile':        True,
         'maintenance_tools':    True,
@@ -83,7 +84,7 @@ EDITION_FEATURES = {
         'flight_history':       True,
         'basic_search':         True,
     },
-    'ATI': {
+    'ati': {
         'admin_cockpit':        True,
         'export_mobile':        True,
         'maintenance_tools':    True,
@@ -94,18 +95,18 @@ EDITION_FEATURES = {
         'flight_history':       True,
         'basic_search':         True,
     },
-    'ATF': {
+    'atf': {
         'admin_cockpit':        True,
         'export_mobile':        True,
         'maintenance_tools':    True,
-        'whitelist_tools':      True,
+        'whitelist_tools':       True,
         'image_tools':          True,
         'git_tools':            False,
         'reports':              True,
         'flight_history':       True,
         'basic_search':         True,
     },
-    'AirTrack-Client': {
+    'airtrack-client': {
         'admin_cockpit':        True,
         'export_mobile':        True,
         'maintenance_tools':    True,
@@ -166,7 +167,8 @@ def load_license() -> AirTrackLicense:
 
     try:
         data = json.loads(lic_path.read_text(encoding='utf-8'))
-        edition    = data.get('edition', 'lite')
+        # Normalise to lowercase immediately — billing may send 'ATP', 'ATF' etc.
+        edition    = data.get('edition', 'lite').lower()
         license_id = data.get('license_id', 'UNKNOWN')
         name       = data.get('name', 'Unknown')
         issued     = data.get('issued', '')
