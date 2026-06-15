@@ -252,11 +252,11 @@ def airline_info(airline_id: int):
 @airlines_bp.route("/lookup", methods=["GET"], endpoint="airline_lookup")
 def airline_lookup():
     """
-    JSON endpoint: search airlines table for form pre-fill suggestions.
+    JSON endpoint: search airline_codes reference table for form pre-fill suggestions.
     GET /airlines/lookup?q=<name>
     Returns: { results: [ {name, iata, icao, callsign, country}, ... ] }
 
-    Searches active airlines (Ceased_Operations = 0) only.
+    Searches airline_codes where status != 'rejected' only.
     Results are suggestions only — saving always writes to airlines via the form.
     Ranking: exact name/code match first, then starts-with, then contains.
     """
@@ -267,23 +267,23 @@ def airline_lookup():
         q_upper = q.upper()
         rows = db.session.execute(
             text("""
-                SELECT AirlineName, IATA, ICAO, Callsign, Country
-                FROM airlines
-                WHERE Ceased_Operations = 0
+                SELECT airline_name, iata, icao, callsign, country
+                FROM airline_codes
+                WHERE status != 'rejected'
                   AND (
-                      AirlineName LIKE :contains
-                      OR UPPER(IATA) = :exact_upper
-                      OR UPPER(ICAO) = :exact_upper
+                      airline_name LIKE :contains
+                      OR UPPER(iata) = :exact_upper
+                      OR UPPER(icao) = :exact_upper
                   )
                 ORDER BY
                     CASE
-                        WHEN UPPER(AirlineName) = :exact_upper THEN 0
-                        WHEN UPPER(IATA)        = :exact_upper THEN 0
-                        WHEN UPPER(ICAO)        = :exact_upper THEN 0
-                        WHEN AirlineName LIKE :starts          THEN 1
+                        WHEN UPPER(airline_name) = :exact_upper THEN 0
+                        WHEN UPPER(iata)         = :exact_upper THEN 0
+                        WHEN UPPER(icao)         = :exact_upper THEN 0
+                        WHEN airline_name LIKE :starts          THEN 1
                         ELSE 2
                     END,
-                    AirlineName
+                    airline_name
                 LIMIT 5
             """),
             {
