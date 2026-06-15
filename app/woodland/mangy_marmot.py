@@ -329,11 +329,16 @@ def _install_registry(package_path: Path, registry_name: str) -> None:
 
     table_name = manifest.get("table_name", registry_name)
 
-    # Extract INSERT statements only - safer than executing the full dump
-    # Matches both INSERT INTO and INSERT IGNORE INTO
-    inserts = re.findall(r"INSERT\s+(?:IGNORE\s+)?INTO.*?;", sql_content, re.DOTALL | re.IGNORECASE)
+    # Split SQL into individual statements by line.
+    # One statement per line is guaranteed by the Wombat package generator.
+    # We do NOT use regex here — semicolons can appear inside string values
+    # and a regex cannot distinguish them from statement terminators.
+    inserts = [
+        line.strip() for line in sql_content.splitlines()
+        if line.strip() and not line.strip().startswith("--") and not line.strip().startswith("#")
+    ]
     if not inserts:
-        raise RuntimeError(f"No INSERT statements found in {sql_file}")
+        raise RuntimeError(f"No SQL statements found in {sql_file}")
 
     # Parse DB connection from DATABASE_URI env var
     try:
