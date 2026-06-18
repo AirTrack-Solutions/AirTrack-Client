@@ -32,7 +32,7 @@ import sys
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import URLError, HTTPError
 from urllib.request import Request, urlopen
 
 # ---------------------------------------------------------------------------
@@ -404,6 +404,10 @@ def _deliver_registry(registry: str) -> bool:
 
     try:
         manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
+    except HTTPError as exc:
+        if exc.code == 404:
+            _log(f"Registry delivery: customer ID '{CUSTOMER_ID}' not recognised by Wombat — provision via ATC before Marmot can deliver"); return False
+        _log(f"Registry delivery: manifest fetch failed - {exc}"); return False
     except Exception as exc:
         _log(f"Registry delivery: manifest fetch failed - {exc}"); return False
 
