@@ -253,6 +253,7 @@ def airline_info(airline_id: int):
 def airline_lookup():
     """
     JSON endpoint: search airlines table for form pre-fill suggestions.
+    JSON endpoint: search airline_codes reference table for form pre-fill suggestions.
     GET /airlines/lookup?q=<name>
     Returns: { results: [ {name, iata, icao, callsign, country}, ... ] }
 
