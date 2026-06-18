@@ -329,10 +329,16 @@ def _install_registry(package_path: Path, registry_name: str) -> None:
 
     table_name = manifest.get("table_name", registry_name)
 
-    # Extract INSERT statements only - safer than executing the full dump
-    inserts = re.findall(r"INSERT INTO.*?;", sql_content, re.DOTALL)
+    # Split SQL into individual statements by line.
+    # One statement per line is guaranteed by the Wombat package generator.
+    # We do NOT use regex here — semicolons can appear inside string values
+    # and a regex cannot distinguish them from statement terminators.
+    inserts = [
+        line.strip() for line in sql_content.splitlines()
+        if line.strip() and not line.strip().startswith("--") and not line.strip().startswith("#")
+    ]
     if not inserts:
-        raise RuntimeError(f"No INSERT statements found in {sql_file}")
+        raise RuntimeError(f"No SQL statements found in {sql_file}")
 
     # Parse DB connection from DATABASE_URI env var
     try:
@@ -360,13 +366,16 @@ def _install_registry(package_path: Path, registry_name: str) -> None:
             database=database, charset="utf8mb4",
             connect_timeout=10,
         )
+        merge_mode = manifest.get("merge", False)
         try:
             with conn.cursor() as cursor:
-                cursor.execute(f"DELETE FROM `{table_name}`")
+                if not merge_mode:
+                    cursor.execute(f"DELETE FROM `{table_name}`")
                 for stmt in inserts:
                     cursor.execute(stmt)
             conn.commit()
-            _log(f"Registry '{registry_name}': imported {len(inserts)} INSERT block(s) into `{table_name}`")
+            mode_label = "merged" if merge_mode else "replaced"
+            _log(f"Registry '{registry_name}': {mode_label} {len(inserts)} row(s) into `{table_name}`")
         finally:
             conn.close()
     except Exception as exc:
