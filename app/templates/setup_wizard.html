@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AirTrack — First Run Setup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d0f14;
+      color: #e8e8e8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px 60px;
+    }
+    .container { max-width: 680px; width: 100%; }
+    .brand {
+      text-align: center;
+      margin-bottom: 32px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #666;
+    }
+    .brand span { color: #f0a500; font-weight: 700; }
+    .card {
+      background: #161820;
+      border: 1px solid #2a2d38;
+      border-radius: 10px;
+      padding: 40px 48px;
+    }
+    .step { display: none; }
+    .step.active { display: block; }
+    .step-label {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #f0a500;
+      margin-bottom: 10px;
+    }
+    h2 { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .sub { font-size: 14px; color: #888; margin-bottom: 28px; line-height: 1.7; }
+    .sub strong { color: #ccc; }
+    /* Progress bar */
+    .progress-bar {
+      height: 3px;
+      background: #2a2d38;
+      border-radius: 2px;
+      margin-bottom: 36px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #f0a500;
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+    /* Radio grid */
+    .options { display: grid; gap: 10px; margin-bottom: 32px; }
+    .options.two-col { grid-template-columns: 1fr 1fr; }
+    .option input[type=radio] { display: none; }
+    .option label {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      background: #1c1f2b;
+      border: 1px solid #2a2d38;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #ccc;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .option label:hover { border-color: #f0a500; background: #1e2030; }
+    .option input[type=radio]:checked + label {
+      border-color: #f0a500;
+      background: #1e2030;
+      color: #fff;
+    }
+    .option-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+    .option-text { flex: 1; }
+    .option-text strong { display: block; font-size: 14px; margin-bottom: 2px; }
+    .option-text small { font-size: 12px; color: #666; }
+    /* Text input */
+    .field { margin-bottom: 20px; }
+    .field label { display: block; font-size: 13px; color: #999; margin-bottom: 6px; }
+    .field input[type=text] {
+      width: 100%;
+      background: #1c1f2b;
+      border: 1px solid #2a2d38;
+      border-radius: 6px;
+      padding: 12px 16px;
+      color: #e8e8e8;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input[type=text]:focus { border-color: #f0a500; }
+    /* Aria detect */
+    .detect-box {
+      background: #1c1f2b;
+      border: 1px solid #2a2d38;
+      border-radius: 8px;
+      padding: 20px 22px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .detect-icon { font-size: 28px; }
+    .detect-text strong { display: block; font-size: 14px; color: #fff; }
+    .detect-text span { font-size: 13px; color: #888; }
+    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+    .dot.green { background: #4caf50; }
+    .dot.red { background: #e53935; }
+    .dot.amber { background: #f0a500; }
+    /* Edition box */
+    .edition-box {
+      background: #1c1f2b;
+      border: 1px solid #2a2d38;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .edition-name { font-size: 22px; font-weight: 700; color: #f0a500; margin-bottom: 6px; }
+    .edition-cap { font-size: 13px; color: #888; }
+    /* Buttons */
+    .btn-row { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; }
+    .btn {
+      padding: 12px 28px;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn-primary { background: #f0a500; color: #0d0f14; }
+    .btn-secondary {
+      background: transparent;
+      color: #888;
+      border: 1px solid #2a2d38;
+    }
+    .btn-large {
+      width: 100%;
+      padding: 18px;
+      font-size: 17px;
+      border-radius: 8px;
+      margin-top: 12px;
+      background: #f0a500;
+      color: #0d0f14;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+    .btn-large:hover { opacity: 0.88; }
+    /* Timezone sub-note */
+    .tz-note { font-size: 12px; color: #666; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="brand"><span>AirTrack</span> Solutions</div>
+  <div class="card">
+    <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+    <form method="POST" action="/setup/submit" id="wizard-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="aria_enabled" id="aria_enabled_val" value="false">
+
+      <!-- Step 0: Welcome -->
+      <div class="step active" data-step="0">
+        <div class="step-label">Welcome</div>
+        <h2>Welcome to AirTrack</h2>
+        <div class="sub">
+          AirTrack is a self-hosted aircraft tracking suite built for planespotters,
+          aviation enthusiasts, and serious aircraft data collectors.<br><br>
+          Your data lives on your own hardware. No cloud. No subscriptions. No external servers.<br><br>
+          <strong>This setup takes about 2 minutes.</strong>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" onclick="next()">Get Started →</button>
+        </div>
+      </div>
+
+      <!-- Step 1: Use Case -->
+      <div class="step" data-step="1">
+        <div class="step-label">Step 1 of 7</div>
+        <h2>What are you using AirTrack for?</h2>
+        <div class="sub">This helps AirTrack set sensible defaults for you.</div>
+        <div class="options two-col">
+          <div class="option"><input type="radio" name="use_case" id="uc1" value="spotting" required>
+            <label for="uc1"><span class="option-icon">✈️</span><div class="option-text"><strong>Aircraft Spotting</strong><small>Logging sightings & registrations</small></div></label></div>
+          <div class="option"><input type="radio" name="use_case" id="uc2" value="airport_ops">
+            <label for="uc2"><span class="option-icon">🏢</span><div class="option-text"><strong>Airport Operations</strong><small>Airport-based tracking</small></div></label></div>
+          <div class="option"><input type="radio" name="use_case" id="uc3" value="flying_club">
+            <label for="uc3"><span class="option-icon">🏆</span><div class="option-text"><strong>Flying Club</strong><small>Club fleet and member activity</small></div></label></div>
+          <div class="option"><input type="radio" name="use_case" id="uc4" value="private_pilot">
+            <label for="uc4"><span class="option-icon">🧑‍✈️</span><div class="option-text"><strong>Private Pilot</strong><small>Personal aircraft and flights</small></div></label></div>
+          <div class="option"><input type="radio" name="use_case" id="uc5" value="enthusiast">
+            <label for="uc5"><span class="option-icon">🔭</span><div class="option-text"><strong>Aviation Enthusiast</strong><small>General aviation interest</small></div></label></div>
+          <div class="option"><input type="radio" name="use_case" id="uc6" value="other">
+            <label for="uc6"><span class="option-icon">📋</span><div class="option-text"><strong>Other</strong><small>Something else entirely</small></div></label></div>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" onclick="prev()">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="nextRequire('use_case')">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Name -->
+      <div class="step" data-step="2">
+        <div class="step-label">Step 2 of 7</div>
+        <h2>Your Name</h2>
+        <div class="sub">Used in your logbook, reports, and exports.</div>
+        <div class="field"><label for="first_name">First name</label>
+          <input type="text" name="first_name" id="first_name" autocomplete="given-name"></div>
+        <div class="field"><label for="last_name">Last name</label>
+          <input type="text" name="last_name" id="last_name" autocomplete="family-name"></div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" onclick="prev()">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="next()">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Location / Timezone -->
+      <div class="step" data-step="3">
+        <div class="step-label">Step 3 of 7</div>
+        <h2>Your Location</h2>
+        <div class="sub">Used for your local timezone, weather context, and NOTAM defaults.</div>
+        <div class="field">
+          <label for="timezone">Timezone</label>
+          <input type="text" name="timezone" id="timezone" placeholder="Detecting…">
+          <div class="tz-note" id="tz-note">Detected from your browser. Correct it if needed — e.g. Australia/Sydney</div>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" onclick="prev()">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="next()">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: ADS-B Source -->
+      <div class="step" data-step="4">
+        <div class="step-label">Step 4 of 7</div>
+        <h2>ADS-B Source</h2>
+        <div class="sub">AirTrack can read live aircraft feeds from a local or network receiver.</div>
+        <div class="options">
+          <div class="option"><input type="radio" name="adsb_source" id="ads1" value="local" required>
+            <label for="ads1"><span class="option-icon">📡</span><div class="option-text"><strong>Local receiver</strong><small>dump1090, readsb, tar1090 — running on this machine</small></div></label></div>
+          <div class="option"><input type="radio" name="adsb_source" id="ads2" value="network">
+            <label for="ads2"><span class="option-icon">🌐</span><div class="option-text"><strong>Network receiver</strong><small>Running on another device on your network</small></div></label></div>
+          <div class="option"><input type="radio" name="adsb_source" id="ads3" value="none">
+            <label for="ads3"><span class="option-icon">⏳</span><div class="option-text"><strong>No receiver yet</strong><small>Manual logbook — you'll add aircraft yourself</small></div></label></div>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" onclick="prev()">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="nextRequire('adsb_source')">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Photo Storage -->
+      <div class="step" data-step="5">
+        <div class="step-label">Step 5 of 7</div>
+        <h2>Photo Storage</h2>
+        <div class="sub">How should AirTrack store aircraft photos?</div>
+        <div class="options">
+          <div class="option"><input type="radio" name="photo_storage" id="ph1" value="disk" required>
+            <label for="ph1"><span class="option-icon">💾</span><div class="option-text"><strong>Store on disk</strong><small>Files saved alongside AirTrack — recommended</small></div></label></div>
+          <div class="option"><input type="radio" name="photo_storage" id="ph3" value="none">
+            <label for="ph3"><span class="option-icon">🚫</span><div class="option-text"><strong>Don't use photos</strong><small>Skip photo features entirely</small></div></label></div>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" onclick="prev()">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="nextRequire('photo_storage')">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 6: Registry Updates -->
+      <div class="step" data-step="6">
+        <div class="step-label">Step 6 of 7</div>
+        <h2>Aircraft Register Updates</h2>
+        <div class="sub">AirTrack can keep country aircraft registries up to date automatically.</div>
+        <div class="options">
+          <div class="option"><input type="radio" name="registry_updates" id="ru1" value="automatic" required>
+            <label for="ru1"><span class="option-icon">🔄</span><div class="option-text"><strong>Automatic</strong><small>Update registries in the background — recommended</small></div></label></div>
+          <div class="option"><input type="radio" name="registry_updates" id="ru2" value="ask">
+            <label for="ru2"><span class="option-icon">❓</span><div class="option-text"><strong>Ask first</strong><small>Notify me before updating anything</small></div></label></div>
+          <div class="option"><input type="radio" name="registry_updates" id="ru3" value="never">
+            <label for="ru3"><span class="option-icon">🔒</span><div class="option-text"><strong>Never</strong><small>I'll manage registries manually</small></div></label></div>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" onclick="prev()">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="nextRequire('registry_updates')">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 7: Aria + Edition -->
+      <div class="step" data-step="7">
+        <div class="step-label">Step 7 of 7</div>
+        <h2>Almost done</h2>
+        <div class="sub">Two things to confirm before we finish.</div>
+
+        <div class="detect-box" id="aria-box">
+          <div class="detect-icon">✦</div>
+          <div class="detect-text">
+            <strong id="aria-status">Checking for Aria…</strong>
+            <span id="aria-detail">Looking for Ollama on this machine</span>
+          </div>
+        </div>
+        <div class="options" id="aria-options" style="display:none; margin-bottom:28px;">
+          <div class="option"><input type="radio" name="aria_choice" id="ar1" value="true">
+            <label for="ar1"><span class="option-icon">✦</span><div class="option-text"><strong>Enable Aria</strong><small>AI assistant powered by Ollama</small></div></label></div>
+          <div class="option"><input type="radio" name="aria_choice" id="ar2" value="false">
+            <label for="ar2"><span class="option-icon">🚫</span><div class="option-text"><strong>Not now</strong><small>You can enable Aria later in Cockpit settings</small></div></label></div>
+        </div>
+
+        <div class="edition-box">
+          <div class="edition-name">AirTrack {{ edition }}</div>
+          {% if aircraft_limit %}
+          <div class="edition-cap">{{ aircraft_limit }}-aircraft limit · Core features active</div>
+          {% else %}
+          <div class="edition-cap">Fully licensed · All features active</div>
+          {% endif %}
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" onclick="prev()">← Back</button>
+          <button type="submit" class="btn btn-primary" onclick="finalise()">Complete Setup →</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<script>
+  const STEPS = 8;
+  let current = 0;
+
+  function showStep(n) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.step')[n].classList.add('active');
+    current = n;
+    document.getElementById('progress').style.width = (n / (STEPS - 1) * 100) + '%';
+    if (n === 7) detectOllama();
+  }
+
+  function next() { if (current < STEPS - 1) showStep(current + 1); }
+  function prev() { if (current > 0) showStep(current - 1); }
+
+  function nextRequire(name) {
+    const chosen = document.querySelector('input[name="' + name + '"]:checked');
+    if (!chosen) { alert('Please make a selection to continue.'); return; }
+    next();
+  }
+
+  // Detect browser timezone
+  window.addEventListener('DOMContentLoaded', function() {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) {
+      document.getElementById('timezone').value = tz;
+      document.getElementById('tz-note').textContent = 'Detected automatically. Edit if incorrect — e.g. Australia/Sydney';
+    }
+  });
+
+  // Detect Ollama
+  function detectOllama() {
+    const box = document.getElementById('aria-box');
+    const opts = document.getElementById('aria-options');
+    fetch('/setup/detect-ollama')
+      .then(r => r.json())
+      .then(d => {
+        if (d.detected) {
+          document.getElementById('aria-status').innerHTML = '<span class="dot green"></span>Aria available';
+          document.getElementById('aria-detail').textContent = 'Ollama is running on this machine. Enable Aria below.';
+          document.getElementById('ar1').checked = true;
+          document.getElementById('aria_enabled_val').value = 'true';
+          opts.style.display = 'grid';
+        } else {
+          document.getElementById('aria-status').innerHTML = '<span class="dot amber"></span>Aria not detected';
+          document.getElementById('aria-detail').textContent = 'Ollama is not running. You can install it later — Cockpit → Settings.';
+          document.getElementById('aria_enabled_val').value = 'false';
+          opts.style.display = 'none';
+        }
+      })
+      .catch(() => {
+        document.getElementById('aria-status').innerHTML = '<span class="dot red"></span>Detection failed';
+        document.getElementById('aria-detail').textContent = 'Could not check for Ollama. You can configure Aria later.';
+      });
+  }
+
+  function finalise() {
+    const choice = document.querySelector('input[name="aria_choice"]:checked');
+    if (choice) document.getElementById('aria_enabled_val').value = choice.value;
+  }
+</script>
+</body>
+</html>
