@@ -44,6 +44,7 @@ DISCLAIMER_EXPIRY_DAYS = 183  # ~6 months
 # Routes that are always allowed — no disclaimer required
 _EXEMPT_PREFIXES = (
     "/disclaimer",
+    "/setup",
     "/static",
     "/api/",
     "/billing/webhook",

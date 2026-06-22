@@ -241,12 +241,15 @@ app.secret_key = os.getenv("SECRET_KEY", "fallback-hardcoded-key")
 
 
 # ---------------------------------------------------------------------------
-# Theme refresh hook
+# Request gates — disclaimer first, setup second
 # ---------------------------------------------------------------------------
 @app.before_request
+def _disclaimer_gate():
+    return check_disclaimer()
 
-def _themes_auto_refresh():
-    pass
+@app.before_request
+def _setup_gate():
+    return check_setup()
 
 
 # ---------------------------------------------------------------------------
@@ -1199,6 +1202,9 @@ def test_direct():
 # ---------------------------------------------------------------------------
 # Blueprints
 # ---------------------------------------------------------------------------
+from routes.disclaimer_routes import disclaimer_bp, check_disclaimer
+from routes.setup_routes import setup_bp, check_setup
+
 from routes.search_routes import search_unified_bp
 
 from routes.add_aircraft_routes import add_aircraft_bp
@@ -1241,6 +1247,8 @@ except ImportError:
     billing_bp = None
     billing_webhook_bp = None
 
+app.register_blueprint(disclaimer_bp)
+app.register_blueprint(setup_bp)
 app.register_blueprint(search_unified_bp)
 logging.info("✅ Registered blueprint: search_unified_bp (/search_unified)")
 app.register_blueprint(admin_bp)
