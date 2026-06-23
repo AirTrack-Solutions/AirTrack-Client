@@ -454,17 +454,11 @@ def splash():
 
 def reports():
     try:
-        with db.engine.connect() as conn:
-            result = conn.execute(
-                text("SELECT show_disclaimer FROM settings WHERE id=1")
-            ).fetchone()
-            show_disclaimer = result[0] if result else True
         now = convert_to_local(datetime.utcnow())
         # NOTE: original code didn’t return; leaving behaviour minimal
         # so we don’t change functional behaviour unexpectedly.
         return render_template(
             "reports.html",
-            show_disclaimer=show_disclaimer,
             now=now,
             is_server=os.getenv("AIRTRACK_ROLE", "").lower() == "server",
             has_api_key=bool(os.getenv("ANTHROPIC_API_KEY", "").strip()),
@@ -921,39 +915,6 @@ def delete_airline(airline_id):
         logging.error("❌ Airline delete error: %s", e)
         flash("Error deleting airline.", "danger")
         return redirect(url_for("airlines.airlines_table"))
-
-
-# Disclaimer routes
-# ---------------------------------------------------------------------------
-@app.route("/get_disclaimer_status")
-
-def get_disclaimer_status():
-    try:
-        with db.engine.connect() as conn:
-            r = conn.execute(
-                text(
-                    "SELECT show_disclaimer FROM settings "
-                    "WHERE id=1"
-                )
-            ).fetchone()
-            return jsonify({"show_disclaimer": bool(r[0]) if r else True})
-    except Exception as e:
-        logging.error("❌ Disclaimer error: %s", e)
-        return jsonify({"error": "Database error"}), 500
-
-
-@app.route("/hide_disclaimer", methods=["POST"])
-@csrf.exempt
-def hide_disclaimer():
-    try:
-        with db.engine.begin() as conn:
-            conn.execute(
-                text("UPDATE settings SET show_disclaimer=FALSE WHERE id=1")
-            )
-        return jsonify({"status": "ok"})
-    except Exception as e:
-        logging.error("❌ Disclaimer update error: %s", e)
-        return jsonify({"error": "Database error"}), 500
 
 
 # ---------------------------------------------------------------------------

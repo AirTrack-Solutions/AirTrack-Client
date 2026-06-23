@@ -1,6 +1,6 @@
 <!--
   AirTrack 1.0.0
-  Copyright (c) 2025 Trevor (“Subhuti”). All rights reserved.
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
   SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
 -->
 <!DOCTYPE html>
@@ -9,26 +9,110 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to AirTrack</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/splash.css') }}?v={{ current_time }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sky: #0a1628;
+            --gold: #f0a500;
+            --white: #f4f6fa;
+            --muted: #8a9bb5;
+            --card-border: #1e3458;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--sky);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Barlow', sans-serif;
+        }
+
+        .splash-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            opacity: 1;
+            transition: opacity 1s ease;
+        }
+
+        .splash-container.fade-out {
+            opacity: 0;
+        }
+
+        .splash-logo {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 800;
+            font-size: 3.5rem;
+            color: var(--gold);
+            letter-spacing: 0.05em;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .splash-logo span {
+            color: var(--white);
+            font-weight: 400;
+        }
+
+        .splash-subtitle {
+            font-size: 0.85rem;
+            color: var(--muted);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .splash-bar {
+            width: 200px;
+            height: 2px;
+            background: var(--card-border);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .splash-progress {
+            height: 100%;
+            width: 0%;
+            background: var(--gold);
+            border-radius: 2px;
+            animation: progress 3s linear forwards;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.75; }
+        }
+
+        @keyframes progress {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+    </style>
 </head>
-<body class="theme-{{ selected_theme }}">
-  <div class="background"></div>
-      <div class="splash-container" id="splash">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="AirTrack" class="pulse">
+<body>
+    <div class="splash-container" id="splash">
+        <div class="splash-logo">Air<span>Track</span></div>
+        <div class="splash-subtitle">Aircraft Spotter</div>
+        <div class="splash-bar">
+            <div class="splash-progress"></div>
+        </div>
     </div>
 
-    <!-- ✅ JavaScript moved to external file -->
     <script>
-        const splashRedirectUrl = "{{ url_for('index') }}"; // Flask URL variable
+        document.addEventListener("DOMContentLoaded", function () {
+            const splash = document.getElementById("splash");
+            setTimeout(function () {
+                splash.classList.add("fade-out");
+                setTimeout(function () {
+                    window.location.href = "/index";
+                }, 1000);
+            }, 3000);
+        });
     </script>
-    <script src="{{ url_for('static', filename='scripts.js/splash.js') }}?v={{ current_time }}"></script>
-<script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
-<script>
-setTimeout(() => {
-    window.location.href = "/index";
-}, 2000);
-</script>
-
 </body>
 </html>
