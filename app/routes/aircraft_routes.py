@@ -1059,7 +1059,12 @@ def delete_extra_image(image_id):
 @aircraft_bp.route("/quick_add_image/<int:aircraft_id>", methods=["GET", "POST"])
 
 def quick_add_image(aircraft_id):
-    PICS_DIR = Path("/home/airtrack/pics")
+    _airtrack_home = os.getenv("AIRTRACK_HOME", "")
+    PICS_DIR = (
+        Path(os.getenv("AIRTRACK_PICS_DIR"))
+        if os.getenv("AIRTRACK_PICS_DIR")
+        else (Path(_airtrack_home) / "pics" if _airtrack_home else Path("/home/airtrack/pics"))
+    )
 
     try:
         ac_row = db.session.execute(
