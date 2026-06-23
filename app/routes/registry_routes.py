@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import logging
+import shutil
 
 from datetime import date
 from pathlib import Path
@@ -217,27 +218,80 @@ def registry_list():
     server_url = _server_url()
 
     if is_client:
-        # Client mode: fetch available registries from server
-        available = _fetch_manifest(server_url) if server_url else []
-        # Annotate each with local import status
-        for r in available:
-            imported = _table_exists(r['table'])
-            r['imported']  = imported
-            r['row_count'] = _row_count(r['table']) if imported else 0
-        imported_count = sum(1 for r in available if r['imported'])
-        total_records  = sum(r['row_count'] for r in available if r['imported'])
-        today_count    = _imports_today()
+        # Client mode: Wombat entitlements + Marmot-installed registries
+        from woodland.mangy_marmot import (
+            WOMBAT_URL as _WOMBAT_URL, CUSTOMER_ID as _CUSTOMER_ID,
+            REGISTRIES_INSTALLED as _REG_INSTALLED,
+            _get, _scan_installed_registries,
+            _read_pending_registries, _get_registry_pref,
+        )
+
+        wombat_offline = False
+        entitled = []
+        try:
+            if _WOMBAT_URL and _CUSTOMER_ID:
+                wh = _get(f"/api/wombat/manifest/{_CUSTOMER_ID}")
+                entitled = wh.get("required_registries", [])
+            else:
+                wombat_offline = True
+        except Exception:
+            wombat_offline = True
+
+        # Display name lookup from ICAO_COUNTRIES
+        def _n(s):
+            import re as _re
+            return _re.sub(r"[_\s\-&'.]+", "", s).lower()
+        name_map = {_n(d): name for _, name, d in ICAO_COUNTRIES}
+
+        installed_list = _scan_installed_registries()
+        installed_map  = {r['name']: r for r in installed_list}
+        pending        = set(_read_pending_registries())
+        registry_pref  = _get_registry_pref()
+
+        registries = []
+        for reg_name in entitled:
+            display = name_map.get(_n(reg_name), reg_name.replace('_', ' ').title())
+            if reg_name in installed_map:
+                table_name = installed_map[reg_name].get('table_name', reg_name)
+                registries.append({
+                    'display_name': display, 'dir': reg_name,
+                    'table': table_name, 'file_records': 0,
+                    'imported': True, 'state': 'installed',
+                    'row_count': _row_count(table_name),
+                })
+            elif reg_name in pending:
+                registries.append({
+                    'display_name': display, 'dir': reg_name,
+                    'table': '', 'file_records': 0,
+                    'imported': False, 'state': 'pending',
+                    'row_count': 0,
+                })
+            else:
+                registries.append({
+                    'display_name': display, 'dir': reg_name,
+                    'table': '', 'file_records': 0,
+                    'imported': False, 'state': 'available',
+                    'row_count': 0,
+                })
+
+        imported_count = sum(1 for r in registries if r['state'] == 'installed')
+        pending_count  = sum(1 for r in registries if r['state'] == 'pending')
+        total_records  = sum(r['row_count'] for r in registries)
+
         return render_template(
             'admin_registries.html',
-            registries=available,
+            registries=registries,
             imported_count=imported_count,
-            total_count=len(available),
+            pending_count=pending_count,
+            total_count=len(registries),
             total_records=total_records,
-            imports_today=today_count,
-            daily_limit=DAILY_IMPORT_LIMIT,
+            imports_today=0,
+            daily_limit=0,
             is_client=True,
-            server_url=server_url,
-            server_reachable=bool(available or server_url is None),
+            wombat_offline=wombat_offline,
+            registry_pref=registry_pref,
+            server_url=None,
+            server_reachable=True,
         )
 
     # Server mode: scan local files as before
@@ -278,55 +332,31 @@ def import_registry(country):
     db_name     = os.getenv('DB_NAME', 'airtrack')
 
     if is_client:
-        # Client mode: download SQL from server, pipe into local DB
-        import urllib.request as _ur, tempfile, io
-        server_url = _server_url()
-        if not server_url:
-            return jsonify({'status': 'error', 'detail': 'AIRTRACK_SERVER_URL not configured'}), 500
-
-        # First fetch the manifest to get the table name
-        manifest = _fetch_manifest(server_url)
-        entry = next((r for r in manifest if r['dir'] == country), None)
-        if not entry:
-            return jsonify({'status': 'error', 'detail': f'Registry not found on server: {country}'}), 404
-
-        table_name = entry['table']
-
+        # Client mode: deliver via Marmot/Wombat pipeline
+        from woodland.mangy_marmot import (
+            _deliver_registry, _remove_from_pending,
+            REGISTRIES_INSTALLED as _REG_INSTALLED,
+        )
+        import json as _json
         try:
-            ensure_country_table(db, table_name)
+            success = _deliver_registry(country)
+        except Exception as exc:
+            logging.exception(f"Client registry delivery error for {country}")
+            return jsonify({'status': 'error', 'detail': str(exc)}), 500
 
-            sql_url = f'{server_url}/admin/registries/sql/{country}'
-            with _ur.urlopen(sql_url, timeout=120) as resp:
-                sql_bytes = resp.read()
+        if not success:
+            return jsonify({'status': 'error', 'detail': 'Delivery failed — check Marmot logs'}), 500
 
-            result = subprocess.run(
-                ['mysql', '-h', db_host, f'-u{db_user}', f'-p{db_password}', db_name],
-                input=sql_bytes.decode('utf-8', errors='replace'),
-                capture_output=True,
-                text=True,
-                timeout=600,
-            )
-
-            if result.returncode != 0:
-                logging.error(f"Client registry import failed for {country}: {result.stderr}")
-                return jsonify({'status': 'error', 'detail': result.stderr or 'Import failed'}), 500
-
-            rows = _row_count(table_name)
-            _record_import()
-            new_count = today_count + 1
-            remaining = max(0, DAILY_IMPORT_LIMIT - new_count)
-            return jsonify({
-                'status':    'ok',
-                'detail':    f'Imported {rows:,} records',
-                'row_count': rows,
-                'quota':     {'used': new_count, 'limit': DAILY_IMPORT_LIMIT, 'remaining': remaining},
-            })
-
-        except subprocess.TimeoutExpired:
-            return jsonify({'status': 'error', 'detail': 'Import timed out (>10 min)'}), 500
-        except Exception as e:
-            logging.exception(f"Client registry import error for {country}")
-            return jsonify({'status': 'error', 'detail': str(e)}), 500
+        _remove_from_pending(country)
+        table_name = country
+        try:
+            manifest_path = _REG_INSTALLED / country / "installed.json"
+            if manifest_path.exists():
+                table_name = _json.loads(manifest_path.read_text(encoding="utf-8")).get("table_name", country)
+        except Exception:
+            pass
+        rows = _row_count(table_name)
+        return jsonify({'status': 'ok', 'detail': f'Installed {rows:,} records', 'row_count': rows})
 
     # ── Server mode: import from local SQL file ───────────────────────────────
     reg_dir = _registries_dir()
@@ -379,19 +409,41 @@ def import_registry(country):
 
 @registry_bp.route('/remove/<country>', methods=['POST'])
 def remove_registry(country):
+    is_client = os.getenv('AIRTRACK_ROLE', 'server').lower() == 'client'
+
+    if is_client:
+        from woodland.mangy_marmot import REGISTRIES_INSTALLED as _REG_INSTALLED
+        import json as _json
+        table_name = country
+        try:
+            manifest_path = _REG_INSTALLED / country / "installed.json"
+            if manifest_path.exists():
+                table_name = _json.loads(manifest_path.read_text(encoding="utf-8")).get("table_name", country)
+        except Exception:
+            pass
+        try:
+            db.session.execute(text(f"DROP TABLE IF EXISTS `{table_name}`"))
+            db.session.commit()
+        except Exception as e:
+            return jsonify({'status': 'error', 'detail': str(e)}), 500
+        try:
+            installed_dir = _REG_INSTALLED / country
+            if installed_dir.exists():
+                shutil.rmtree(installed_dir)
+        except Exception:
+            pass
+        return jsonify({'status': 'ok', 'detail': f'Removed {country}'})
+
+    # Server mode
     reg_dir = _registries_dir()
     country_dir = reg_dir / country
-
-    # Derive table name from the SQL file if possible, else from dir name
     table_name = None
     if country_dir.is_dir():
         sql_file = _find_sql_file(country_dir)
         if sql_file:
             table_name = _extract_table_name(sql_file)
-
     if not table_name:
         table_name = country.lower().replace(' ', '_')
-
     try:
         db.session.execute(text(f"DROP TABLE IF EXISTS `{table_name}`"))
         db.session.commit()

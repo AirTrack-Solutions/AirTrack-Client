@@ -487,6 +487,75 @@ def _deliver_registry(registry: str) -> bool:
 
     return True
 
+
+# ---------------------------------------------------------------------------
+# Registry delivery preferences
+# ---------------------------------------------------------------------------
+
+def _get_registry_pref() -> str:
+    """Read registry_updates preference from app_settings DB. Returns 'automatic', 'ask', or 'never'."""
+    try:
+        import pymysql as _pym
+        from urllib.parse import urlparse as _up
+        db_uri = os.environ.get("DATABASE_URI", "")
+        if db_uri:
+            parsed = _up(db_uri.replace("mysql+pymysql://", "mysql://"))
+            host = parsed.hostname or "127.0.0.1"
+            port = parsed.port or 3306
+            user = parsed.username or "airtrack"
+            password = parsed.password or ""
+            database = (parsed.path or "/airtrack").lstrip("/")
+        else:
+            hp = os.environ.get("DB_HOST", "127.0.0.1:3306").split(":")
+            host = hp[0]; port = int(hp[1]) if len(hp) > 1 else 3306
+            user = os.environ.get("DB_USER", "airtrack")
+            password = os.environ.get("DB_PASSWORD", "")
+            database = os.environ.get("DB_NAME", "airtrack")
+        conn = _pym.connect(host=host, port=int(port), user=user, password=password,
+                            database=database, charset="utf8mb4", connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT SettingValue FROM app_settings WHERE SettingKey='registry_updates' LIMIT 1")
+                row = cur.fetchone()
+                return row[0] if row else "automatic"
+        finally:
+            conn.close()
+    except Exception:
+        return "automatic"
+
+
+def _read_pending_registries() -> list:
+    pending_path = REGISTRIES_MANIFESTS / "pending.json"
+    try:
+        if pending_path.exists():
+            return json.loads(pending_path.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return []
+
+
+def _write_pending_registries(names: list) -> None:
+    REGISTRIES_MANIFESTS.mkdir(parents=True, exist_ok=True)
+    pending_path = REGISTRIES_MANIFESTS / "pending.json"
+    try:
+        existing = _read_pending_registries()
+        merged = list(dict.fromkeys(existing + names))  # dedup, preserve order
+        pending_path.write_text(json.dumps(merged, indent=2), encoding="utf-8")
+        _log(f"Pending registries queued for approval: {merged}")
+    except Exception as exc:
+        _log(f"Failed to write pending registries: {exc}")
+
+
+def _remove_from_pending(registry: str) -> None:
+    pending_path = REGISTRIES_MANIFESTS / "pending.json"
+    try:
+        if pending_path.exists():
+            existing = _read_pending_registries()
+            updated = [r for r in existing if r != registry]
+            pending_path.write_text(json.dumps(updated, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
@@ -557,9 +626,18 @@ def main() -> None:
 
     if required_registries:
         _log(f"Registries - Required: {required_registries} | Installed: {sorted(installed_registry_names) or 'none'} | Missing: {missing_registries}")
-        for reg in missing_registries:
-            if _deliver_registry(reg):
-                delivered_registries.append(reg)
+        registry_pref = _get_registry_pref()
+        if registry_pref == "never":
+            _log("Registries: registry_updates=never — skipping all delivery")
+        elif registry_pref == "ask":
+            if missing_registries:
+                _write_pending_registries(missing_registries)
+                _log(f"Registries: registry_updates=ask — {len(missing_registries)} queued for user approval")
+        else:  # automatic
+            for reg in missing_registries:
+                if _deliver_registry(reg):
+                    delivered_registries.append(reg)
+                    _remove_from_pending(reg)
 
     _log(f"Finished. Delivered: {(delivered + delivered_registries) or 'none'}")
 
