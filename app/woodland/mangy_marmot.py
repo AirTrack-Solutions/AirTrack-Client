@@ -654,14 +654,32 @@ def main() -> None:
     # Keep COUNTRY_REGISTRY_MAP in sync with ATC installer.py.
     COUNTRY_REGISTRY_MAP = {"AU": "australia"}
     try:
-        from sqlalchemy import text as _text
-        from extensions import db as _db
-        with _db.engine.connect() as _conn:
-            _country = (
-                _conn.execute(
-                    _text("SELECT SettingValue FROM app_settings WHERE SettingKey='country' LIMIT 1")
-                ).scalar() or ""
-            ).strip().upper()
+        import pymysql as _pym2
+        from urllib.parse import urlparse as _up2
+        _db_uri = os.environ.get("DATABASE_URI", "")
+        if _db_uri:
+            _parsed2 = _up2(_db_uri.replace("mysql+pymysql://", "mysql://"))
+            _host2 = _parsed2.hostname or "127.0.0.1"
+            _port2 = _parsed2.port or 3306
+            _user2 = _parsed2.username or "airtrack"
+            _pass2 = _parsed2.password or ""
+            _db2   = (_parsed2.path or "/airtrack").lstrip("/")
+        else:
+            _hp2 = os.environ.get("DB_HOST", "127.0.0.1:3306").split(":")
+            _host2 = _hp2[0]; _port2 = int(_hp2[1]) if len(_hp2) > 1 else 3306
+            _user2 = os.environ.get("DB_USER", "airtrack")
+            _pass2 = os.environ.get("DB_PASSWORD", "")
+            _db2   = os.environ.get("DB_NAME", "airtrack")
+        _conn2 = _pym2.connect(host=_host2, port=int(_port2), user=_user2,
+                               password=_pass2, database=_db2,
+                               charset="utf8mb4", connect_timeout=5)
+        try:
+            with _conn2.cursor() as _cur2:
+                _cur2.execute("SELECT SettingValue FROM app_settings WHERE SettingKey='country' LIMIT 1")
+                _row2 = _cur2.fetchone()
+                _country = (_row2[0] if _row2 else "").strip().upper()
+        finally:
+            _conn2.close()
         if _country and _country in COUNTRY_REGISTRY_MAP:
             _mapped = COUNTRY_REGISTRY_MAP[_country]
             if _mapped not in installed_registry_names and _mapped not in required_registries:
