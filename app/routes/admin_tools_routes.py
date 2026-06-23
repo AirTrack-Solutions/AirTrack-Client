@@ -389,10 +389,16 @@ def housekeeping():
 
     cutoff_ts = _days_ago(keep_days)
 
-    # Correct paths inside container
-    logs_path = Path("/app/logs").resolve()
-    backups_path = Path("/app/backups").resolve()
-    static_export_path = Path("/app/static/export").resolve()
+    # Resolve paths — respect AIRTRACK_HOME on Windows, fall back to Docker paths
+    _home = os.getenv("AIRTRACK_HOME", "").strip()
+    if _home:
+        logs_path    = (Path(_home) / "logs").resolve()
+        backups_path = (Path(_home) / "backups").resolve()
+        static_export_path = (Path(_home) / "exports").resolve()
+    else:
+        logs_path    = Path("/app/logs").resolve()
+        backups_path = Path("/app/backups").resolve()
+        static_export_path = Path("/app/static/export").resolve()
 
     # Perform operations
     deleted_backups = _delete_old_files(backups_path, cutoff_ts, dry_run)

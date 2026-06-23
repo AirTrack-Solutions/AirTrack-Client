@@ -261,12 +261,18 @@ def _setup_gate():
 
 def get_backup_dir() -> Path:
     """
-    Returns the *correct* backup directory inside the container.
+    Returns the correct backup directory.
+
+    Respects AIRTRACK_HOME env var (set by Windows service from airtrack.cfg).
+    Falls back to /app/backups inside Docker.
 
     Always returns a Path, never None.
     """
-    # Inside Docker, backups MUST go here
-    base = Path("/app/backups")
+    airtrack_home = os.getenv("AIRTRACK_HOME", "").strip()
+    if airtrack_home:
+        base = Path(airtrack_home) / "backups"
+    else:
+        base = Path("/app/backups")
 
     try:
         base.mkdir(parents=True, exist_ok=True)
