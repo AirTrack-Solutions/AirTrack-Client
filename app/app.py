@@ -1017,7 +1017,7 @@ def restore_database():
 
 def flush_backups():
     try:
-        backup_dir = os.path.join(os.path.dirname(__file__), "backups")
+        backup_dir = get_backup_dir()
         files = [f for f in os.listdir(backup_dir) if f.endswith(".sql")]
 
         if not files:
@@ -1041,7 +1041,10 @@ def flush_backups():
 
 def flush_logs():
     try:
-        open("logs/airtrack.log", "w").close()
+        _log_dir = os.getenv("AIRTRACK_LOG_DIR", "").strip()
+        _log_path = (Path(_log_dir) / "airtrack.log") if _log_dir else Path("logs/airtrack.log")
+        _log_path.parent.mkdir(parents=True, exist_ok=True)
+        open(_log_path, "w").close()
         log_admin_action("Logs flushed.")
         flash("Logs flushed.", "success")
     except Exception:
@@ -1081,11 +1084,7 @@ def admin_panel():
     except Exception:
         stats = {}
 
-    def _backup_dir():
-        env = os.getenv("AIRTRACK_BACKUP_DIR")
-        return Path(env).resolve() if env else Path("/app/logs/backups").resolve()
-
-    backup_dir = _backup_dir()
+    backup_dir = get_backup_dir()
     backup_files = []
     try:
         backup_dir.mkdir(parents=True, exist_ok=True)
