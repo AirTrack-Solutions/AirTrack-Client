@@ -306,6 +306,7 @@ def update_app_settings():
 
         theme = (data.get("theme") or 'default').strip()
         timezone = (data.get("timezone") or '').strip()
+        home_airport = (data.get("home_airport") or '').strip().upper()[:4]
 
         image_import_folder = (
             data.get("aircraft_image_import_folder")
@@ -315,6 +316,7 @@ def update_app_settings():
         with db.engine.begin() as conn:
             for k, v in (
                 ('timezone', timezone),
+                ('home_airport', home_airport),
                 ('Theme', theme),
                 ('aircraft_image_import_folder', image_import_folder),
             ):

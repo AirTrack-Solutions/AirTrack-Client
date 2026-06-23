@@ -126,11 +126,14 @@ def submit():
     if tz not in pytz.all_timezones_set:
         tz = "UTC"
 
+    home_airport = data.get("home_airport", "").strip().upper()[:4]
+
     mappings = {
         "FirstName":        data.get("first_name", "").strip(),
         "LastName":         data.get("last_name", "").strip(),
         "use_case":         data.get("use_case", "other"),
         "timezone":         tz,
+        "home_airport":     home_airport,
         "adsb_source":      data.get("adsb_source", "none"),
         "photo_storage":    data.get("photo_storage", "disk"),
         "registry_updates": data.get("registry_updates", "automatic"),

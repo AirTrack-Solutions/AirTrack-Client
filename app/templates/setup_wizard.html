@@ -242,6 +242,12 @@
           <input type="text" name="timezone" id="timezone" placeholder="Detecting…">
           <div class="tz-note" id="tz-note">Detected from your browser. Correct it if needed — e.g. Australia/Sydney</div>
         </div>
+        <div class="field">
+          <label for="home_airport">Home Airport <span style="color:#666;font-weight:400;">(optional)</span></label>
+          <input type="text" name="home_airport" id="home_airport" placeholder="e.g. YSSY" maxlength="4"
+                 style="text-transform:uppercase; width:160px;">
+          <div class="tz-note">ICAO code of your primary spotting airport — used for weather and NOTAMs.</div>
+        </div>
         <div class="btn-row">
           <button type="button" class="btn btn-secondary" onclick="prev()">← Back</button>
           <button type="button" class="btn btn-primary" onclick="next()">Continue →</button>
