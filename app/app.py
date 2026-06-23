@@ -187,10 +187,13 @@ def inject_time():
 
 def inject_env_vars():
     try:
+        role = os.getenv("AIRTRACK_ROLE", "client").lower()
         return {
             "AIRTRACK_UPDATE_MODE": os.getenv("AIRTRACK_UPDATE_MODE", ""),
             "AIRTRACK_SYNC_USER":   os.getenv("AIRTRACK_SYNC_USER", ""),
             "aria_enabled":         os.getenv("ARIA_ENABLED", "0").lower() in ("1", "true", "yes"),
+            "is_server":            role == "server",
+            "is_client":            role == "client",
         }
     except Exception:
         return {}
