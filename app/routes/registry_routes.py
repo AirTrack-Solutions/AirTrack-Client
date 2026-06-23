@@ -231,7 +231,11 @@ def registry_list():
         try:
             if _WOMBAT_URL and _CUSTOMER_ID:
                 wh = _get(f"/api/wombat/manifest/{_CUSTOMER_ID}")
-                entitled = wh.get("required_registries", [])
+                # Wombat manifest returns deliveries[*].capability (not required_registries)
+                entitled = [
+                    d["capability"] for d in wh.get("deliveries", [])
+                    if d.get("capability")
+                ]
             else:
                 wombat_offline = True
         except Exception:
