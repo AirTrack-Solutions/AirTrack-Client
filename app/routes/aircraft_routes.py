@@ -535,7 +535,10 @@ def aircraft_info(aircraft_id):
         current_year=datetime.now().year,
         selected_theme=get_current_theme(),
         cache_bust=int(datetime.utcnow().timestamp()),
-        image_import_folder=load_settings().get("aircraft_image_import_folder", "/app/static/uploads/aircraft_imports"),
+        image_import_folder=(
+            load_settings().get("aircraft_image_import_folder")
+            or (str(Path(os.getenv("AIRTRACK_HOME")) / "pics") if os.getenv("AIRTRACK_HOME") else "/app/static/uploads/aircraft_imports")
+        ),
     )
 
 
