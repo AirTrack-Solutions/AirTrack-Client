@@ -395,14 +395,6 @@ with app.app_context():
                 """
                 )
             )
-            conn.execute(
-                text(
-                    """
-                    INSERT IGNORE INTO settings (id, show_disclaimer)
-                    VALUES (1, 1)
-                """
-                )
-            )
     except Exception as e:
         logging.warning("Could not seed defaults: %s", e)
 

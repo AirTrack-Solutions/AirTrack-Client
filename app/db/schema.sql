@@ -133,6 +133,17 @@ CREATE TABLE `app_settings` (
   PRIMARY KEY (`SettingKey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `disclaimer_acceptance`;
+CREATE TABLE IF NOT EXISTS `disclaimer_acceptance` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `disclaimer_version` varchar(10) NOT NULL,
+  `accepted_at` datetime NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_version_expires` (`disclaimer_version`, `expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 DROP TABLE IF EXISTS `argentina`;
 CREATE TABLE `argentina` (
   `registration` varchar(20) NOT NULL,
