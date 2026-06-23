@@ -617,8 +617,18 @@ def main() -> None:
     installed = _scan_installed()
     _report(installed, missing, delivered)
 
-    # Registry delivery
-    required_registries      = wh_manifest.get("required_registries", [])
+    # Registry delivery — use customer-specific manifest (has deliveries[*].capability)
+    # The global manifest doesn't carry required_registries; the customer manifest does
+    required_registries: list[str] = []
+    if CUSTOMER_ID:
+        try:
+            cust_manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
+            required_registries = [
+                d["capability"] for d in cust_manifest.get("deliveries", [])
+                if d.get("capability")
+            ]
+        except Exception as exc:
+            _log(f"Registry manifest unavailable - {exc}")
     installed_registries     = _scan_installed_registries()
     installed_registry_names = {r["name"] for r in installed_registries}
     missing_registries       = [r for r in required_registries if r not in installed_registry_names]
