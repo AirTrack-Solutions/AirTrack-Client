@@ -1,0 +1,225 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AirTrack Glossary</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/support.css') }}?v={{ cache_bust }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</head>
+
+<body class="theme-{{ selected_theme }}">
+  <div class="background"></div>
+  {% include 'header.html' %}
+
+  <div class="container mt-5">
+    <h2 class="airtrack-section-title">AirTrack Aviation Glossary</h2>
+    <p class="text-center mb-4" style="font-family:'Times New Roman',Times,serif; color:#fff; text-shadow:1px 1px 3px #000;">
+      Plain-English explanations for aviation, NOTAM, weather, airspace, and AirTrack module terms.
+    </p>
+
+    <!-- Search -->
+    <div class="card mb-4" style="max-width:800px; margin-left:auto; margin-right:auto;">
+      <div class="card-body">
+        <input
+          id="glossarySearch"
+          type="search"
+          class="form-control"
+          placeholder="Search glossary terms…"
+          oninput="filterGlossary()"
+          style="font-family:'Times New Roman',Times,serif;"
+        >
+      </div>
+    </div>
+
+    <!-- Notice -->
+    <div class="card mb-3 border-warning">
+      <div class="card-body text-center" style="font-family:'Times New Roman',Times,serif; font-size:0.92rem;">
+        <strong>⚠ Notice:</strong> AirTrack is not a certified aviation tool. This glossary is for informational and hobbyist use only.
+        Always use official aviation sources for operational decisions.
+      </div>
+    </div>
+
+    <!-- Aviation Terms -->
+    <div class="card mb-3 glossary-section">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#aviationSection" style="cursor:pointer;">
+        <h5 class="mb-0 text-center">Aviation Terms</h5>
+      </div>
+      <div id="aviationSection" class="collapse show">
+        <div class="card-body">
+          <dl class="glossary-dl">
+            <dt>AGL</dt>
+            <dd><strong>Above Ground Level.</strong> Altitude measured relative to the terrain directly below the aircraft.</dd>
+            <dt>AIP</dt>
+            <dd><strong>Aeronautical Information Publication.</strong> Official aviation information, procedures, charts, and operational guidance for a country.</dd>
+            <dt>ATC</dt>
+            <dd><strong>Air Traffic Control.</strong> A service that manages aircraft movement on the ground and in controlled airspace.</dd>
+            <dt>ATIS</dt>
+            <dd><strong>Automatic Terminal Information Service.</strong> A recorded broadcast containing airport weather, runway, and operational information.</dd>
+            <dt>CASA</dt>
+            <dd><strong>Civil Aviation Safety Authority.</strong> Australia's aviation safety regulator.</dd>
+            <dt>CTAF</dt>
+            <dd><strong>Common Traffic Advisory Frequency.</strong> A radio frequency used by pilots at non-towered airports.</dd>
+            <dt>FIR</dt>
+            <dd><strong>Flight Information Region.</strong> A defined area of airspace managed by an aviation authority.</dd>
+            <dt>FL</dt>
+            <dd><strong>Flight Level.</strong> A pressure-based altitude reference. Example: FL180 means 18,000 feet.</dd>
+            <dt>ICAO</dt>
+            <dd><strong>International Civil Aviation Organization.</strong> The United Nations aviation body responsible for international standards.</dd>
+            <dt>IFR</dt>
+            <dd><strong>Instrument Flight Rules.</strong> Flight conducted primarily using instruments and ATC procedures.</dd>
+            <dt>VFR</dt>
+            <dd><strong>Visual Flight Rules.</strong> Flight conducted primarily by visual reference outside the aircraft.</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTAM Terms -->
+    <div class="card mb-3 glossary-section">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#notamSection" style="cursor:pointer;">
+        <h5 class="mb-0 text-center">NOTAM Terms</h5>
+      </div>
+      <div id="notamSection" class="collapse">
+        <div class="card-body">
+          <dl class="glossary-dl">
+            <dt>NOTAM</dt>
+            <dd><strong>Notice to Air Missions.</strong> A time-critical aviation notice about operational changes, hazards, restrictions, or outages.</dd>
+            <dt>Q-Line</dt>
+            <dd>A compact coded NOTAM line containing FIR, subject, condition, traffic, purpose, scope, altitude limits, coordinates, and radius.</dd>
+            <dt>SFC</dt>
+            <dd><strong>Surface.</strong> Used in NOTAM altitude fields to mean ground level.</dd>
+            <dt>UNL</dt>
+            <dd><strong>Unlimited.</strong> Used in NOTAM altitude fields to mean no upper altitude limit.</dd>
+            <dt>RWY</dt>
+            <dd><strong>Runway.</strong> A defined surface used by aircraft for takeoff and landing.</dd>
+            <dt>TWY</dt>
+            <dd><strong>Taxiway.</strong> A path used by aircraft to move between runways, aprons, and parking areas.</dd>
+            <dt>CLSD</dt>
+            <dd><strong>Closed.</strong> Used in NOTAMs to indicate a runway, taxiway, service, or area is unavailable.</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation and Weather -->
+    <div class="card mb-3 glossary-section">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#navSection" style="cursor:pointer;">
+        <h5 class="mb-0 text-center">Navigation and Weather</h5>
+      </div>
+      <div id="navSection" class="collapse">
+        <div class="card-body">
+          <dl class="glossary-dl">
+            <dt>DME</dt>
+            <dd><strong>Distance Measuring Equipment.</strong> A radio navigation system that provides distance information.</dd>
+            <dt>GNSS</dt>
+            <dd><strong>Global Navigation Satellite System.</strong> Satellite navigation systems such as GPS.</dd>
+            <dt>GPS Interference</dt>
+            <dd>Disruption or degradation of GPS/GNSS signals that may affect navigation systems.</dd>
+            <dt>Great Circle Route</dt>
+            <dd>A Great Circle Route is the shortest path between two points on the surface of a sphere. Because the Earth is roughly spherical, the shortest route between two airports often appears curved when displayed on a flat map. For example, a flight between Bengaluru and Sydney may appear to take an indirect path when viewed on a map — in reality, the aircraft is following a Great Circle Route that minimises distance and fuel consumption.</dd>
+            <dt>ILS</dt>
+            <dd><strong>Instrument Landing System.</strong> A precision landing aid used during instrument approaches.</dd>
+            <dt>Navaid</dt>
+            <dd><strong>Navigation Aid.</strong> A system assisting aircraft navigation, such as VOR, NDB, ILS, or DME.</dd>
+            <dt>SIGMET</dt>
+            <dd><strong>Significant Meteorological Information.</strong> A weather advisory for hazardous aviation weather.</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <!-- AirTrack Terms -->
+    <div class="card mb-3 glossary-section">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#airtackSection" style="cursor:pointer;">
+        <h5 class="mb-0 text-center">AirTrack Terms</h5>
+      </div>
+      <div id="airtackSection" class="collapse">
+        <div class="card-body">
+          <dl class="glossary-dl">
+            <dt>Aria</dt>
+            <dd>AirTrack's interpretation and correlation layer. Aria helps explain patterns but does not replace official aviation sources.</dd>
+            <dt>Groundhog Gus</dt>
+            <dd>AirTrack's NOTAM and weather scout. Gus receives and normalizes operational notices before passing them to Owl.</dd>
+            <dt>Overwatch Owl</dt>
+            <dd>AirTrack's operational awareness layer. Owl evaluates urgency, visibility, and escalation.</dd>
+            <dt>Ledger Goblin</dt>
+            <dd>AirTrack's archival and statistical memory layer. If it happened, he logged it.</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  {% include 'footer.html' %}
+
+  <style>
+  .glossary-dl dt {
+    font-family: "Times New Roman", Times, serif;
+    font-weight: bold;
+    color: #1b4f62;
+    margin-top: 10px;
+    font-size: 1rem;
+  }
+  .glossary-dl dd {
+    font-family: "Times New Roman", Times, serif;
+    color: #163f52;
+    margin-left: 20px;
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+  }
+  .card-header h5 {
+    font-family: "Times New Roman", Times, serif;
+    color: #1b4f62;
+    font-weight: bold;
+  }
+  </style>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const collapsibles = document.querySelectorAll('[data-bs-toggle="collapse"]');
+    collapsibles.forEach(function(trigger) {
+      trigger.addEventListener("click", function () {
+        const targetId = trigger.getAttribute("data-bs-target").replace('#', '');
+        document.querySelectorAll(".collapse").forEach(function(section) {
+          if (section.id !== targetId) {
+            new bootstrap.Collapse(section, { toggle: false }).hide();
+          }
+        });
+      });
+    });
+  });
+
+  function filterGlossary() {
+    const query = document.getElementById("glossarySearch").value.toLowerCase();
+    // Expand all sections when searching
+    document.querySelectorAll(".collapse").forEach(function(el) {
+      if (query.length > 0) {
+        el.classList.add("show");
+      }
+    });
+    document.querySelectorAll(".glossary-dl dt").forEach(function(dt) {
+      const dd = dt.nextElementSibling;
+      const text = (dt.innerText + " " + (dd ? dd.innerText : "")).toLowerCase();
+      const show = text.includes(query) || query.length === 0;
+      dt.style.display = show ? "" : "none";
+      if (dd) dd.style.display = show ? "" : "none";
+    });
+  }
+  </script>
+
+  <script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+</body>
+</html>

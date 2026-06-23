@@ -520,6 +520,18 @@ def index():
         )
 
 
+@app.route("/glossary")
+def glossary():
+    from time import time as _time
+    from datetime import datetime
+    return render_template(
+        "glossary.html",
+        selected_theme=get_current_theme(),
+        cache_bust=int(_time()),
+        current_year=datetime.utcnow().year,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Aircraft helper routes
 # ---------------------------------------------------------------------------
