@@ -134,6 +134,7 @@ def submit():
         "use_case":         data.get("use_case", "other"),
         "timezone":         tz,
         "home_airport":     home_airport,
+        "country":          data.get("country", "").strip().upper(),
         "adsb_source":      data.get("adsb_source", "none"),
         "photo_storage":    data.get("photo_storage", "disk"),
         "registry_updates": data.get("registry_updates", "automatic"),
