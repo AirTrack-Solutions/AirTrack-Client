@@ -217,6 +217,23 @@
       text-align: center;
     }
 
+    .registry-card.pending { border-color: #3a2800; }
+    .registry-card.pending:hover { border-color: #cc8800; }
+    .status-pending  { background: #1a1200; color: #f0a500; border: 1px solid #3a2800; }
+    .status-installed { background: #0a2a0a; color: #00cc44; border: 1px solid #1a4a1a; }
+
+    .alert-banner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-radius: 8px;
+      margin-bottom: 16px; font-size: 0.85rem;
+    }
+    .alert-banner.warn  { background: #1a1200; border: 1px solid #3a2800; color: #f0a500; }
+    .alert-banner.info  { background: #0a1a0a; border: 1px solid #1a3a1a; color: #88cc88; }
+    .alert-banner.error { background: #1a0a0a; border: 1px solid #3a1a1a; color: #cc6666; }
+    .alert-icon { font-size: 18px; flex-shrink: 0; }
+    .btn-approve { background: #f0a500; color: #0d0f14; border-color: #f0a500; }
+    .btn-approve:hover:not(:disabled) { filter: brightness(.9); }
+
     /* Record tally banner */
     .tally-bar {
       display: flex;
@@ -257,9 +274,11 @@
 
   <div class="page-header">
     <h1>✈ Registries</h1>
-    <span class="subtitle">{{ imported_count }} of {{ total_count }} imported</span>
+    <span class="subtitle">{{ imported_count }} of {{ total_count }} installed</span>
+    {% if not is_client %}
     <a class="coffee-link" href="https://buymeacoffee.com/airtracksolutions" target="_blank" rel="noopener">☕ Buy me a coffee</a>
     <a class="back-link" href="{{ url_for('registry.registry_tracker') }}">🗂 Tracker</a>
+    {% endif %}
     <a class="back-link" href="{{ url_for('admin.admin_dashboard') }}">← Cockpit</a>
   </div>
 
@@ -281,6 +300,22 @@
     </div>
   </div>
 
+  {% if is_client and wombat_offline %}
+  <div class="alert-banner error">
+    <span class="alert-icon">⚠</span>
+    <span>Cannot reach Wombat — showing last known state. Install and remove are unavailable while offline.</span>
+  </div>
+  {% endif %}
+
+  {% if is_client and pending_count > 0 and registry_pref == 'ask' %}
+  <div class="alert-banner warn">
+    <span class="alert-icon">📦</span>
+    <span><strong>{{ pending_count }} {% if pending_count == 1 %}registry{% else %}registries{% endif %} waiting for your approval.</strong>
+    Click <em>Install Now</em> on any card below to install it.</span>
+  </div>
+  {% endif %}
+
+  {% if not is_client %}
   <!-- Daily import quota -->
   <div class="quota-bar" id="quotaBar">
     <span class="quota-label">Today's imports</span>
@@ -301,30 +336,39 @@
       {% endif %}
     </span>
   </div>
+  {% endif %}
 
   <div class="filter-bar">
     <button class="filter-btn active" data-filter="all">All ({{ total_count }})</button>
-    <button class="filter-btn" data-filter="imported">Imported ({{ imported_count }})</button>
-    <button class="filter-btn" data-filter="available">Available ({{ total_count - imported_count }})</button>
+    <button class="filter-btn" data-filter="imported">Installed ({{ imported_count }})</button>
+    {% if is_client and pending_count > 0 %}
+    <button class="filter-btn" data-filter="pending">Pending ({{ pending_count }})</button>
+    {% endif %}
+    <button class="filter-btn" data-filter="available">Available ({{ total_count - imported_count - (pending_count or 0) }})</button>
   </div>
 
   {% if registries %}
   <div class="registry-grid" id="registryGrid">
     {% for r in registries %}
-    <div class="registry-card {% if r.imported %}imported{% endif %}"
-         data-state="{{ 'imported' if r.imported else 'available' }}"
+    {% set card_state = r.get('state', 'imported' if r.imported else 'available') %}
+    <div class="registry-card {% if card_state == 'installed' or r.imported %}imported{% elif card_state == 'pending' %}pending{% endif %}"
+         data-state="{{ card_state if is_client else ('imported' if r.imported else 'available') }}"
          id="card-{{ r.dir }}">
 
       <div class="card-name">{{ r.display_name }}</div>
 
       <div>
-        <span class="card-status {% if r.imported %}status-imported{% else %}status-available{% endif %}"
-              id="status-{{ r.dir }}">
-          {{ '✓ Imported' if r.imported else 'Available' }}
-        </span>
+        {% if card_state == 'installed' or r.imported %}
+        <span class="card-status {% if is_client %}status-installed{% else %}status-imported{% endif %}"
+              id="status-{{ r.dir }}">✓ Installed</span>
+        {% elif card_state == 'pending' %}
+        <span class="card-status status-pending" id="status-{{ r.dir }}">⏳ Pending Approval</span>
+        {% else %}
+        <span class="card-status status-available" id="status-{{ r.dir }}">Available</span>
+        {% endif %}
       </div>
 
-      {% if r.imported %}
+      {% if r.imported or card_state == 'installed' %}
       <div class="card-row-count" id="rowcount-{{ r.dir }}">
         {{ '{:,}'.format(r.row_count) }} records
       </div>
@@ -337,16 +381,26 @@
       {% endif %}
 
       <div class="card-actions">
+        {% if card_state == 'pending' %}
+        <button class="btn btn-approve"
+                id="btn-import-{{ r.dir }}"
+                onclick="importRegistry('{{ r.dir }}')"
+                {% if wombat_offline | default(false) %}disabled{% endif %}>
+          Install Now
+        </button>
+        {% else %}
         <button class="btn btn-import"
                 id="btn-import-{{ r.dir }}"
                 onclick="importRegistry('{{ r.dir }}')"
-                {% if r.imported %}style="display:none"{% endif %}>
-          Import
+                {% if r.imported or card_state == 'installed' %}style="display:none"{% endif %}
+                {% if wombat_offline | default(false) %}disabled{% endif %}>
+          {% if is_client %}Install{% else %}Import{% endif %}
         </button>
+        {% endif %}
         <button class="btn btn-remove"
                 id="btn-remove-{{ r.dir }}"
                 onclick="removeRegistry('{{ r.dir }}')"
-                {% if not r.imported %}style="display:none"{% endif %}>
+                {% if not r.imported and card_state != 'installed' %}style="display:none"{% endif %}>
           Remove
         </button>
       </div>
@@ -452,19 +506,22 @@
 
         if (resp.ok && data.status === 'ok') {
           const rows = data.row_count || 0;
-          setFeedback(dir, `✓ ${rows.toLocaleString()} records imported`, true);
+          setFeedback(dir, `✓ ${rows.toLocaleString()} records installed`, true);
 
           const card = document.getElementById('card-' + dir);
+          card.classList.remove('pending');
           card.classList.add('imported');
-          card.dataset.state = 'imported';
+          card.dataset.state = 'installed';
 
-          document.getElementById('status-' + dir).className = 'card-status status-imported';
-          document.getElementById('status-' + dir).textContent = '✓ Imported';
+          const statusEl = document.getElementById('status-' + dir);
+          statusEl.className = 'card-status status-installed';
+          statusEl.textContent = '✓ Installed';
 
           document.getElementById('rowcount-' + dir).className = 'card-row-count';
           document.getElementById('rowcount-' + dir).textContent = rows.toLocaleString() + ' records';
 
-          document.getElementById('btn-import-' + dir).style.display = 'none';
+          const importBtn = document.getElementById('btn-import-' + dir);
+          if (importBtn) importBtn.style.display = 'none';
           document.getElementById('btn-remove-' + dir).style.display = '';
 
           if (data.quota) updateQuotaBar(data.quota.used);
@@ -535,7 +592,10 @@
         btn.classList.add('active');
         const filter = btn.dataset.filter;
         document.querySelectorAll('.registry-card').forEach(card => {
-          const show = filter === 'all' || card.dataset.state === filter;
+          const st = card.dataset.state;
+          const show = filter === 'all'
+            || st === filter
+            || (filter === 'imported' && st === 'installed');
           card.style.display = show ? '' : 'none';
         });
       });
