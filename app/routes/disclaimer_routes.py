@@ -48,6 +48,7 @@ _EXEMPT_PREFIXES = (
     "/static",
     "/api/",
     "/billing/webhook",
+    "/favicon.ico",
 )
 
 
@@ -127,6 +128,10 @@ def accept_disclaimer():
 
     # Redirect to intended destination or home
     next_url = session.pop("disclaimer_next", None) or url_for("index")
+    # Guard: don't redirect to static assets (e.g. /favicon.ico stored before page load)
+    _asset_exts = (".ico", ".png", ".jpg", ".css", ".js", ".woff", ".woff2", ".svg")
+    if not next_url or any(next_url.split("?")[0].endswith(ext) for ext in _asset_exts):
+        next_url = url_for("index")
     return redirect(next_url)
 
 

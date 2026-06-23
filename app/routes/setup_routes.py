@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 setup_bp = Blueprint("setup", __name__, url_prefix="/setup")
 
-_EXEMPT = ("/setup", "/static", "/api/", "/disclaimer", "/billing/webhook")
+_EXEMPT = ("/setup", "/static", "/api/", "/disclaimer", "/billing/webhook", "/favicon.ico")
 
 
 def setup_complete() -> bool:
