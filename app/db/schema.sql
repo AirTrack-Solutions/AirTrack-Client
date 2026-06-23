@@ -45,6 +45,22 @@ CREATE TABLE `aircraft` (
   CONSTRAINT `aircraft_ibfk_1` FOREIGN KEY (`AirlineID`) REFERENCES `airlines` (`AirlineID`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `aircraft_manual_registry`;
+CREATE TABLE IF NOT EXISTS `aircraft_manual_registry` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `registration` varchar(20) NOT NULL,
+  `serial_number` varchar(50) DEFAULT NULL,
+  `year` int(11) DEFAULT NULL,
+  `engine` varchar(100) DEFAULT NULL,
+  `logbook_last_seen` date DEFAULT NULL,
+  `logbook_source` tinyint(4) DEFAULT 0 COMMENT '1=logbook-added, 2=logbook-enriched',
+  `operatorname` varchar(150) DEFAULT NULL,
+  `aircraftmodel` varchar(50) DEFAULT NULL,
+  `hexcode` varchar(10) DEFAULT NULL,
+  `registeredownercountry` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_amr_registration` (`registration`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 DROP TABLE IF EXISTS `aircraft_images`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
