@@ -237,8 +237,12 @@ def registry_list():
                     if d.get("capability")
                 ]
             else:
+                import logging as _lg
+                _lg.warning(f"registry_routes: Wombat offline — WOMBAT_URL={_WOMBAT_URL!r} CUSTOMER_ID={_CUSTOMER_ID!r}")
                 wombat_offline = True
-        except Exception:
+        except Exception as _wombat_exc:
+            import logging as _lg
+            _lg.warning(f"registry_routes: Wombat exception — WOMBAT_URL={_WOMBAT_URL!r} CUSTOMER_ID={_CUSTOMER_ID!r} error={_wombat_exc!r}")
             wombat_offline = True
 
         # Display name lookup from ICAO_COUNTRIES
