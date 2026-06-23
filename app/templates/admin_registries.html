@@ -315,7 +315,7 @@
   </div>
   {% endif %}
 
-  {% if not is_client %}
+  {% if is_client and daily_limit > 0 %}
   <!-- Daily import quota -->
   <div class="quota-bar" id="quotaBar">
     <span class="quota-label">Today's imports</span>
