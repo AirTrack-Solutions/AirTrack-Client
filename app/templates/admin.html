@@ -257,6 +257,7 @@
       <div class="settings-tabs">
         <button type="button" class="tab-btn active" data-tab="callsign">Callsign</button>
         <button type="button" class="tab-btn" data-tab="timezone">Timezone</button>
+        <button type="button" class="tab-btn" data-tab="airport">Airport</button>
         <button type="button" class="tab-btn" data-tab="theme">Theme</button>
         <button type="button" class="tab-btn" data-tab="images">Images</button>
       </div>
@@ -282,6 +283,15 @@
             {% endfor %}
           </select>
           <small class="help">We can add more zones later.</small>
+        </div>
+
+        <div class="settings-pane" data-pane="airport">
+          <label class="form-label" for="set-home-airport">Home Airport</label>
+          <input type="text" class="form-control" id="set-home-airport"
+                 value="{{ (settings.get('home_airport') or '') if settings else '' }}"
+                 placeholder="e.g. YSSY" maxlength="4"
+                 style="text-transform:uppercase; width:160px;">
+          <small class="help">ICAO code of your primary spotting airport — used for weather and NOTAMs.</small>
         </div>
 
         <div class="settings-pane" data-pane="theme">
@@ -579,6 +589,7 @@
     window.saveSettings = async function saveSettings() {
       const callsign = (document.getElementById('set-callsign')?.value || '').trim();
       const timezone = (document.getElementById('set-timezone')?.value || 'UTC').trim();
+      const homeAirport = (document.getElementById('set-home-airport')?.value || '').trim().toUpperCase();
       const theme = (document.querySelector('input[name="set-theme"]:checked')?.value || 'default');
 
       const imageImportFolder =
@@ -603,6 +614,7 @@
           '{{ url_for("admin.update_app_settings") }}',
           {
             timezone,
+            home_airport: homeAirport,
             theme,
             aircraft_image_import_folder: imageImportFolder
           }
