@@ -112,6 +112,7 @@
 {% endif %}
 {% endwith %}
 
+{% if is_server %}
 <style>
 @keyframes briefing-nav-pulse {
   0%, 100% { opacity: 1; }
@@ -135,3 +136,4 @@
     .catch(function () {});
 })();
 </script>
+{% endif %}

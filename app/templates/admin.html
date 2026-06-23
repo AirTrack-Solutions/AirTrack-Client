@@ -771,9 +771,8 @@
 
 {% if aria_enabled %}{% include "aria_chat.html" %}{% endif %}
 <script src="{{ url_for('static', filename='js/cockpit_shutdown.js') }}?v={{ time() }}"></script>
+{% if is_server %}
 <script src="{{ url_for('static', filename='js/briefing.js') }}?v={{ time() }}"></script>
-<script>document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("ariaToggle");if(b)b.style.display="none";});</script>
-
 <!-- ── Daily Briefing Overlay ─────────────────────────────────────────── -->
 <div id="briefing-overlay" class="briefing-overlay" hidden aria-modal="true" role="dialog">
   <div class="briefing-card">
@@ -792,5 +791,7 @@
     <div id="briefing-qa" class="briefing-qa" hidden></div>
   </div>
 </div>
+{% endif %}
+<script>document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("ariaToggle");if(b)b.style.display="none";});</script>
 </body>
 </html>
