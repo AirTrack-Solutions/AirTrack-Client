@@ -337,27 +337,30 @@ def aircraft_info(aircraft_id):
     # --------------------------------------------------
     manual = {}
 
-    manual_row = db.session.execute(
-        text("""
-            SELECT *
-            FROM aircraft_manual_registry
-            WHERE registration = :reg
-            LIMIT 1
-        """),
-        {"reg": reg},
-    ).fetchone()
+    try:
+        manual_row = db.session.execute(
+            text("""
+                SELECT *
+                FROM aircraft_manual_registry
+                WHERE registration = :reg
+                LIMIT 1
+            """),
+            {"reg": reg},
+        ).fetchone()
 
-    if manual_row:
-        manual = dict(manual_row._mapping)
+        if manual_row:
+            manual = dict(manual_row._mapping)
 
-        if not aircraft.get("MSN"):
-            aircraft["MSN"] = manual.get("serial_number")
+            if not aircraft.get("MSN"):
+                aircraft["MSN"] = manual.get("serial_number")
 
-        if not aircraft.get("Manufacture_Year"):
-            aircraft["Manufacture_Year"] = manual.get("year")
+            if not aircraft.get("Manufacture_Year"):
+                aircraft["Manufacture_Year"] = manual.get("year")
 
-        if not aircraft.get("Engine_Type"):
-            aircraft["Engine_Type"] = manual.get("engine")
+            if not aircraft.get("Engine_Type"):
+                aircraft["Engine_Type"] = manual.get("engine")
+    except Exception:
+        pass  # Table may not exist on older installs — enrichment is optional
 
     # Times seen
     times_seen = db.session.execute(
