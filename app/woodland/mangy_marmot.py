@@ -649,6 +649,36 @@ def main() -> None:
                     delivered_registries.append(reg)
                     _remove_from_pending(reg)
 
+    # Country auto-request: if app_settings.country maps to a registry not yet
+    # installed or already in required_registries, self-request it from Wombat.
+    # Keep COUNTRY_REGISTRY_MAP in sync with ATC installer.py.
+    COUNTRY_REGISTRY_MAP = {"AU": "australia"}
+    try:
+        from sqlalchemy import text as _text
+        from extensions import db as _db
+        with _db.engine.connect() as _conn:
+            _country = (
+                _conn.execute(
+                    _text("SELECT SettingValue FROM app_settings WHERE SettingKey='country' LIMIT 1")
+                ).scalar() or ""
+            ).strip().upper()
+        if _country and _country in COUNTRY_REGISTRY_MAP:
+            _mapped = COUNTRY_REGISTRY_MAP[_country]
+            if _mapped not in installed_registry_names and _mapped not in required_registries:
+                registry_pref = _get_registry_pref()
+                if registry_pref == "never":
+                    _log(f"Country {_country} maps to registry '{_mapped}' — skipped (registry_updates=never)")
+                elif registry_pref == "ask":
+                    _write_pending_registries([_mapped])
+                    _log(f"Country {_country} maps to registry '{_mapped}' — queued for user approval")
+                else:
+                    _log(f"Country {_country} maps to registry '{_mapped}' — auto-requesting")
+                    if _deliver_registry(_mapped):
+                        delivered_registries.append(_mapped)
+                        _remove_from_pending(_mapped)
+    except Exception as _exc:
+        _log(f"Country registry auto-request failed: {_exc}")
+
     _log(f"Finished. Delivered: {(delivered + delivered_registries) or 'none'}")
 
 
