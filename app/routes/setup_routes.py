@@ -101,6 +101,49 @@ def wizard():
     )
 
 
+@setup_bp.route("/upload-license", methods=["POST"])
+def upload_license():
+    """Receive license.lic content, validate, and save to AIRTRACK_HOME."""
+    import sys as _sys
+    from pathlib import Path as _Path
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        raw = payload.get("content", "")
+        if not raw:
+            return jsonify({"ok": False, "error": "No content received"}), 400
+
+        data = json.loads(raw)
+        edition_raw = data.get("edition", "").strip()
+        if not edition_raw:
+            return jsonify({"ok": False, "error": "Missing edition field"}), 400
+
+        from config.license import load_license, EDITION_NAMES, EDITIONS, EDITION_MAX_AIRCRAFT
+        edition_key = edition_raw.lower()
+        if edition_key not in EDITIONS:
+            return jsonify({"ok": False, "error": f"Unknown edition '{edition_raw}'"}), 400
+
+        # Save to AIRTRACK_HOME
+        home_str = os.environ.get('AIRTRACK_HOME') or (
+            os.path.join(os.environ.get('ProgramData', 'C:/ProgramData'), 'AirTrack')
+            if _sys.platform == 'win32' else '/airtrack_data'
+        )
+        dest = _Path(home_str) / 'license.lic'
+        dest.write_text(raw, encoding='utf-8')
+
+        edition_name  = EDITION_NAMES.get(edition_key, edition_key)
+        max_aircraft  = EDITION_MAX_AIRCRAFT.get(edition_key)
+        return jsonify({
+            "ok":           True,
+            "edition":      edition_name,
+            "max_aircraft": max_aircraft,
+            "license_id":   data.get("license_id", ""),
+        })
+    except json.JSONDecodeError:
+        return jsonify({"ok": False, "error": "Invalid JSON — is this a valid AirTrack license file?"}), 400
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @setup_bp.route("/detect-ollama", methods=["GET"])
 def detect_ollama():
     """Check whether Ollama is reachable on this machine."""
