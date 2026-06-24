@@ -221,6 +221,7 @@ def registry_list():
         # Client mode: Wombat entitlements + Marmot-installed registries
         from woodland.mangy_marmot import (
             WOMBAT_URL as _WOMBAT_URL, CUSTOMER_ID as _CUSTOMER_ID,
+            BILLING_URL as _BILLING_URL,
             REGISTRIES_INSTALLED as _REG_INSTALLED,
             _get, _scan_installed_registries,
             _read_pending_registries, _get_registry_pref,
@@ -228,6 +229,8 @@ def registry_list():
 
         wombat_offline = False
         entitled = []
+        available_wombat = []   # all registries Wombat offers
+        update_window_hours = 24
         try:
             if _WOMBAT_URL and _CUSTOMER_ID:
                 wh = _get(f"/api/wombat/manifest/{_CUSTOMER_ID}")
@@ -244,6 +247,25 @@ def registry_list():
             import logging as _lg
             _lg.warning(f"registry_routes: Wombat exception — WOMBAT_URL={_WOMBAT_URL!r} CUSTOMER_ID={_CUSTOMER_ID!r} error={_wombat_exc!r}")
             wombat_offline = True
+
+        # Fetch what Wombat has available (to show marketplace)
+        if not wombat_offline and _WOMBAT_URL:
+            try:
+                av_resp = _get("/api/wombat/available-registries")
+                available_wombat = [
+                    r["slug"] if isinstance(r, dict) else r
+                    for r in av_resp.get("registries", [])
+                ]
+                update_window_hours = av_resp.get("update_window_hours", 24)
+            except Exception:
+                available_wombat = []
+
+        # Purchasable = in Wombat but not yet entitled
+        entitled_set = set(entitled)
+        purchasable = [
+            slug for slug in available_wombat
+            if slug not in entitled_set
+        ]
 
         # Display name lookup from ICAO_COUNTRIES
         def _n(s):
@@ -286,6 +308,23 @@ def registry_list():
         pending_count  = sum(1 for r in registries if r['state'] == 'pending')
         total_records  = sum(r['row_count'] for r in registries)
 
+        # Purchase status from billing-api (non-fatal if unreachable)
+        purchases_today = 0
+        purchase_limit  = 5
+        if not wombat_offline and _BILLING_URL and _CUSTOMER_ID:
+            try:
+                import urllib.request as _ureq, json as _jmod
+                _preq = _ureq.Request(
+                    f"{_BILLING_URL}/billing/registry-purchase-status/{_CUSTOMER_ID}",
+                    headers={"User-Agent": "AirTrack-RegistryRoutes/0.1"},
+                )
+                with _ureq.urlopen(_preq, timeout=3) as _presp:
+                    _pdata = _jmod.loads(_presp.read())
+                purchases_today = int(_pdata.get("used_today", 0))
+                purchase_limit  = int(_pdata.get("limit", 5))
+            except Exception:
+                pass
+
         return render_template(
             'admin_registries.html',
             registries=registries,
@@ -300,6 +339,11 @@ def registry_list():
             registry_pref=registry_pref,
             server_url=None,
             server_reachable=True,
+            purchasable=purchasable,
+            purchases_today=purchases_today,
+            purchase_limit=purchase_limit,
+            billing_url=_BILLING_URL,
+            customer_id=_CUSTOMER_ID,
         )
 
     # Server mode: scan local files as before
@@ -459,6 +503,52 @@ def remove_registry(country):
     except Exception as e:
         logging.exception(f"Registry remove error for {country}")
         return jsonify({'status': 'error', 'detail': str(e)}), 500
+
+
+@registry_bp.route('/purchase-checkout', methods=['POST'])
+def purchase_checkout():
+    """
+    Client-only. Calls billing-api to create a Stripe Checkout session for
+    registry purchases. Returns {ok, checkout_url} or {error}.
+    """
+    is_client = os.getenv('AIRTRACK_ROLE', 'server').lower() == 'client'
+    if not is_client:
+        return jsonify({'status': 'error', 'detail': 'Not available in server mode'}), 403
+
+    data       = request.get_json(silent=True) or {}
+    registries = data.get('registries', [])
+    if not registries:
+        return jsonify({'status': 'error', 'detail': 'No registries selected'}), 400
+
+    from woodland.mangy_marmot import (
+        BILLING_URL as _BILLING_URL, CUSTOMER_ID as _CUSTOMER_ID,
+    )
+    if not _BILLING_URL or not _CUSTOMER_ID:
+        return jsonify({'status': 'error', 'detail': 'Billing service not configured'}), 503
+
+    import urllib.request as _ureq, json as _jmod
+    try:
+        payload = _jmod.dumps({
+            'customer_id': _CUSTOMER_ID,
+            'registries':  registries,
+        }).encode('utf-8')
+        req = _ureq.Request(
+            f"{_BILLING_URL}/billing/create-registry-checkout",
+            data=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'User-Agent':   'AirTrack-RegistryRoutes/0.1',
+            },
+            method='POST',
+        )
+        with _ureq.urlopen(req, timeout=15) as resp:
+            result = _jmod.loads(resp.read())
+        if result.get('ok') and result.get('checkout_url'):
+            return jsonify({'status': 'ok', 'checkout_url': result['checkout_url']})
+        return jsonify({'status': 'error', 'detail': result.get('error', 'Checkout failed')}), 500
+    except Exception as exc:
+        logging.exception("Registry purchase checkout error")
+        return jsonify({'status': 'error', 'detail': 'Could not reach billing service'}), 503
 
 
 # ── Registry Tracker ──────────────────────────────────────────────────────────

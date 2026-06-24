@@ -40,6 +40,7 @@ from urllib.request import Request, urlopen
 # ---------------------------------------------------------------------------
 
 WOMBAT_URL       = os.getenv("WOMBAT_URL", "").rstrip("/")
+BILLING_URL      = os.getenv("AIRTRACK_BILLING_URL", "http://192.168.0.201:8000").rstrip("/")
 _default_home = (
     Path(os.environ.get("ProgramData", "C:/ProgramData")) / "AirTrack"
     if sys.platform == "win32"
