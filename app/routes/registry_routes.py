@@ -316,7 +316,9 @@ def registry_list():
                 registries.append({
                     'display_name': display, 'dir': reg_name,
                     'table': table_name, 'file_records': 0,
-                    'imported': True, 'state': 'installed',
+                    'imported': True,
+                    'state': 'installed',
+                    'has_update': reg_name in pending,
                     'row_count': _row_count(table_name),
                 })
             elif reg_name in pending:
@@ -324,6 +326,7 @@ def registry_list():
                     'display_name': display, 'dir': reg_name,
                     'table': '', 'file_records': 0,
                     'imported': False, 'state': 'pending',
+                    'has_update': False,
                     'row_count': 0,
                 })
             else:
@@ -331,6 +334,7 @@ def registry_list():
                     'display_name': display, 'dir': reg_name,
                     'table': '', 'file_records': 0,
                     'imported': False, 'state': 'available',
+                    'has_update': False,
                     'row_count': 0,
                 })
 
