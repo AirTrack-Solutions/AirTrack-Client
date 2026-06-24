@@ -268,6 +268,153 @@
       height: 32px;
       background: #1e3a1e;
     }
+
+    /* ── Browse & Buy ────────────────────────────────────────────────── */
+    .market-section {
+      margin-top: 40px;
+      border-top: 1px solid #1e1e1e;
+      padding-top: 28px;
+    }
+
+    .market-header {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+
+    .market-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #e6e6e6;
+      font-weight: 600;
+    }
+
+    .market-header .market-sub {
+      color: #555;
+      font-size: 0.82rem;
+    }
+
+    .market-quota {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+      font-size: 0.8rem;
+      color: #666;
+    }
+    .market-quota-pips { display: flex; gap: 4px; }
+    .market-quota-pip {
+      width: 14px; height: 14px; border-radius: 3px;
+    }
+    .market-quota-pip.used  { background: #f5a623; border: 1px solid #f5a623; }
+    .market-quota-pip.empty { background: #1a1a1a; border: 1px solid #2a2a2a; }
+    .market-quota-text.none { color: #cc4444; }
+    .market-quota-text.warn { color: #cc8800; }
+
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .market-card {
+      background: #0d0d0d;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .market-card:hover { border-color: #f5a623; }
+    .market-card.selected {
+      border-color: #f5a623;
+      background: #120e00;
+    }
+    .market-card input[type="checkbox"] {
+      accent-color: #f5a623;
+      width: 16px; height: 16px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .market-card-name {
+      font-size: 0.88rem;
+      color: #ccc;
+      flex: 1;
+      line-height: 1.3;
+    }
+    .market-card-price {
+      font-size: 0.78rem;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    .market-footer {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 14px 18px;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+    }
+
+    .market-total {
+      flex: 1;
+    }
+    .market-total-label {
+      font-size: 0.75rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+    .market-total-amount {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f5a623;
+      letter-spacing: .5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .market-total-note {
+      font-size: 0.72rem;
+      color: #444;
+      margin-top: 2px;
+    }
+
+    .btn-purchase {
+      background: #f5a623;
+      color: #0d0d0d;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: filter .1s, opacity .1s;
+      white-space: nowrap;
+    }
+    .btn-purchase:hover:not(:disabled) { filter: brightness(.9); }
+    .btn-purchase:disabled { opacity: .4; cursor: not-allowed; }
+
+    .market-feedback {
+      font-size: 0.8rem;
+      min-height: 1.2em;
+      color: #888;
+    }
+    .market-feedback.ok  { color: #00cc44; }
+    .market-feedback.err { color: #cc4444; }
+
+    .market-empty {
+      color: #444;
+      font-size: 0.88rem;
+      padding: 24px 0;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -411,6 +558,59 @@
   </div>
   {% else %}
   <div class="empty-state">No registries found in the registries directory.</div>
+  {% endif %}
+
+  {% if is_client and not wombat_offline %}
+  {% set purchasable = purchasable | default([]) %}
+  <div class="market-section" id="marketSection">
+    <div class="market-header">
+      <h2>🛒 Browse &amp; Buy</h2>
+      <span class="market-sub">Additional country registries · A$0.50 each · delivered automatically</span>
+    </div>
+
+    <!-- Daily purchase quota -->
+    {% set market_limit = purchase_limit | default(5) %}
+    {% set market_done  = purchases_today | default(0) %}
+    {% set market_left  = [market_limit - market_done, 0] | max %}
+    <div class="market-quota">
+      <div class="market-quota-pips">
+        {% for i in range(market_limit) %}
+        <div class="market-quota-pip {% if i < market_done %}used{% else %}empty{% endif %}"></div>
+        {% endfor %}
+      </div>
+      <span class="market-quota-text {% if market_left == 0 %}none{% elif market_left == 1 %}warn{% endif %}">
+        {% if market_left == 0 %}No purchases left today{% elif market_left == 1 %}1 purchase remaining today{% else %}{{ market_left }} purchases remaining today{% endif %}
+      </span>
+    </div>
+
+    {% if purchasable %}
+    <div class="market-grid" id="marketGrid">
+      {% for slug in purchasable %}
+      <label class="market-card" id="mc-{{ slug }}" onclick="marketToggle('{{ slug }}', event)">
+        <input type="checkbox" id="mcheck-{{ slug }}" value="{{ slug }}" onchange="marketUpdate()">
+        <span class="market-card-name">{{ slug.replace('_', ' ').title() }}</span>
+        <span class="market-card-price">A$0.50</span>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="market-footer">
+      <div class="market-total">
+        <div class="market-total-label">Total</div>
+        <div class="market-total-amount" id="marketTotal">A$0.00</div>
+        <div class="market-total-note" id="marketNote">Select registries above</div>
+      </div>
+      <div>
+        <button class="btn-purchase" id="btnPurchase" disabled onclick="marketPurchase()">
+          Purchase
+        </button>
+        <div class="market-feedback" id="marketFeedback"></div>
+      </div>
+    </div>
+    {% else %}
+    <div class="market-empty">All available registries are already in your entitlements.</div>
+    {% endif %}
+  </div>
   {% endif %}
 
   <script>
@@ -584,6 +784,99 @@
         if (btn.style.display !== 'none') btn.disabled = true;
       });
     }
+
+    // ── Browse & Buy ──────────────────────────────────────────────────────
+    const MARKET_LIMIT   = {{ purchase_limit | default(5) }};
+    let marketDoneToday  = {{ purchases_today | default(0) }};
+
+    function marketToggle(slug, event) {
+      // Prevent double-toggle when clicking the checkbox itself
+      if (event.target.tagName === 'INPUT') return;
+      const cb = document.getElementById('mcheck-' + slug);
+      if (cb) { cb.checked = !cb.checked; marketUpdate(); }
+    }
+
+    function marketSelectedSlugs() {
+      return [...document.querySelectorAll('#marketGrid input[type="checkbox"]:checked')]
+        .map(cb => cb.value);
+    }
+
+    function marketUpdate() {
+      const selected = marketSelectedSlugs();
+      document.querySelectorAll('.market-card').forEach(card => {
+        const slug = card.id.replace('mc-', '');
+        card.classList.toggle('selected', selected.includes(slug));
+      });
+      const count  = selected.length;
+      const total  = (count * 0.50).toFixed(2);
+      document.getElementById('marketTotal').textContent = 'A$' + total;
+      const note = count === 0 ? 'Select registries above'
+                 : count === 1 ? '1 registry selected'
+                 : count + ' registries selected';
+      document.getElementById('marketNote').textContent = note;
+      const btn = document.getElementById('btnPurchase');
+      const overLimit = (marketDoneToday + count) > MARKET_LIMIT;
+      btn.disabled = (count === 0 || overLimit);
+      if (overLimit && count > 0) {
+        document.getElementById('marketFeedback').textContent =
+          '✗ Daily limit reached — select fewer registries';
+        document.getElementById('marketFeedback').className = 'market-feedback err';
+      } else {
+        document.getElementById('marketFeedback').textContent = '';
+        document.getElementById('marketFeedback').className = 'market-feedback';
+      }
+    }
+
+    async function marketPurchase() {
+      const selected = marketSelectedSlugs();
+      if (!selected.length) return;
+
+      const btn = document.getElementById('btnPurchase');
+      const fb  = document.getElementById('marketFeedback');
+      btn.disabled = true;
+      btn.dataset.origText = btn.textContent;
+      btn.innerHTML = '<span class="spin" style="border-color:#000;border-top-color:transparent"></span> Processing…';
+      fb.textContent = '';
+      fb.className = 'market-feedback';
+
+      try {
+        const resp = await fetch('/admin/registries/purchase-checkout', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken':  csrf(),
+            'Accept':       'application/json',
+          },
+          body: JSON.stringify({ registries: selected }),
+        });
+        const data = await resp.json().catch(() => ({}));
+
+        if (resp.ok && data.status === 'ok' && data.checkout_url) {
+          fb.textContent = '✓ Redirecting to payment…';
+          fb.className = 'market-feedback ok';
+          // Open Stripe Checkout in new tab
+          window.open(data.checkout_url, '_blank');
+          // Update expected local state optimistically
+          marketDoneToday += selected.length;
+          btn.textContent = btn.dataset.origText || 'Purchase';
+          marketUpdate();
+        } else {
+          fb.textContent = '✗ ' + (data.detail || data.error || 'Checkout failed');
+          fb.className = 'market-feedback err';
+          btn.textContent = btn.dataset.origText || 'Purchase';
+          btn.disabled = false;
+        }
+      } catch (err) {
+        fb.textContent = '✗ Network error — please try again';
+        fb.className = 'market-feedback err';
+        btn.textContent = btn.dataset.origText || 'Purchase';
+        btn.disabled = false;
+      }
+    }
+
+    // Initialise market state on load
+    marketUpdate();
 
     // Filter buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
