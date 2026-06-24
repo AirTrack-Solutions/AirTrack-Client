@@ -1,16 +1,16 @@
 """
-AirTrack — App Updater
+AirTrack - App Updater
 app/core/app_updater.py  v0.1
 
 Applies app update packages (templates + static) without a full PyInstaller rebuild.
 Called by Mangy Marmot after a verified update package is downloaded from Wombat.
 
 Package structure (signed zip):
-    manifest.json      — {type: "app_update", version: "...", description: "..."}
-    templates/         — full app/templates/ tree
-    static/            — full app/static/ tree
-    checksums.sha256   — sha256 of manifest.json + each content file
-    signature.sig      — Ed25519 signature over checksums.sha256
+    manifest.json      - {type: "app_update", version: "...", description: "..."}
+    templates/         - full app/templates/ tree
+    static/            - full app/static/ tree
+    checksums.sha256   - sha256 of manifest.json + each content file
+    signature.sig      - Ed25519 signature over checksums.sha256
 
 Install root:
     Frozen  (PyInstaller --onedir): C:\\AirTrack\\_internal\\
@@ -529,7 +529,7 @@ def _send_rollback_payload(payload: dict, wombat_url: str, log_fn) -> None:
             pass
         _log(f"Rollback report: sent outcome={payload.get('outcome')} to Wombat")
     except Exception as exc:
-        _log(f"Rollback report: could not reach Wombat — {exc}")
+        _log(f"Rollback report: could not reach Wombat - {exc}")
 
 
 def report_rollback_event(
@@ -549,10 +549,10 @@ def report_rollback_event(
         never  → do nothing (local rollback_log.txt is always written regardless)
 
     outcome values:
-        "recovered"            — rollback succeeded, Flask healthy again
-        "failed_no_backup"     — rollback could not run, no backup found
-        "failed_restore"       — backup found but restore failed
-        "failed_post_rollback" — restored OK but Flask still unhealthy after restart
+        "recovered"            - rollback succeeded, Flask healthy again
+        "failed_no_backup"     - rollback could not run, no backup found
+        "failed_restore"       - backup found but restore failed
+        "failed_post_rollback" - restored OK but Flask still unhealthy after restart
 
     Never raises.
     """
@@ -569,11 +569,11 @@ def report_rollback_event(
     customer_id = os.environ.get("AIRTRACK_CUSTOMER_ID", "")
 
     if mode == "never":
-        _log("Rollback report: support reporting set to 'never' — not sending")
+        _log("Rollback report: support reporting set to 'never' - not sending")
         return
 
     if not wombat_url or not customer_id:
-        _log("Rollback report: WOMBAT_URL or AIRTRACK_CUSTOMER_ID not set — cannot report")
+        _log("Rollback report: WOMBAT_URL or AIRTRACK_CUSTOMER_ID not set - cannot report")
         return
 
     payload = {
@@ -594,6 +594,6 @@ def report_rollback_event(
             (h / _PENDING_REPORT_FILE).write_text(
                 _json.dumps(payload, indent=2), encoding="utf-8"
             )
-            _log("Rollback report: saved as pending — customer will be asked to send")
+            _log("Rollback report: saved as pending - customer will be asked to send")
         except Exception as exc:
-            _log(f"Rollback report: could not write pending report — {exc}")
+            _log(f"Rollback report: could not write pending report - {exc}")

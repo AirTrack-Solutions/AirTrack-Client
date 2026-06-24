@@ -297,7 +297,7 @@ def _deliver(capability: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Registry update scheduler — jittered delivery to prevent thundering herd
+# Registry update scheduler - jittered delivery to prevent thundering herd
 # ---------------------------------------------------------------------------
 
 def _load_update_schedule() -> dict:
@@ -403,7 +403,7 @@ def _install_registry(package_path: Path, registry_name: str) -> None:
 
     # Split SQL into individual statements by line.
     # One statement per line is guaranteed by the Wombat package generator.
-    # We do NOT use regex here — semicolons can appear inside string values
+    # We do NOT use regex here - semicolons can appear inside string values
     # and a regex cannot distinguish them from statement terminators.
     inserts = [
         line.strip() for line in sql_content.splitlines()
@@ -472,7 +472,7 @@ def _install_registry(package_path: Path, registry_name: str) -> None:
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Entitlement cache — persists entitled list so Registries page survives Wombat outage
+# Entitlement cache - persists entitled list so Registries page survives Wombat outage
 # ---------------------------------------------------------------------------
 
 def _write_entitlements_cache(entitled: list, available_registries: list) -> None:
@@ -511,7 +511,7 @@ def _deliver_registry(registry: str) -> bool:
         manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
     except HTTPError as exc:
         if exc.code == 404:
-            _log(f"Registry delivery: customer ID '{CUSTOMER_ID}' not recognised by Wombat — provision via ATC before Marmot can deliver"); return False
+            _log(f"Registry delivery: customer ID '{CUSTOMER_ID}' not recognised by Wombat - provision via ATC before Marmot can deliver"); return False
         _log(f"Registry delivery: manifest fetch failed - {exc}"); return False
     except Exception as exc:
         _log(f"Registry delivery: manifest fetch failed - {exc}"); return False
@@ -722,7 +722,7 @@ def main() -> None:
     installed = _scan_installed()
     _report(installed, missing, delivered)
 
-    # Registry delivery — merge warehouse required_registries (e.g. airports_ref, always
+    # Registry delivery - merge warehouse required_registries (e.g. airports_ref, always
     # delivered to every customer) with customer-specific entitlements.
     wh_required_registries: list[str] = wh_manifest.get("required_registries", [])
     required_registries: list[str] = list(wh_required_registries)
@@ -772,27 +772,27 @@ def main() -> None:
         _log(f"Registries - Required: {required_registries} | Installed: {sorted(installed_registry_names) or 'none'} | Missing: {missing_registries} | Outdated: {outdated_registries}")
         registry_pref = _get_registry_pref()
         if registry_pref == "never":
-            _log("Registries: registry_updates=never — skipping all delivery")
+            _log("Registries: registry_updates=never - skipping all delivery")
         elif registry_pref == "ask":
             if needs_delivery:
                 _write_pending_registries(needs_delivery)
-                _log(f"Registries: registry_updates=ask — {len(needs_delivery)} queued for user approval")
+                _log(f"Registries: registry_updates=ask - {len(needs_delivery)} queued for user approval")
         else:  # automatic
             from datetime import datetime as _dt, timezone as _tz
             _now = _dt.now(_tz.utc)
             for reg in needs_delivery:
                 if reg in outdated_registries:
-                    # Version update — apply jitter to spread load
+                    # Version update - apply jitter to spread load
                     target_ver = available_registry_versions.get(reg, "")
                     scheduled  = _get_scheduled_update(reg, target_ver)
                     if scheduled is None:
-                        # First time we've seen this update — schedule it
+                        # First time we've seen this update - schedule it
                         _schedule_registry_update(reg, target_ver, update_window_hours)
                         continue
                     if _now < (scheduled.replace(tzinfo=_tz.utc) if scheduled.tzinfo is None else scheduled):
                         _log(f"Registry update {reg} → {target_ver}: scheduled for {scheduled.isoformat()}, waiting")
                         continue
-                    # Scheduled time has passed — deliver
+                    # Scheduled time has passed - deliver
                     _log(f"Registry update {reg} → {target_ver}: scheduled time reached, delivering")
                 if _deliver_registry(reg):
                     delivered_registries.append(reg)
@@ -843,19 +843,19 @@ def main() -> None:
             if (_mapped not in installed_registry_names and _mapped not in required_registries) or _mapped_outdated:
                 registry_pref = _get_registry_pref()
                 if registry_pref == "never":
-                    _log(f"Country {_country} maps to registry '{_mapped}' — skipped (registry_updates=never)")
+                    _log(f"Country {_country} maps to registry '{_mapped}' - skipped (registry_updates=never)")
                 elif registry_pref == "ask":
                     _write_pending_registries([_mapped])
-                    _log(f"Country {_country} maps to registry '{_mapped}' — queued for user approval")
+                    _log(f"Country {_country} maps to registry '{_mapped}' - queued for user approval")
                 else:
-                    _log(f"Country {_country} maps to registry '{_mapped}' — auto-requesting")
+                    _log(f"Country {_country} maps to registry '{_mapped}' - auto-requesting")
                     if _deliver_registry(_mapped):
                         delivered_registries.append(_mapped)
                         _remove_from_pending(_mapped)
     except Exception as _exc:
         _log(f"Country registry auto-request failed: {_exc}")
 
-    # App update check — runs every cycle, lightweight (single GET then done if up to date)
+    # App update check - runs every cycle, lightweight (single GET then done if up to date)
     try:
         _apply_app_update_if_available()
     except Exception as _upd_exc:
@@ -880,7 +880,7 @@ def _apply_app_update_if_available() -> None:
     """
     Check Wombat for an app update newer than the currently applied version.
     If found: download, verify, and apply via app_updater.
-    Fails silently (logged) — never crashes the Marmot run.
+    Fails silently (logged) - never crashes the Marmot run.
     """
     if not WOMBAT_URL:
         return
