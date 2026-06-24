@@ -466,7 +466,11 @@
   {% if is_client and wombat_offline %}
   <div class="alert-banner error">
     <span class="alert-icon">⚠</span>
-    <span>Cannot reach Wombat — showing last known state. Install and remove are unavailable while offline.</span>
+    {% if wombat_cache_at %}
+    <span>Cannot reach Wombat — showing entitlements cached on {{ wombat_cache_at[:19]|replace("T"," ") }} UTC. Installed registry data remains fully usable. Purchase, install and remove are unavailable while offline.</span>
+    {% else %}
+    <span>Cannot reach Wombat and no cached entitlement list is available yet. Installed registry data still works if already imported. Purchase, install and remove are unavailable while offline.</span>
+    {% endif %}
   </div>
   {% endif %}
 

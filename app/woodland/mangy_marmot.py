@@ -62,6 +62,7 @@ REGISTRIES_INCOMING  = AIRTRACK_HOME / "registries" / "incoming"
 REGISTRIES_INSTALLED  = AIRTRACK_HOME / "registries" / "installed"
 UPDATE_SCHEDULE_PATH  = AIRTRACK_HOME / "registry_update_schedule.json"
 REGISTRIES_MANIFESTS = AIRTRACK_HOME / "registries" / "manifests"
+ENTITLEMENTS_CACHE_PATH  = AIRTRACK_HOME / "registries" / "entitlements_cache.json"
 
 # Public key source from git repo (copied to AIRTRACK_HOME on first run)
 _REPO_PUBLIC_KEY = Path(__file__).resolve().parent.parent / "core" / "airtrack_solutions.pub"
@@ -470,6 +471,39 @@ def _install_registry(package_path: Path, registry_name: str) -> None:
 # Registry delivery cycle
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Entitlement cache — persists entitled list so Registries page survives Wombat outage
+# ---------------------------------------------------------------------------
+
+def _write_entitlements_cache(entitled: list, available_registries: list) -> None:
+    """Write entitled list + available registry metadata to local cache file."""
+    try:
+        ENTITLEMENTS_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        cache = {
+            "cached_at":           _now_iso(),
+            "customer_id":         CUSTOMER_ID,
+            "entitled":            entitled,
+            "available_registries": available_registries,
+        }
+        tmp = ENTITLEMENTS_CACHE_PATH.with_suffix(".tmp")
+        tmp.write_text(json.dumps(cache, indent=2), encoding="utf-8")
+        tmp.replace(ENTITLEMENTS_CACHE_PATH)
+        _log(f"Entitlement cache written: {len(entitled)} entitled, {len(available_registries)} available")
+    except Exception as exc:
+        _log(f"Entitlement cache write failed (non-fatal): {exc}")
+
+
+def _read_entitlements_cache() -> dict | None:
+    """Read local entitlement cache. Returns None if absent or unreadable."""
+    try:
+        if not ENTITLEMENTS_CACHE_PATH.exists():
+            return None
+        return json.loads(ENTITLEMENTS_CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        _log(f"Entitlement cache read failed: {exc}")
+        return None
+
+
 def _deliver_registry(registry: str) -> bool:
     _log(f"Registry delivery: starting for '{registry}'")
 
@@ -710,6 +744,15 @@ def main() -> None:
         _log(f"Registries: could not fetch available versions - {_avail_exc}")
         available_registry_versions = {}
         update_window_hours = 24
+
+    # Write entitlement cache after successful fetch (non-fatal if either was unavailable)
+    if CUSTOMER_ID and available_registry_versions:
+        _entitled_for_cache = [
+            slug for slug in required_registries
+            if slug not in wh_manifest.get("required_registries", [])
+        ]
+        _avail_list = _avail_resp.get("registries", [])
+        _write_entitlements_cache(_entitled_for_cache, _avail_list)
 
     installed_registries     = _scan_installed_registries()
     installed_registry_map   = {r["name"]: r["version"] for r in installed_registries}
