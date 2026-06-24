@@ -595,6 +595,56 @@
 </div>
 
 <script>
+  // License upload (Step 7)
+  function licenseFileSelected() {
+    const f = document.getElementById("license-file-input").files[0];
+    document.getElementById("license-apply-btn").disabled = !f;
+    document.getElementById("license-msg").textContent = "";
+  }
+  function applyLicense() {
+    const f = document.getElementById("license-file-input").files[0];
+    if (!f) return;
+    const btn = document.getElementById("license-apply-btn");
+    const msg = document.getElementById("license-msg");
+    btn.disabled = true;
+    btn.textContent = "Applying...";
+    msg.className = "license-msg";
+    msg.textContent = "";
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      fetch("/setup/upload-license", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({content: e.target.result})
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) {
+          document.getElementById("edition-name-display").textContent = "AirTrack " + d.edition;
+          document.getElementById("edition-cap-display").textContent =
+            d.max_aircraft ? d.max_aircraft + "-aircraft limit · Core features active"
+                           : "Fully licensed · All features active";
+          const sec = document.getElementById("license-upload-section");
+          if (sec) sec.style.display = "none";
+          msg.className = "license-msg ok";
+          msg.textContent = "✓ License applied. Your edition has been updated.";
+        } else {
+          msg.className = "license-msg err";
+          msg.textContent = d.error || "Could not apply license.";
+          btn.disabled = false;
+          btn.textContent = "Apply";
+        }
+      })
+      .catch(err => {
+        msg.className = "license-msg err";
+        msg.textContent = "Network error: " + err;
+        btn.disabled = false;
+        btn.textContent = "Apply";
+      });
+    };
+    reader.readAsText(f);
+  }
+
   const STEPS = 9;
   let current = 0;
 
