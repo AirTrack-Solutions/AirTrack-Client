@@ -65,6 +65,9 @@
       font-size: 0.82rem;
     }
     .quota-label { color: #888; white-space: nowrap; }
+    .tally-link { text-decoration: none; color: inherit; display: block; }
+    .tally-link:hover .tally-value { color: #00cc44; }
+    .tally-link:hover .tally-label { color: #aaa; }
     .quota-pips  { display: flex; gap: 5px; }
     .quota-pip {
       width: 16px; height: 16px;
@@ -442,18 +445,22 @@
   <div class="tally-bar">
     <div class="tally-stat">
       <span class="tally-value" id="tallyRecords">{{ '{:,}'.format(total_records) }}</span>
-      <span class="tally-label">Total records</span>
+      <span class="tally-label">Records Imported</span>
     </div>
     <div class="tally-divider"></div>
     <div class="tally-stat">
       <span class="tally-value" id="tallyCountries">{{ imported_count }}</span>
-      <span class="tally-label">Countries imported</span>
+      <span class="tally-label">Countries Imported</span>
     </div>
+    {% if is_client and purchasable %}
     <div class="tally-divider"></div>
     <div class="tally-stat">
-      <span class="tally-value">{{ total_count - imported_count }}</span>
-      <span class="tally-label">Available to import</span>
+      <a href="#marketSection" class="tally-link">
+        <span class="tally-value">{{ purchasable | length }}</span>
+        <span class="tally-label">Available to be Purchased</span>
+      </a>
     </div>
+    {% endif %}
   </div>
 
   {% if is_client and wombat_offline %}
@@ -500,7 +507,7 @@
     {% if is_client and pending_count > 0 %}
     <button class="filter-btn" data-filter="pending">Pending ({{ pending_count }})</button>
     {% endif %}
-    <button class="filter-btn" data-filter="available">Available ({{ total_count - imported_count - (pending_count or 0) }})</button>
+
   </div>
 
   {% if registries %}
@@ -695,12 +702,10 @@
       const cards = document.querySelectorAll('.registry-card');
       const total    = cards.length;
       const imported = [...cards].filter(c => c.dataset.state === 'imported').length;
-      const available = total - imported;
-      document.querySelector('[data-filter="all"]').textContent    = `All (${total})`;
-      document.querySelector('[data-filter="imported"]').textContent  = `Imported (${imported})`;
-      document.querySelector('[data-filter="available"]').textContent = `Available (${available})`;
+      document.querySelector('[data-filter="all"]').textContent       = `All (${total})`;
+      document.querySelector('[data-filter="imported"]').textContent  = `Installed (${imported})`;
       const sub = document.querySelector('.subtitle');
-      if (sub) sub.textContent = `${imported} of ${total} imported`;
+      if (sub) sub.textContent = `${imported} of ${total} installed`;
     }
 
     async function importRegistry(dir) {
