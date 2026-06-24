@@ -527,11 +527,20 @@
         </div>
 
         <div class="edition-box">
-          <div class="edition-name">AirTrack {{ edition }}</div>
+          <div class="edition-name" id="edition-name-display">AirTrack {{ edition }}</div>
+          <div class="edition-cap" id="edition-cap-display">
+            {% if aircraft_limit %}{{ aircraft_limit }}-aircraft limit &middot; Core features active
+            {% else %}Fully licensed &middot; All features active{% endif %}
+          </div>
           {% if aircraft_limit %}
-          <div class="edition-cap">{{ aircraft_limit }}-aircraft limit · Core features active</div>
-          {% else %}
-          <div class="edition-cap">Fully licensed · All features active</div>
+          <div class="license-upload" id="license-upload-section">
+            <label>Have a license? Browse to your license.lic file and click Apply.</label>
+            <div class="license-file-row">
+              <input type="file" id="license-file-input" accept=".lic,.json" onchange="licenseFileSelected()">
+              <button class="btn-apply-lic" id="license-apply-btn" onclick="applyLicense()" disabled>Apply</button>
+            </div>
+            <div class="license-msg" id="license-msg"></div>
+          </div>
           {% endif %}
         </div>
 
