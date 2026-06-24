@@ -58,7 +58,8 @@ CORE_DIR         = AIRTRACK_HOME / "core"
 PUBLIC_KEY_PATH  = CORE_DIR / "airtrack_solutions.pub"
 LOG_DIR              = AIRTRACK_HOME / "logs"
 REGISTRIES_INCOMING  = AIRTRACK_HOME / "registries" / "incoming"
-REGISTRIES_INSTALLED = AIRTRACK_HOME / "registries" / "installed"
+REGISTRIES_INSTALLED  = AIRTRACK_HOME / "registries" / "installed"
+UPDATE_SCHEDULE_PATH  = AIRTRACK_HOME / "registry_update_schedule.json"
 REGISTRIES_MANIFESTS = AIRTRACK_HOME / "registries" / "manifests"
 
 # Public key source from git repo (copied to AIRTRACK_HOME on first run)
@@ -290,6 +291,75 @@ def _deliver(capability: str) -> bool:
 
     return True
 
+
+
+
+# ---------------------------------------------------------------------------
+# Registry update scheduler — jittered delivery to prevent thundering herd
+# ---------------------------------------------------------------------------
+
+def _load_update_schedule() -> dict:
+    try:
+        return json.loads(UPDATE_SCHEDULE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_update_schedule(schedule: dict) -> None:
+    UPDATE_SCHEDULE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = UPDATE_SCHEDULE_PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(schedule, indent=2), encoding="utf-8")
+    tmp.replace(UPDATE_SCHEDULE_PATH)
+
+
+def _schedule_registry_update(slug: str, target_version: str, window_hours: int) -> str:
+    """
+    Calculate and persist a jittered update time for slug→target_version.
+    Returns the ISO scheduled_at string.
+    Uses a deterministic hash of (customer_id, slug, version) so the same
+    client always gets the same offset for a given release.
+    """
+    import hashlib as _hl
+    from datetime import timedelta as _td
+    seed_str  = f"{CUSTOMER_ID}:{slug}:{target_version}"
+    seed_int  = int(_hl.sha256(seed_str.encode()).hexdigest(), 16)
+    delay_min = seed_int % max(1, window_hours * 60)
+    from datetime import datetime as _dt2, timezone as _tz2
+    scheduled = _dt2.now(_tz2.utc) + _td(minutes=delay_min)
+    scheduled_iso = scheduled.isoformat(timespec="seconds")
+    schedule = _load_update_schedule()
+    schedule[slug] = {
+        "target_version": target_version,
+        "scheduled_at":   scheduled_iso,
+        "window_hours":   window_hours,
+    }
+    _save_update_schedule(schedule)
+    _log(f"Registry update scheduled: {slug} → {target_version} at {scheduled_iso} "
+         f"(+{delay_min}min, window={window_hours}h)")
+    return scheduled_iso
+
+
+def _get_scheduled_update(slug: str, target_version: str):
+    """
+    Return the scheduled_at datetime for (slug, target_version) or None if
+    not yet scheduled or already superseded by a different target_version.
+    """
+    from datetime import datetime as _dt
+    schedule = _load_update_schedule()
+    entry = schedule.get(slug)
+    if not entry or entry.get("target_version") != target_version:
+        return None
+    try:
+        return _dt.fromisoformat(entry["scheduled_at"])
+    except Exception:
+        return None
+
+
+def _clear_scheduled_update(slug: str) -> None:
+    schedule = _load_update_schedule()
+    if slug in schedule:
+        del schedule[slug]
+        _save_update_schedule(schedule)
 
 
 # ---------------------------------------------------------------------------
@@ -629,13 +699,15 @@ def main() -> None:
             ]
         except Exception as exc:
             _log(f"Registry manifest unavailable - {exc}")
-    # Fetch available versions from Wombat for update detection
+    # Fetch available versions + update window from Wombat
     try:
         _avail_resp = _get("/api/wombat/available-registries")
         available_registry_versions = {r["slug"]: r["version"] for r in _avail_resp.get("registries", [])}
+        update_window_hours = int(_avail_resp.get("update_window_hours", 24))
     except Exception as _avail_exc:
         _log(f"Registries: could not fetch available versions - {_avail_exc}")
         available_registry_versions = {}
+        update_window_hours = 24
 
     installed_registries     = _scan_installed_registries()
     installed_registry_map   = {r["name"]: r["version"] for r in installed_registries}
@@ -661,10 +733,26 @@ def main() -> None:
                 _write_pending_registries(needs_delivery)
                 _log(f"Registries: registry_updates=ask — {len(needs_delivery)} queued for user approval")
         else:  # automatic
+            from datetime import datetime as _dt, timezone as _tz
+            _now = _dt.now(_tz.utc)
             for reg in needs_delivery:
+                if reg in outdated_registries:
+                    # Version update — apply jitter to spread load
+                    target_ver = available_registry_versions.get(reg, "")
+                    scheduled  = _get_scheduled_update(reg, target_ver)
+                    if scheduled is None:
+                        # First time we've seen this update — schedule it
+                        _schedule_registry_update(reg, target_ver, update_window_hours)
+                        continue
+                    if _now < (scheduled.replace(tzinfo=_tz.utc) if scheduled.tzinfo is None else scheduled):
+                        _log(f"Registry update {reg} → {target_ver}: scheduled for {scheduled.isoformat()}, waiting")
+                        continue
+                    # Scheduled time has passed — deliver
+                    _log(f"Registry update {reg} → {target_ver}: scheduled time reached, delivering")
                 if _deliver_registry(reg):
                     delivered_registries.append(reg)
                     _remove_from_pending(reg)
+                    _clear_scheduled_update(reg)
 
     # Country auto-request: if app_settings.country maps to a registry not yet
     # installed or already in required_registries, self-request it from Wombat.
@@ -700,14 +788,14 @@ def main() -> None:
         if _country and _country in COUNTRY_REGISTRY_MAP:
             _mapped = COUNTRY_REGISTRY_MAP[_country]
             _mapped_installed_version = installed_registry_map.get(_mapped)
-                _mapped_avail_version    = available_registry_versions.get(_mapped)
-                _mapped_outdated         = (
-                    _mapped in installed_registry_names
-                    and _mapped_installed_version and _mapped_installed_version != "unknown"
-                    and _mapped_avail_version
-                    and _mapped_installed_version != _mapped_avail_version
-                )
-                if (_mapped not in installed_registry_names and _mapped not in required_registries) or _mapped_outdated:
+            _mapped_avail_version     = available_registry_versions.get(_mapped)
+            _mapped_outdated          = (
+                _mapped in installed_registry_names
+                and _mapped_installed_version and _mapped_installed_version != "unknown"
+                and _mapped_avail_version
+                and _mapped_installed_version != _mapped_avail_version
+            )
+            if (_mapped not in installed_registry_names and _mapped not in required_registries) or _mapped_outdated:
                 registry_pref = _get_registry_pref()
                 if registry_pref == "never":
                     _log(f"Country {_country} maps to registry '{_mapped}' — skipped (registry_updates=never)")
