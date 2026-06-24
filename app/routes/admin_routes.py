@@ -215,8 +215,10 @@ def admin_dashboard():
         "logs_tail":     _endpoint_url('admin_tools.logs_tail'),
     }.items() if v}
 
-    # Applied app update version (client only — reads AIRTRACK_HOME/app_update_version.txt)
-    app_update_version = None
+    # Applied app update version + restart-pending check
+    # (client only — reads AIRTRACK_HOME files)
+    app_update_version  = None
+    restart_pending     = None   # dict {version, queued_at} if flag file exists
     try:
         import sys as _sys
         from pathlib import Path as _Path
@@ -229,6 +231,13 @@ def admin_dashboard():
             _v = _vf.read_text(encoding='utf-8').strip()
             if _v and _v != '0.0.0':
                 app_update_version = _v
+        _pf = _home / 'restart_pending.txt'
+        if _pf.exists():
+            _lines = _pf.read_text(encoding='utf-8').strip().splitlines()
+            restart_pending = {
+                'version':   _lines[0] if _lines else 'unknown',
+                'queued_at': _lines[1] if len(_lines) > 1 else 'unknown',
+            }
     except Exception:
         pass
 
@@ -240,6 +249,7 @@ def admin_dashboard():
         airtrack_urls=airtrack_urls,
         is_server=is_server,
         app_update_version=app_update_version,
+        restart_pending=restart_pending,
     )
 
 

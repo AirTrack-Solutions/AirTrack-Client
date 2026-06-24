@@ -89,11 +89,21 @@
     .status.ok{color:#7dff7d;}
     .status.err{color:#ff6b6b;}
     #app-update-ver{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-family:monospace;font-size:0.62rem;color:rgba(125,255,125,0.45);letter-spacing:0.06em;white-space:nowrap;pointer-events:none;user-select:none;}
+    #restart-pending-banner{position:fixed;top:0;left:0;width:100%;background:#b8860b;color:#fff;text-align:center;padding:0.6rem 3rem;font-size:0.85rem;font-weight:600;z-index:10000;box-sizing:border-box;}
+    #restart-pending-banner a{color:#fff;text-decoration:underline;cursor:pointer;margin-left:1.5rem;font-weight:400;}
   </style>
 </head>
 
 <body class="theme-{{ selected_theme or 'default' }}">
   <div class="admin-background"></div>
+
+  {% if restart_pending %}
+  <div id="restart-pending-banner">
+    ⚠ App update v{{ restart_pending.version }} was applied at {{ restart_pending.queued_at }} but the service restart was never confirmed.
+    Files on disk are the new version; running code may still be the old version.
+    <a onclick="dismissRestartBanner()">Dismiss</a>
+  </div>
+  {% endif %}
 
   <!-- Cockpit shutdown layers -->
   <div class="cockpit-hangar-plate" aria-hidden="true"></div>
@@ -769,6 +779,11 @@
 
     function closeCleanupModal() {
       document.getElementById('cleanupModal').style.display = 'none';
+    }
+
+    function dismissRestartBanner() {
+      const b = document.getElementById('restart-pending-banner');
+      if (b) b.remove();
     }
 
   </script>
