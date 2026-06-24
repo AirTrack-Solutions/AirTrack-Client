@@ -88,12 +88,10 @@ def wizard():
     aircraft_limit = 100
     try:
         if os.getenv("AIRTRACK_ROLE") == "client":
-            from config.license import load_license
+            from config.license import load_license, EDITION_NAMES
             lic = load_license()
-            if lic:
-                from config.license import EDITION_NAMES
-                edition = EDITION_NAMES.get(lic.edition, lic.edition)
-                aircraft_limit = None  # Licensed — no cap shown
+            edition = EDITION_NAMES.get(lic.edition, lic.edition)
+            aircraft_limit = lic.max_aircraft  # None for paid editions, 100 for Lite
     except Exception:
         pass
     return render_template(
