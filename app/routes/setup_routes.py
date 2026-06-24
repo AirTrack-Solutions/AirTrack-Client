@@ -106,20 +106,33 @@ def upload_license():
     """Receive license.lic content, validate, and save to AIRTRACK_HOME."""
     import sys as _sys
     from pathlib import Path as _Path
+    # Edition tables — inline so frozen import issues can't break this route
+    _EDITIONS = ['lite', 'ats', 'atp', 'ati', 'atf', 'airtrack-client']
+    _EDITION_NAMES = {
+        'lite': 'Lite', 'ats': 'Standard', 'atp': 'Standard',
+        'ati': 'Pro', 'atf': 'Pro', 'airtrack-client': 'Standard',
+    }
+    _EDITION_MAX_AIRCRAFT = {
+        'lite': 100, 'ats': None, 'atp': None,
+        'ati': None, 'atf': None, 'airtrack-client': None,
+    }
     try:
         payload = request.get_json(force=True, silent=True) or {}
         raw = payload.get("content", "")
         if not raw:
             return jsonify({"ok": False, "error": "No content received"}), 400
 
-        data = json.loads(raw)
+        try:
+            data = json.loads(raw)
+        except Exception:
+            return jsonify({"ok": False, "error": "Invalid JSON — is this a valid AirTrack license file?"}), 400
+
         edition_raw = data.get("edition", "").strip()
         if not edition_raw:
-            return jsonify({"ok": False, "error": "Missing edition field"}), 400
+            return jsonify({"ok": False, "error": "Missing edition field in license file"}), 400
 
-        from config.license import load_license, EDITION_NAMES, EDITIONS, EDITION_MAX_AIRCRAFT
         edition_key = edition_raw.lower()
-        if edition_key not in EDITIONS:
+        if edition_key not in _EDITIONS:
             return jsonify({"ok": False, "error": f"Unknown edition '{edition_raw}'"}), 400
 
         # Save to AIRTRACK_HOME
@@ -130,16 +143,12 @@ def upload_license():
         dest = _Path(home_str) / 'license.lic'
         dest.write_text(raw, encoding='utf-8')
 
-        edition_name  = EDITION_NAMES.get(edition_key, edition_key)
-        max_aircraft  = EDITION_MAX_AIRCRAFT.get(edition_key)
         return jsonify({
             "ok":           True,
-            "edition":      edition_name,
-            "max_aircraft": max_aircraft,
+            "edition":      _EDITION_NAMES.get(edition_key, edition_key),
+            "max_aircraft": _EDITION_MAX_AIRCRAFT.get(edition_key),
             "license_id":   data.get("license_id", ""),
         })
-    except json.JSONDecodeError:
-        return jsonify({"ok": False, "error": "Invalid JSON — is this a valid AirTrack license file?"}), 400
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 500
 
