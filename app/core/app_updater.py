@@ -180,6 +180,9 @@ def apply_app_update(
         app_root     = install_root / "app"
         _log(f"App update: installing {len(names)} files -> {app_root}")
 
+        # Snapshot existing files before overwriting (keeps last 3 pre-update backups)
+        _backup_app_tree(app_root, version, h, _log)
+
         # Extract to temp dir, then move per-file (avoids partial-write corruption)
         with tempfile.TemporaryDirectory(prefix="airtrack_upd_") as tmp_str:
             tmp = Path(tmp_str)
@@ -201,11 +204,61 @@ def apply_app_update(
     _write_applied_version(version, h)
     _log(f"App update: applied version {version}")
 
+    # --- Write restart-pending flag (cleared by service on next startup) ---
+    _write_restart_pending(version, h)
+
     # --- Schedule service restart (Windows only) ---
     if sys.platform == "win32":
         _schedule_restart(_log)
     else:
         _log("App update: non-Windows host -- restart service manually to pick up changes")
+
+
+def _backup_app_tree(app_root: Path, version: str, home: Path, log_fn) -> None:
+    """
+    Snapshot current templates/ and static/ into AIRTRACK_HOME/backups/app_update_pre_{version}/.
+    Keeps the 3 most recent pre-update snapshots.
+    Skips silently if neither templates/ nor static/ exist yet (first-ever install).
+    Raises RuntimeError on any other failure -- caller aborts the update.
+    """
+    from datetime import datetime as _dt
+
+    has_content = any(
+        (app_root / sub).is_dir()
+        for sub in ("templates", "static")
+    )
+    if not has_content:
+        log_fn("App update: no existing templates/static -- skipping pre-update backup")
+        return
+
+    stamp   = _dt.utcnow().strftime("%Y%m%d_%H%M%S")
+    bak_dir = home / "backups" / f"app_update_pre_{version}_{stamp}"
+    try:
+        bak_dir.mkdir(parents=True, exist_ok=True)
+        for sub in ("templates", "static"):
+            src_dir = app_root / sub
+            if src_dir.is_dir():
+                shutil.copytree(src_dir, bak_dir / sub)
+        log_fn(f"App update: pre-update backup -> {bak_dir.name}")
+        _prune_app_backups(home / "backups", log_fn)
+    except Exception as exc:
+        log_fn(f"App update: CRITICAL -- pre-update backup failed: {exc}")
+        raise RuntimeError(f"Pre-update backup failed, aborting update: {exc}") from exc
+
+
+def _prune_app_backups(backups_dir: Path, log_fn) -> None:
+    """Keep the 3 most recent app_update_pre_* snapshot directories."""
+    try:
+        snaps = sorted(
+            [d for d in backups_dir.iterdir() if d.is_dir() and d.name.startswith("app_update_pre_")],
+            key=lambda d: d.stat().st_mtime,
+            reverse=True,
+        )
+        for old in snaps[3:]:
+            shutil.rmtree(old, ignore_errors=True)
+            log_fn(f"App update: removed old pre-update backup {old.name}")
+    except Exception as exc:
+        log_fn(f"App update: backup pruning failed (non-fatal) -- {exc}")
 
 
 def _replace_tree(src: Path, dst: Path) -> None:
@@ -219,6 +272,40 @@ def _replace_tree(src: Path, dst: Path) -> None:
             tmp_target = target.with_suffix(target.suffix + ".tmp")
             shutil.copy2(item, tmp_target)
             tmp_target.replace(target)
+
+
+_RESTART_PENDING_FILE = "restart_pending.txt"
+
+
+def _write_restart_pending(version: str, home: Path) -> None:
+    """Write a flag file that the service clears on startup to confirm restart completed."""
+    try:
+        from datetime import datetime as _dt
+        flag = home / _RESTART_PENDING_FILE
+        flag.write_text(
+            f"{version}\n{_dt.utcnow().isoformat(timespec='seconds')}Z\n",
+            encoding="utf-8",
+        )
+    except Exception:
+        pass  # non-fatal
+
+
+def clear_restart_pending(home: "Path | None" = None) -> "str | None":
+    """
+    Called by the service on startup. Removes restart_pending.txt if present.
+    Returns the version string from the flag, or None if no flag existed.
+    """
+    h    = home or _get_airtrack_home()
+    flag = h / _RESTART_PENDING_FILE
+    try:
+        if flag.exists():
+            text    = flag.read_text(encoding="utf-8").strip().splitlines()
+            version = text[0] if text else "unknown"
+            flag.unlink(missing_ok=True)
+            return version
+    except Exception:
+        pass
+    return None
 
 
 def _schedule_restart(log_fn) -> None:

@@ -215,6 +215,23 @@ def admin_dashboard():
         "logs_tail":     _endpoint_url('admin_tools.logs_tail'),
     }.items() if v}
 
+    # Applied app update version (client only — reads AIRTRACK_HOME/app_update_version.txt)
+    app_update_version = None
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+        _home = _Path(os.environ.get('AIRTRACK_HOME') or (
+            os.path.join(os.environ.get('ProgramData', 'C:/ProgramData'), 'AirTrack')
+            if _sys.platform == 'win32' else '/airtrack_data'
+        ))
+        _vf = _home / 'app_update_version.txt'
+        if _vf.exists():
+            _v = _vf.read_text(encoding='utf-8').strip()
+            if _v and _v != '0.0.0':
+                app_update_version = _v
+    except Exception:
+        pass
+
     return render_template(
         'admin.html',
         stats=stats,
@@ -222,6 +239,7 @@ def admin_dashboard():
         show_commit_push=show_commit_push,
         airtrack_urls=airtrack_urls,
         is_server=is_server,
+        app_update_version=app_update_version,
     )
 
 

@@ -108,6 +108,25 @@ def _bootstrap_core():
 _load_config()
 _bootstrap_core()
 
+# Clear restart-pending flag written by app_updater before the previous restart
+try:
+    import importlib.util as _ilu, sys as _sys
+    _home = Path(os.environ.get(
+        'AIRTRACK_HOME',
+        os.path.join(os.environ.get('ProgramData', 'C:\\ProgramData'), 'AirTrack')
+    ))
+    _updater_path = _home / 'core' / 'app_updater.py'
+    if _updater_path.exists():
+        _spec = _ilu.spec_from_file_location('app_updater', _updater_path)
+        _mod  = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        _pending_ver = _mod.clear_restart_pending(_home)
+        if _pending_ver:
+            import logging as _lg
+            _lg.info(f'App update v{_pending_ver} restart confirmed on startup')
+except Exception:
+    pass
+
 
 # ---------------------------------------------------------------------------
 # Windows service
