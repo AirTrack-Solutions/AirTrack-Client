@@ -623,7 +623,10 @@
     reader.onload = function(e) {
       fetch("/setup/upload-license", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token() }}"
+        },
         body: JSON.stringify({content: e.target.result})
       })
       .then(r => r.json())
