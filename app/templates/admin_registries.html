@@ -564,6 +564,14 @@
           {% if is_client %}Install{% else %}Import{% endif %}
         </button>
         {% endif %}
+        {% if r.has_update %}
+        <button class="btn btn-approve"
+                id="btn-update-{{ r.dir }}"
+                onclick="importRegistry('{{ r.dir }}')"
+                {% if wombat_offline | default(false) %}disabled{% endif %}>
+          Update
+        </button>
+        {% endif %}
         <button class="btn btn-remove"
                 id="btn-remove-{{ r.dir }}"
                 onclick="removeRegistry('{{ r.dir }}')"
