@@ -461,6 +461,7 @@ def attempt_rollback(
     if not backup_dir:
         _log(f"Rollback: no pre-update backup found for v{version} -- cannot roll back")
         _write_rollback_record(version, "none", "no_backup", h)
+        report_rollback_event(version, "failed_no_backup", detail="no pre-update backup found", log_fn=_log)
         return False
 
     _log(f"Rollback: restoring from {backup_dir.name}")
@@ -469,6 +470,8 @@ def attempt_rollback(
     except Exception as exc:
         _log(f"Rollback: restore failed -- {exc}")
         _write_rollback_record(version, backup_dir.name, f"restore_failed:{exc}", h)
+        report_rollback_event(version, "failed_restore", backup_name=backup_dir.name,
+                              detail=str(exc), log_fn=_log)
         return False
 
     _write_rollback_record(version, backup_dir.name, "health_check_failed", h)
@@ -484,3 +487,64 @@ def attempt_rollback(
         _log("Rollback: non-Windows -- restart service manually")
 
     return True
+
+
+# ---------------------------------------------------------------------------
+# Rollback event reporting  (client → Wombat → ntfy → Trevor)
+# ---------------------------------------------------------------------------
+
+def report_rollback_event(
+    version: str,
+    outcome: str,
+    backup_name: str = "",
+    detail: str = "",
+    home: "Path | None" = None,
+    log_fn=None,
+) -> None:
+    """
+    POST a rollback event to Wombat so ATC and ntfy are notified.
+
+    outcome values:
+        "recovered"            — rollback succeeded, Flask healthy again
+        "failed_no_backup"     — rollback could not run, no backup found
+        "failed_restore"       — backup found but restore failed
+        "failed_post_rollback" — restored OK but Flask still unhealthy after restart
+
+    Never raises — all failures are logged and swallowed.
+    """
+    import urllib.request as _req
+    import json as _json
+    from datetime import datetime as _dt
+
+    def _log(msg: str) -> None:
+        if log_fn:
+            log_fn(msg)
+
+    wombat_url  = os.environ.get("WOMBAT_URL", "").rstrip("/")
+    customer_id = os.environ.get("AIRTRACK_CUSTOMER_ID", "")
+
+    if not wombat_url or not customer_id:
+        _log("Rollback report: WOMBAT_URL or AIRTRACK_CUSTOMER_ID not set — cannot report")
+        return
+
+    payload = _json.dumps({
+        "customer_id":  customer_id,
+        "version":      version,
+        "outcome":      outcome,
+        "backup_used":  backup_name,
+        "detail":       detail,
+        "reported_at":  _dt.utcnow().isoformat(timespec="seconds") + "Z",
+    }).encode("utf-8")
+
+    try:
+        r = _req.Request(
+            f"{wombat_url}/api/wombat/client-rollback-event",
+            data=payload,
+            headers={"Content-Type": "application/json", "User-Agent": "AirTrack-Client/1.0"},
+            method="POST",
+        )
+        with _req.urlopen(r, timeout=10):
+            pass
+        _log(f"Rollback report: sent outcome={outcome} to Wombat")
+    except Exception as exc:
+        _log(f"Rollback report: could not reach Wombat — {exc}")
