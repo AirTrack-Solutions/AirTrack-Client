@@ -249,13 +249,16 @@ def registry_list():
             wombat_offline = True
 
         # Fetch what Wombat has available (to show marketplace)
+        _wombat_registry_meta: dict[str, dict] = {}  # slug -> {version, records}
         if not wombat_offline and _WOMBAT_URL:
             try:
                 av_resp = _get("/api/wombat/available-registries")
-                available_wombat = [
-                    r["slug"] if isinstance(r, dict) else r
-                    for r in av_resp.get("registries", [])
-                ]
+                for r in av_resp.get("registries", []):
+                    if isinstance(r, dict):
+                        _wombat_registry_meta[r["slug"]] = r
+                    else:
+                        _wombat_registry_meta[r] = {"slug": r}
+                available_wombat = list(_wombat_registry_meta.keys())
                 update_window_hours = av_resp.get("update_window_hours", 24)
             except Exception:
                 available_wombat = []
@@ -270,9 +273,11 @@ def registry_list():
             pass
 
         # Purchasable = in Wombat, not yet entitled, and not free/auto-delivered
+        # Each entry is a dict {slug, records} so the template can show record counts.
         entitled_set = set(entitled)
         purchasable = [
-            slug for slug in available_wombat
+            {"slug": slug, "records": _wombat_registry_meta.get(slug, {}).get("records", 0)}
+            for slug in available_wombat
             if slug not in entitled_set and slug not in free_registries
         ]
 
