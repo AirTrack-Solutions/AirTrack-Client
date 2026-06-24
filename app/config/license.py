@@ -156,13 +156,28 @@ def load_license() -> AirTrackLicense:
         logging.info(f'🔑 License: edition overridden by AIRTRACK_EDITION={env_edition}')
         return AirTrackLicense(edition=env_edition, license_id='ENV-OVERRIDE', name='Environment')
 
-    # Look for license.lic — check /app/keys first (client install), then config dir (dev)
-    config_dir = Path(__file__).resolve().parent
-    keys_path  = Path('/app/keys/license.lic')
-    lic_path   = keys_path if keys_path.exists() else config_dir / 'license.lic'
+    # Search for license.lic in order:
+    #   1. /app/keys/license.lic        — Linux Docker client install
+    #   2. AIRTRACK_HOME/license.lic    — Windows (C:\ProgramData\AirTrack\)
+    #   3. config_dir/license.lic       — dev / bundle fallback
+    import sys as _sys
+    config_dir   = Path(__file__).resolve().parent
+    keys_path    = Path('/app/keys/license.lic')
+    home_str     = os.environ.get('AIRTRACK_HOME') or (
+        os.path.join(os.environ.get('ProgramData', 'C:/ProgramData'), 'AirTrack')
+        if _sys.platform == 'win32' else '/airtrack_data'
+    )
+    home_path    = Path(home_str) / 'license.lic'
+    bundle_path  = config_dir / 'license.lic'
 
-    if not lic_path.exists():
-        logging.warning(f'⚠️  No license.lic found at {lic_path} — defaulting to lite edition.')
+    if keys_path.exists():
+        lic_path = keys_path
+    elif home_path.exists():
+        lic_path = home_path
+    elif bundle_path.exists():
+        lic_path = bundle_path
+    else:
+        logging.warning(f'⚠️  No license.lic found (checked: {keys_path}, {home_path}, {bundle_path}) — defaulting to lite edition.')
         return AirTrackLicense()
 
     try:
