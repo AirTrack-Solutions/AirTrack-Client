@@ -37,21 +37,22 @@ def _load_config():
     # DATABASE_URI includes host, port, user, password, db name in one string.
     # app.py prefers DATABASE_URI over the individual DB_* vars, so we set this
     # directly to ensure port 3307 is honoured (app.py's URI builder omits port).
-    os.environ.setdefault(
-        'DATABASE_URI',
-        cfg.get('database', 'uri',
-                fallback='mysql+pymysql://airtrack:change-me@127.0.0.1:3307/airtrack?charset=utf8mb4')
+    # Direct assignment (not setdefault) so the cfg always wins over any
+    # stale values that may exist in the Windows system environment.
+    os.environ['DATABASE_URI'] = cfg.get(
+        'database', 'uri',
+        fallback='mysql+pymysql://airtrack:change-me@127.0.0.1:3307/airtrack?charset=utf8mb4'
     )
 
     # Individual vars — used by mysqldump in admin backup route (future use).
     _db_host = cfg.get('database', 'host', fallback='127.0.0.1')
     _db_port = cfg.get('database', 'port', fallback='3307')
     # Include port in DB_HOST so app.py's second URI construction gets the right port
-    os.environ.setdefault('DB_HOST', f'{_db_host}:{_db_port}')
-    os.environ.setdefault('DB_PORT', _db_port)
-    os.environ.setdefault('DB_NAME',     cfg.get('database', 'name',     fallback='airtrack'))
-    os.environ.setdefault('DB_USER',     cfg.get('database', 'user',     fallback='airtrack'))
-    os.environ.setdefault('DB_PASSWORD', cfg.get('database', 'password', fallback=''))
+    os.environ['DB_HOST']     = f'{_db_host}:{_db_port}'
+    os.environ['DB_PORT']     = _db_port
+    os.environ['DB_NAME']     = cfg.get('database', 'name',     fallback='airtrack')
+    os.environ['DB_USER']     = cfg.get('database', 'user',     fallback='airtrack')
+    os.environ['DB_PASSWORD'] = cfg.get('database', 'password', fallback='')
 
     os.environ.setdefault('SECRET_KEY',     cfg.get('app', 'secret_key', fallback='change-me'))
     os.environ.setdefault('AIRTRACK_ROLE',  cfg.get('app', 'role',       fallback='client'))
