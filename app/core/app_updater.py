@@ -493,6 +493,45 @@ def attempt_rollback(
 # Rollback event reporting  (client → Wombat → ntfy → Trevor)
 # ---------------------------------------------------------------------------
 
+_SUPPORT_PREFS_FILE    = "support_prefs.json"
+_PENDING_REPORT_FILE   = "pending_support_report.json"
+
+
+def _read_support_mode(home: Path) -> str:
+    """
+    Return the customer's support reporting preference: 'auto', 'ask', or 'never'.
+    Defaults to 'ask' if the file is absent or unreadable.
+    """
+    import json as _json
+    try:
+        prefs = _json.loads((home / _SUPPORT_PREFS_FILE).read_text(encoding="utf-8"))
+        mode  = prefs.get("mode", "ask")
+        return mode if mode in ("auto", "ask", "never") else "ask"
+    except Exception:
+        return "ask"
+
+
+def _send_rollback_payload(payload: dict, wombat_url: str, log_fn) -> None:
+    """POST a pre-built payload dict to Wombat. Never raises."""
+    import urllib.request as _req
+    import json as _json
+
+    def _log(msg): log_fn(msg) if log_fn else None
+
+    try:
+        r = _req.Request(
+            f"{wombat_url}/api/wombat/client-rollback-event",
+            data=_json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "User-Agent": "AirTrack-Client/1.0"},
+            method="POST",
+        )
+        with _req.urlopen(r, timeout=10):
+            pass
+        _log(f"Rollback report: sent outcome={payload.get('outcome')} to Wombat")
+    except Exception as exc:
+        _log(f"Rollback report: could not reach Wombat — {exc}")
+
+
 def report_rollback_event(
     version: str,
     outcome: str,
@@ -502,7 +541,12 @@ def report_rollback_event(
     log_fn=None,
 ) -> None:
     """
-    POST a rollback event to Wombat so ATC and ntfy are notified.
+    Report a rollback event according to the customer's support_prefs.json:
+
+        auto   → POST to Wombat immediately (ntfy fires on Wombat side)
+        ask    → write pending_support_report.json; cockpit shows a banner
+                 with Send / Dismiss buttons on next page load
+        never  → do nothing (local rollback_log.txt is always written regardless)
 
     outcome values:
         "recovered"            — rollback succeeded, Flask healthy again
@@ -510,9 +554,8 @@ def report_rollback_event(
         "failed_restore"       — backup found but restore failed
         "failed_post_rollback" — restored OK but Flask still unhealthy after restart
 
-    Never raises — all failures are logged and swallowed.
+    Never raises.
     """
-    import urllib.request as _req
     import json as _json
     from datetime import datetime as _dt
 
@@ -520,31 +563,37 @@ def report_rollback_event(
         if log_fn:
             log_fn(msg)
 
+    h           = home or _get_airtrack_home()
+    mode        = _read_support_mode(h)
     wombat_url  = os.environ.get("WOMBAT_URL", "").rstrip("/")
     customer_id = os.environ.get("AIRTRACK_CUSTOMER_ID", "")
+
+    if mode == "never":
+        _log("Rollback report: support reporting set to 'never' — not sending")
+        return
 
     if not wombat_url or not customer_id:
         _log("Rollback report: WOMBAT_URL or AIRTRACK_CUSTOMER_ID not set — cannot report")
         return
 
-    payload = _json.dumps({
+    payload = {
         "customer_id":  customer_id,
         "version":      version,
         "outcome":      outcome,
         "backup_used":  backup_name,
         "detail":       detail,
         "reported_at":  _dt.utcnow().isoformat(timespec="seconds") + "Z",
-    }).encode("utf-8")
+    }
 
-    try:
-        r = _req.Request(
-            f"{wombat_url}/api/wombat/client-rollback-event",
-            data=payload,
-            headers={"Content-Type": "application/json", "User-Agent": "AirTrack-Client/1.0"},
-            method="POST",
-        )
-        with _req.urlopen(r, timeout=10):
-            pass
-        _log(f"Rollback report: sent outcome={outcome} to Wombat")
-    except Exception as exc:
-        _log(f"Rollback report: could not reach Wombat — {exc}")
+    if mode == "auto":
+        _send_rollback_payload(payload, wombat_url, _log)
+
+    elif mode == "ask":
+        # Save for the customer to approve in the cockpit
+        try:
+            (h / _PENDING_REPORT_FILE).write_text(
+                _json.dumps(payload, indent=2), encoding="utf-8"
+            )
+            _log("Rollback report: saved as pending — customer will be asked to send")
+        except Exception as exc:
+            _log(f"Rollback report: could not write pending report — {exc}")

@@ -194,7 +194,7 @@
 
       <!-- Step 1: Use Case -->
       <div class="step" data-step="1">
-        <div class="step-label">Step 1 of 7</div>
+        <div class="step-label">Step 1 of 8</div>
         <h2>What are you using AirTrack for?</h2>
         <div class="sub">This helps AirTrack set sensible defaults for you.</div>
         <div class="options two-col">
@@ -219,7 +219,7 @@
 
       <!-- Step 2: Name -->
       <div class="step" data-step="2">
-        <div class="step-label">Step 2 of 7</div>
+        <div class="step-label">Step 2 of 8</div>
         <h2>Your Name</h2>
         <div class="sub">Used in your logbook, reports, and exports.</div>
         <div class="field"><label for="first_name">First name</label>
@@ -234,7 +234,7 @@
 
       <!-- Step 3: Location / Timezone -->
       <div class="step" data-step="3">
-        <div class="step-label">Step 3 of 7</div>
+        <div class="step-label">Step 3 of 8</div>
         <h2>Your Location</h2>
         <div class="sub">Used for your local timezone, weather context, and NOTAM defaults.</div>
         <div class="field">
@@ -453,7 +453,7 @@
 
       <!-- Step 4: ADS-B Source -->
       <div class="step" data-step="4">
-        <div class="step-label">Step 4 of 7</div>
+        <div class="step-label">Step 4 of 8</div>
         <h2>ADS-B Source</h2>
         <div class="sub">AirTrack can read live aircraft feeds from a local or network receiver.</div>
         <div class="options">
@@ -472,7 +472,7 @@
 
       <!-- Step 5: Photo Storage -->
       <div class="step" data-step="5">
-        <div class="step-label">Step 5 of 7</div>
+        <div class="step-label">Step 5 of 8</div>
         <h2>Photo Storage</h2>
         <div class="sub">How should AirTrack store aircraft photos?</div>
         <div class="options">
@@ -489,7 +489,7 @@
 
       <!-- Step 6: Registry Updates -->
       <div class="step" data-step="6">
-        <div class="step-label">Step 6 of 7</div>
+        <div class="step-label">Step 6 of 8</div>
         <h2>Aircraft Register Updates</h2>
         <div class="sub">AirTrack can keep country aircraft registries up to date automatically.</div>
         <div class="options">
@@ -508,7 +508,7 @@
 
       <!-- Step 7: Aria + Edition -->
       <div class="step" data-step="7">
-        <div class="step-label">Step 7 of 7</div>
+        <div class="step-label">Step 7 of 8</div>
         <h2>Almost done</h2>
         <div class="sub">Two things to confirm before we finish.</div>
 
@@ -537,6 +537,55 @@
 
         <div class="btn-row">
           <button type="button" class="btn btn-secondary" onclick="prev()">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="next()">Next →</button>
+        </div>
+      </div>
+
+      <!-- Step 8: Support Reporting -->
+      <div class="step" data-step="8">
+        <div class="step-label">Step 8 of 8</div>
+        <h2>Support and problem reporting</h2>
+        <div class="sub">
+          AirTrack can send limited technical reports to AirTrack Solutions when something goes wrong.
+          These reports are used for support and reliability only.<br><br>
+          They do not include your logbook entries, aircraft notes, photos, passwords, or personal flight records.
+        </div>
+
+        <div class="options">
+          <div class="option">
+            <input type="radio" name="support_reporting" id="sr1" value="auto">
+            <label for="sr1">
+              <span class="option-icon">📡</span>
+              <div class="option-text">
+                <strong>Send problem reports automatically</strong>
+                <small>Best for most users. AirTrack can report update, backup, registry delivery, and system errors immediately so support can respond faster.</small>
+              </div>
+            </label>
+          </div>
+          <div class="option">
+            <input type="radio" name="support_reporting" id="sr2" value="ask" checked>
+            <label for="sr2">
+              <span class="option-icon">🤝</span>
+              <div class="option-text">
+                <strong>Ask me before sending problem reports</strong>
+                <small>AirTrack will prepare a report when something fails, but will ask before sending it.</small>
+              </div>
+            </label>
+          </div>
+          <div class="option">
+            <input type="radio" name="support_reporting" id="sr3" value="never">
+            <label for="sr3">
+              <span class="option-icon">🔒</span>
+              <div class="option-text">
+                <strong>Never send problem reports</strong>
+                <small>AirTrack will not send support reports. Your local data remains private, but support may be limited unless you send diagnostic information manually.</small>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" onclick="prev()">← Back</button>
           <button type="submit" class="btn btn-primary" onclick="finalise()">Complete Setup →</button>
         </div>
       </div>
@@ -546,7 +595,7 @@
 </div>
 
 <script>
-  const STEPS = 8;
+  const STEPS = 9;
   let current = 0;
 
   function showStep(n) {

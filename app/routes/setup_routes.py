@@ -128,18 +128,23 @@ def submit():
 
     home_airport = data.get("home_airport", "").strip().upper()[:4]
 
+    support_reporting = data.get("support_reporting", "ask").strip()
+    if support_reporting not in ("auto", "ask", "never"):
+        support_reporting = "ask"
+
     mappings = {
-        "FirstName":        data.get("first_name", "").strip(),
-        "LastName":         data.get("last_name", "").strip(),
-        "use_case":         data.get("use_case", "other"),
-        "timezone":         tz,
-        "home_airport":     home_airport,
-        "country":          data.get("country", "").strip().upper(),
-        "adsb_source":      data.get("adsb_source", "none"),
-        "photo_storage":    data.get("photo_storage", "disk"),
-        "registry_updates": data.get("registry_updates", "automatic"),
-        "aria_enabled":     data.get("aria_enabled", "false"),
-        "setup_complete":   "true",
+        "FirstName":          data.get("first_name", "").strip(),
+        "LastName":           data.get("last_name", "").strip(),
+        "use_case":           data.get("use_case", "other"),
+        "timezone":           tz,
+        "home_airport":       home_airport,
+        "country":            data.get("country", "").strip().upper(),
+        "adsb_source":        data.get("adsb_source", "none"),
+        "photo_storage":      data.get("photo_storage", "disk"),
+        "registry_updates":   data.get("registry_updates", "automatic"),
+        "aria_enabled":       data.get("aria_enabled", "false"),
+        "support_reporting":  support_reporting,
+        "setup_complete":     "true",
     }
 
     try:
@@ -149,6 +154,22 @@ def submit():
         log.info("setup_routes: first-run wizard completed")
     except Exception as exc:
         log.error("setup_routes: failed to write settings: %s", exc)
+
+    # Write support_prefs.json to AIRTRACK_HOME so app_updater.py can read
+    # the preference without DB access (used by rollback event reporting)
+    try:
+        import json as _json, sys as _sys
+        from pathlib import Path as _Path
+        _home = _Path(os.environ.get("AIRTRACK_HOME") or (
+            os.path.join(os.environ.get("ProgramData", "C:/ProgramData"), "AirTrack")
+            if _sys.platform == "win32" else "/airtrack_data"
+        ))
+        _home.mkdir(parents=True, exist_ok=True)
+        (_home / "support_prefs.json").write_text(
+            _json.dumps({"mode": support_reporting}), encoding="utf-8"
+        )
+    except Exception as exc:
+        log.warning("setup_routes: could not write support_prefs.json: %s", exc)
 
     return redirect(url_for("setup.done"))
 
