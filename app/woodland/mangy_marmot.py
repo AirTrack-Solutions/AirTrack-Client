@@ -812,7 +812,113 @@ def main() -> None:
     except Exception as _exc:
         _log(f"Country registry auto-request failed: {_exc}")
 
+    # App update check — runs every cycle, lightweight (single GET then done if up to date)
+    try:
+        _apply_app_update_if_available()
+    except Exception as _upd_exc:
+        _log(f"App update: unexpected error - {_upd_exc}")
+
     _log(f"Finished. Delivered: {(delivered + delivered_registries) or 'none'}")
+
+
+# ---------------------------------------------------------------------------
+# App update delivery
+# ---------------------------------------------------------------------------
+
+def _ver_tuple(v: str) -> tuple:
+    """Convert semver string to comparable tuple."""
+    try:
+        return tuple(int(x) for x in v.split("."))
+    except Exception:
+        return (0,)
+
+
+def _apply_app_update_if_available() -> None:
+    """
+    Check Wombat for an app update newer than the currently applied version.
+    If found: download, verify, and apply via app_updater.
+    Fails silently (logged) — never crashes the Marmot run.
+    """
+    if not WOMBAT_URL:
+        return
+
+    try:
+        info = _get("/api/wombat/app-update")
+    except Exception as exc:
+        _log(f"App update: check failed - {exc}")
+        return
+
+    if not info.get("ok") or not info.get("version"):
+        _log("App update: no update published yet")
+        return
+
+    avail_version = info["version"]
+    zip_sha256    = info.get("zip_sha256", "")
+
+    # Load app_updater from AIRTRACK_HOME/core/ (bootstrapped alongside package_installer)
+    updater_path = CORE_DIR / "app_updater.py"
+    if not updater_path.exists():
+        # Bootstrap from repo copy if present
+        repo_updater = Path(__file__).resolve().parent.parent / "core" / "app_updater.py"
+        if repo_updater.exists():
+            import shutil as _sh
+            _sh.copy2(repo_updater, updater_path)
+            _log(f"Bootstrapped app_updater -> {updater_path}")
+        else:
+            _log("App update: app_updater.py not found - skipping")
+            return
+
+    import importlib.util as _ilu
+    spec   = _ilu.spec_from_file_location("app_updater", updater_path)
+    module = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    applied_version = module.get_applied_version(AIRTRACK_HOME)
+    _log(f"App update: applied={applied_version}, available={avail_version}")
+
+    if _ver_tuple(avail_version) <= _ver_tuple(applied_version):
+        _log("App update: already up to date")
+        return
+
+    if not zip_sha256:
+        _log("App update: no zip_sha256 in response - cannot verify, skipping")
+        return
+
+    # Download the package
+    _log(f"App update: downloading v{avail_version}")
+    try:
+        dl_req = urllib_request_with_timeout(
+            f"{WOMBAT_URL}/api/wombat/app-update/{avail_version}/download",
+            timeout=WOMBAT_TIMEOUT,
+        )
+        zip_bytes = dl_req
+    except Exception as exc:
+        _log(f"App update: download failed - {exc}")
+        return
+
+    if not zip_bytes:
+        _log("App update: empty response from download endpoint")
+        return
+
+    # Apply
+    try:
+        module.apply_app_update(
+            zip_bytes=zip_bytes,
+            version=avail_version,
+            expected_sha256=zip_sha256,
+            home=AIRTRACK_HOME,
+            log_fn=_log,
+        )
+    except Exception as exc:
+        _log(f"App update: apply failed - {exc}")
+
+
+def urllib_request_with_timeout(url: str, timeout: int = 30) -> bytes:
+    """Fetch raw bytes from a URL."""
+    from urllib.request import Request, urlopen
+    req = Request(url, headers={"User-Agent": "AirTrack-MangyMarmot/0.1"})
+    with urlopen(req, timeout=timeout) as resp:
+        return resp.read()
 
 
 if __name__ == "__main__":
