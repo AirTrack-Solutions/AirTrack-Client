@@ -10,6 +10,7 @@ Shown once after disclaimer acceptance when app_settings has no
 and sets setup_complete=true so the gate never fires again.
 """
 
+import json
 import logging
 import os
 
