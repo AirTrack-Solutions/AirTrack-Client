@@ -326,3 +326,161 @@ def _schedule_restart(log_fn) -> None:
         log_fn(f"App update: restart scheduled (service: {_SERVICE_NAME})")
     except Exception as exc:
         log_fn(f"App update: WARNING -- could not schedule restart: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Health-check flag  (written by service.py on post-update startup;
+#                     cleared by watchdog once Flask proves healthy)
+# ---------------------------------------------------------------------------
+
+_HEALTH_CHECK_FILE = "update_health_check.txt"
+
+
+def write_health_check_flag(version: str, home: "Path | None" = None, attempt: int = 1) -> None:
+    """Write AIRTRACK_HOME/update_health_check.txt marking a post-update health check."""
+    try:
+        from datetime import datetime as _dt
+        h    = home or _get_airtrack_home()
+        flag = h / _HEALTH_CHECK_FILE
+        flag.write_text(
+            f"{version}\n{attempt}\n{_dt.utcnow().isoformat(timespec='seconds')}Z\n",
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+
+
+def read_health_check_flag(home: "Path | None" = None) -> "tuple[str | None, int]":
+    """
+    Return (version, attempt) from the health-check flag, or (None, 0) if absent.
+    """
+    try:
+        h    = home or _get_airtrack_home()
+        flag = h / _HEALTH_CHECK_FILE
+        if not flag.exists():
+            return None, 0
+        lines   = flag.read_text(encoding="utf-8").strip().splitlines()
+        version = lines[0] if lines else None
+        attempt = int(lines[1]) if len(lines) > 1 else 1
+        return version, attempt
+    except Exception:
+        return None, 0
+
+
+def clear_health_check_flag(home: "Path | None" = None) -> None:
+    """Remove the health-check flag (called by watchdog on confirmed healthy startup)."""
+    try:
+        h    = home or _get_airtrack_home()
+        flag = h / _HEALTH_CHECK_FILE
+        flag.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Rollback helpers  (called by the watchdog thread in service.py)
+# ---------------------------------------------------------------------------
+
+def _find_pre_update_backup(version: str, home: Path) -> "Path | None":
+    """
+    Find the most recent app_update_pre_{version}_* directory under
+    AIRTRACK_HOME/backups/.  Returns None if not found.
+    """
+    backups_dir = home / "backups"
+    if not backups_dir.is_dir():
+        return None
+    prefix  = f"app_update_pre_{version}_"
+    matches = sorted(
+        [d for d in backups_dir.iterdir() if d.is_dir() and d.name.startswith(prefix)],
+        key=lambda d: d.stat().st_mtime,
+        reverse=True,
+    )
+    return matches[0] if matches else None
+
+
+def _restore_app_tree(backup_dir: Path, app_root: Path, log_fn) -> None:
+    """
+    Restore templates/ and static/ from backup_dir into app_root.
+    Uses the same atomic-rename strategy as _replace_tree.
+    Raises RuntimeError on failure.
+    """
+    restored = 0
+    for sub in ("templates", "static"):
+        src = backup_dir / sub
+        dst = app_root / sub
+        if src.is_dir():
+            dst.mkdir(parents=True, exist_ok=True)
+            _replace_tree(src, dst)
+            restored += 1
+    if restored == 0:
+        raise RuntimeError(f"Backup at {backup_dir} contains no templates/ or static/")
+    log_fn(f"Rollback: restored {restored} tree(s) from {backup_dir.name}")
+
+
+def _write_rollback_record(version: str, backup_name: str, reason: str, home: Path) -> None:
+    """Append a one-line record to AIRTRACK_HOME/rollback_log.txt."""
+    try:
+        from datetime import datetime as _dt
+        record = (
+            f"{_dt.utcnow().isoformat(timespec='seconds')}Z  "
+            f"version={version}  backup={backup_name}  reason={reason}\n"
+        )
+        log_path = home / "rollback_log.txt"
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(record)
+    except Exception:
+        pass
+
+
+def attempt_rollback(
+    version: str,
+    home: "Path | None" = None,
+    app_root: "Path | None" = None,
+    log_fn=None,
+) -> bool:
+    """
+    Called by the service watchdog when Flask fails the health check after an update.
+
+    1. Find the pre-update backup for `version`.
+    2. Restore templates/ and static/ from it.
+    3. Write a rollback record.
+    4. Increment the attempt counter in the health-check flag.
+    5. Schedule a service restart.
+
+    Returns True if rollback was initiated, False if no backup was available or
+    an error occurred.  Never raises.
+    """
+    def _log(msg: str) -> None:
+        if log_fn:
+            log_fn(msg)
+
+    h        = home    or _get_airtrack_home()
+    app_root = app_root or (_get_install_root() / "app")
+
+    backup_dir = _find_pre_update_backup(version, h)
+    if not backup_dir:
+        _log(f"Rollback: no pre-update backup found for v{version} -- cannot roll back")
+        _write_rollback_record(version, "none", "no_backup", h)
+        return False
+
+    _log(f"Rollback: restoring from {backup_dir.name}")
+    try:
+        _restore_app_tree(backup_dir, app_root, _log)
+    except Exception as exc:
+        _log(f"Rollback: restore failed -- {exc}")
+        _write_rollback_record(version, backup_dir.name, f"restore_failed:{exc}", h)
+        return False
+
+    _write_rollback_record(version, backup_dir.name, "health_check_failed", h)
+
+    # Bump attempt counter so the next startup knows this is attempt 2
+    _, attempt = read_health_check_flag(h)
+    write_health_check_flag(version, h, attempt + 1)
+
+    _log(f"Rollback: files restored -- scheduling service restart")
+    if sys.platform == "win32":
+        _schedule_restart(_log)
+    else:
+        _log("Rollback: non-Windows -- restart service manually")
+
+    return True
