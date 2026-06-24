@@ -629,22 +629,39 @@ def main() -> None:
             ]
         except Exception as exc:
             _log(f"Registry manifest unavailable - {exc}")
+    # Fetch available versions from Wombat for update detection
+    try:
+        _avail_resp = _get("/api/wombat/available-registries")
+        available_registry_versions = {r["slug"]: r["version"] for r in _avail_resp.get("registries", [])}
+    except Exception as _avail_exc:
+        _log(f"Registries: could not fetch available versions - {_avail_exc}")
+        available_registry_versions = {}
+
     installed_registries     = _scan_installed_registries()
-    installed_registry_names = {r["name"] for r in installed_registries}
+    installed_registry_map   = {r["name"]: r["version"] for r in installed_registries}
+    installed_registry_names = set(installed_registry_map.keys())
+    outdated_registries      = [
+        r for r in required_registries
+        if r in installed_registry_names
+        and r in available_registry_versions
+        and installed_registry_map.get(r, "unknown") != "unknown"
+        and installed_registry_map.get(r) != available_registry_versions[r]
+    ]
     missing_registries       = [r for r in required_registries if r not in installed_registry_names]
+    needs_delivery           = missing_registries + outdated_registries
     delivered_registries     = []
 
     if required_registries:
-        _log(f"Registries - Required: {required_registries} | Installed: {sorted(installed_registry_names) or 'none'} | Missing: {missing_registries}")
+        _log(f"Registries - Required: {required_registries} | Installed: {sorted(installed_registry_names) or 'none'} | Missing: {missing_registries} | Outdated: {outdated_registries}")
         registry_pref = _get_registry_pref()
         if registry_pref == "never":
             _log("Registries: registry_updates=never — skipping all delivery")
         elif registry_pref == "ask":
-            if missing_registries:
-                _write_pending_registries(missing_registries)
-                _log(f"Registries: registry_updates=ask — {len(missing_registries)} queued for user approval")
+            if needs_delivery:
+                _write_pending_registries(needs_delivery)
+                _log(f"Registries: registry_updates=ask — {len(needs_delivery)} queued for user approval")
         else:  # automatic
-            for reg in missing_registries:
+            for reg in needs_delivery:
                 if _deliver_registry(reg):
                     delivered_registries.append(reg)
                     _remove_from_pending(reg)
@@ -682,7 +699,15 @@ def main() -> None:
             _conn2.close()
         if _country and _country in COUNTRY_REGISTRY_MAP:
             _mapped = COUNTRY_REGISTRY_MAP[_country]
-            if _mapped not in installed_registry_names and _mapped not in required_registries:
+            _mapped_installed_version = installed_registry_map.get(_mapped)
+                _mapped_avail_version    = available_registry_versions.get(_mapped)
+                _mapped_outdated         = (
+                    _mapped in installed_registry_names
+                    and _mapped_installed_version and _mapped_installed_version != "unknown"
+                    and _mapped_avail_version
+                    and _mapped_installed_version != _mapped_avail_version
+                )
+                if (_mapped not in installed_registry_names and _mapped not in required_registries) or _mapped_outdated:
                 registry_pref = _get_registry_pref()
                 if registry_pref == "never":
                     _log(f"Country {_country} maps to registry '{_mapped}' — skipped (registry_updates=never)")
