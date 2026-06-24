@@ -260,11 +260,20 @@ def registry_list():
             except Exception:
                 available_wombat = []
 
-        # Purchasable = in Wombat but not yet entitled
+        # Free registries = warehouse required_registries (airports_ref etc.)
+        # These are auto-delivered to every customer and must never appear in the marketplace.
+        free_registries: set[str] = set()
+        try:
+            wh_manifest  = _get("/api/wombat/manifest")
+            free_registries = set(wh_manifest.get("required_registries", []))
+        except Exception:
+            pass
+
+        # Purchasable = in Wombat, not yet entitled, and not free/auto-delivered
         entitled_set = set(entitled)
         purchasable = [
             slug for slug in available_wombat
-            if slug not in entitled_set
+            if slug not in entitled_set and slug not in free_registries
         ]
 
         # Display name lookup from ICAO_COUNTRIES
