@@ -22,11 +22,11 @@ EDITIONS = ['lite', 'ats', 'atp', 'ati', 'atf', 'airtrack-client']
 # Friendly names for display
 EDITION_NAMES = {
     'lite':            'Lite',
-    'ats':             'Personal',
-    'atp':             'Personal',
-    'ati':             'Professional',
-    'atf':             'Professional',
-    'airtrack-client': 'Field Unit',
+    'ats':             'Standard',
+    'atp':             'Standard',
+    'ati':             'Pro',
+    'atf':             'Pro',
+    'airtrack-client': 'Standard',  # test/field alias — real licenses use atp/atf
 }
 
 # Activations allowed per edition
