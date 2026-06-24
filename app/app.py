@@ -280,6 +280,59 @@ def get_backup_dir() -> Path:
     return base
 
 
+def _auto_backup() -> None:
+    """
+    Automatic daily database backup.
+    Writes airtrack_auto_YYYYMMDD_HHMMSS.sql to the backup directory.
+    Keeps the 7 most recent auto-backups; older ones are silently removed.
+    Safe to call even if mysqldump is unavailable — logs and returns.
+    """
+    try:
+        backup_dir = get_backup_dir()
+        backup_dir.mkdir(parents=True, exist_ok=True)
+
+        from datetime import datetime as _dt
+        now      = _dt.utcnow().strftime("%Y%m%d_%H%M%S")
+        filename = f"airtrack_auto_{now}.sql"
+        filepath = backup_dir / filename
+
+        cmd = [
+            "mysqldump",
+            "-h", os.getenv("DB_HOST", "airtrack-db"),
+            "-P", os.getenv("DB_PORT", "3306"),
+            "-u", os.getenv("DB_USER", ""),
+            f"-p{os.getenv('DB_PASSWORD', '')}",
+            os.getenv("DB_NAME", "airtrack"),
+        ]
+
+        with open(filepath, "wb") as _out:
+            _proc = subprocess.run(cmd, stdout=_out, stderr=subprocess.PIPE)
+
+        if _proc.returncode != 0:
+            filepath.unlink(missing_ok=True)
+            _err_msg = _proc.stderr.decode("utf-8", errors="replace").strip()
+            logging.error("Auto-backup: mysqldump failed — %s", _err_msg)
+            return
+
+        logging.info("Auto-backup: saved %s", filepath)
+
+        # Retention: keep newest 7 auto-backups, delete the rest
+        auto_files = sorted(
+            backup_dir.glob("airtrack_auto_*.sql"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        for _old_file in auto_files[7:]:
+            try:
+                _old_file.unlink()
+                logging.info("Auto-backup: removed old backup %s", _old_file.name)
+            except Exception as _del_exc:
+                logging.warning("Auto-backup: could not remove %s — %s", _old_file.name, _del_exc)
+
+    except Exception as _exc:
+        logging.error("Auto-backup: unexpected error — %s", _exc, exc_info=True)
+
+
 def _safe_tz(name: str | None):
     try:
         return pytz.timezone(name) if name else pytz.utc
@@ -1312,3 +1365,30 @@ try:
         _run_mangy_marmot()  # run immediately on startup
 except Exception as _sched_exc:
     logging.error("Woodland Scheduler failed to start: %s", _sched_exc, exc_info=True)
+
+# ---------------------------------------------------------------------------
+# Auto-Backup Scheduler — runs regardless of Wombat configuration
+# ---------------------------------------------------------------------------
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler as _BSched
+    from apscheduler.triggers.cron import CronTrigger as _CronTrigger
+
+    def _run_auto_backup():
+        try:
+            _auto_backup()
+        except Exception as _exc:
+            logging.error("Auto-backup scheduler: unexpected error — %s", _exc, exc_info=True)
+
+    _backup_scheduler = _BSched(timezone="UTC")
+    _backup_scheduler.add_job(
+        _run_auto_backup,
+        _CronTrigger(hour=2, minute=0),
+        id="auto_backup",
+        name="Auto Backup",
+        max_instances=1,
+        coalesce=True,
+    )
+    _backup_scheduler.start()
+    logging.info("Auto-Backup Scheduler started — daily at 02:00 UTC")
+except Exception as _backup_sched_exc:
+    logging.error("Auto-Backup Scheduler failed to start: %s", _backup_sched_exc, exc_info=True)

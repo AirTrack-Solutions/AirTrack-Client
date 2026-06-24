@@ -225,6 +225,7 @@ def registry_list():
             REGISTRIES_INSTALLED as _REG_INSTALLED,
             _get, _scan_installed_registries,
             _read_pending_registries, _get_registry_pref,
+            _read_entitlements_cache,
         )
 
         wombat_offline = False
@@ -248,8 +249,23 @@ def registry_list():
             _lg.warning(f"registry_routes: Wombat exception — WOMBAT_URL={_WOMBAT_URL!r} CUSTOMER_ID={_CUSTOMER_ID!r} error={_wombat_exc!r}")
             wombat_offline = True
 
+        # If Wombat is offline, fall back to local entitlement cache
+        wombat_cache_at: str | None = None
+        if wombat_offline:
+            _cache = _read_entitlements_cache()
+            if _cache:
+                entitled        = _cache.get("entitled", [])
+                wombat_cache_at = _cache.get("cached_at")
+
         # Fetch what Wombat has available (to show marketplace)
         _wombat_registry_meta: dict[str, dict] = {}  # slug -> {version, records}
+        # Seed registry meta from cache when offline
+        if wombat_offline and wombat_cache_at:
+            _offline_cache = _read_entitlements_cache() or {}
+            for _cr in _offline_cache.get("available_registries", []):
+                if isinstance(_cr, dict) and _cr.get("slug"):
+                    _wombat_registry_meta[_cr["slug"]] = _cr
+            available_wombat = list(_wombat_registry_meta.keys())
         if not wombat_offline and _WOMBAT_URL:
             try:
                 av_resp = _get("/api/wombat/available-registries")
@@ -350,6 +366,7 @@ def registry_list():
             daily_limit=0,
             is_client=True,
             wombat_offline=wombat_offline,
+            wombat_cache_at=wombat_cache_at,
             registry_pref=registry_pref,
             server_url=None,
             server_reachable=True,
