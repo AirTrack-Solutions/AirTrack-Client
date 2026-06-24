@@ -210,6 +210,8 @@ def _health_watchdog(version: str) -> None:
             if attempt >= 2:
                 log.error(f'Watchdog: v{version} — post-rollback startup also failed (no bind). Giving up.')
                 mod.clear_health_check_flag(_home)
+                mod.report_rollback_event(version, "failed_post_rollback",
+                                          detail="Waitress did not bind after rollback", log_fn=log.info)
             else:
                 app_root = Path(sys.executable).parent / '_internal' / 'app'                     if getattr(sys, 'frozen', False)                     else Path(__file__).resolve().parent.parent.parent / 'app'
                 mod.attempt_rollback(version, _home, app_root, log.info)
@@ -239,7 +241,13 @@ def _health_watchdog(version: str) -> None:
     _, attempt = mod.read_health_check_flag(_home)
 
     if healthy:
-        log.info(f'Watchdog: v{version} health check passed (attempt {attempt}) — update confirmed')
+        if attempt >= 2:
+            # Second startup — this is post-rollback confirmation
+            log.info(f'Watchdog: v{version} — rollback confirmed healthy (attempt {attempt})')
+            mod.report_rollback_event(version, "recovered",
+                                      detail="Flask healthy after rollback", log_fn=log.info)
+        else:
+            log.info(f'Watchdog: v{version} health check passed — update confirmed')
         mod.clear_health_check_flag(_home)
     else:
         if attempt >= 2:
@@ -248,6 +256,8 @@ def _health_watchdog(version: str) -> None:
                 f'Manual intervention required. Clearing flag.'
             )
             mod.clear_health_check_flag(_home)
+            mod.report_rollback_event(version, "failed_post_rollback",
+                                      detail="Flask unhealthy after rollback", log_fn=log.info)
         else:
             log.error(f'Watchdog: v{version} — health check failed, attempting rollback')
             app_root = Path(sys.executable).parent / '_internal' / 'app'                 if getattr(sys, 'frozen', False)                 else Path(__file__).resolve().parent.parent.parent / 'app'
