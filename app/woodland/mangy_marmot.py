@@ -750,6 +750,15 @@ def main() -> None:
                     required_registries.append(slug)
         except Exception as exc:
             _log(f"Registry manifest unavailable - {exc}")
+        # Also fetch direct registry entitlements — these survive reinstall and
+        # don't depend on app_settings.country or the pickup manifest.
+        try:
+            ent_resp = _get(f"/api/wombat/entitled-registries/{CUSTOMER_ID}")
+            for reg in ent_resp.get("registries", []):
+                if reg and reg not in required_registries:
+                    required_registries.append(reg)
+        except Exception as exc:
+            _log(f"Registry entitlements unavailable - {exc}")
     # Fetch available versions + update window from Wombat
     try:
         _avail_resp = _get("/api/wombat/available-registries")
