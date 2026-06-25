@@ -64,9 +64,20 @@ UPDATE_SCHEDULE_PATH  = AIRTRACK_HOME / "registry_update_schedule.json"
 REGISTRIES_MANIFESTS = AIRTRACK_HOME / "registries" / "manifests"
 ENTITLEMENTS_CACHE_PATH  = AIRTRACK_HOME / "registries" / "entitlements_cache.json"
 
-# Public key source from git repo (copied to AIRTRACK_HOME on first run)
-_REPO_PUBLIC_KEY = Path(__file__).resolve().parent.parent / "core" / "airtrack_solutions.pub"
-_REPO_INSTALLER  = Path(__file__).resolve().parent.parent / "core" / "package_installer.py"
+# Core files bundled with the app (copied to AIRTRACK_HOME on first run).
+# In a PyInstaller --onedir bundle sys._MEIPASS is the reliable path to the
+# _internal/ directory; Path(__file__) resolves to a .pyc that may not
+# exist on disk, so we cannot use it to locate sibling data files when frozen.
+def _bundle_core_dir() -> "Path":
+    import sys as _sys
+    if getattr(_sys, "frozen", False):
+        return Path(_sys._MEIPASS) / "app" / "core"
+    return Path(__file__).resolve().parent.parent / "core"
+
+_BUNDLE_CORE     = _bundle_core_dir()
+_REPO_PUBLIC_KEY = _BUNDLE_CORE / "airtrack_solutions.pub"
+_REPO_INSTALLER  = _BUNDLE_CORE / "package_installer.py"
+_REPO_UPDATER    = _BUNDLE_CORE / "app_updater.py"
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -102,6 +113,10 @@ def _bootstrap_core() -> None:
     if not installer_path.exists() and _REPO_INSTALLER.exists():
         shutil.copy2(_REPO_INSTALLER, installer_path)
         _log(f"Bootstrapped package_installer → {installer_path}")
+    updater_path = CORE_DIR / "app_updater.py"
+    if not updater_path.exists() and _REPO_UPDATER.exists():
+        shutil.copy2(_REPO_UPDATER, updater_path)
+        _log(f"Bootstrapped app_updater → {updater_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -901,14 +916,13 @@ def _apply_app_update_if_available() -> None:
     # Load app_updater from AIRTRACK_HOME/core/ (bootstrapped alongside package_installer)
     updater_path = CORE_DIR / "app_updater.py"
     if not updater_path.exists():
-        # Bootstrap from repo copy if present
-        repo_updater = Path(__file__).resolve().parent.parent / "core" / "app_updater.py"
-        if repo_updater.exists():
+        # Should have been seeded by _bootstrap_core(); try bundle as last resort
+        if _REPO_UPDATER.exists():
             import shutil as _sh
-            _sh.copy2(repo_updater, updater_path)
+            _sh.copy2(_REPO_UPDATER, updater_path)
             _log(f"Bootstrapped app_updater -> {updater_path}")
         else:
-            _log("App update: app_updater.py not found - skipping")
+            _log("App update: app_updater.py not found in bundle - skipping")
             return
 
     import importlib.util as _ilu
