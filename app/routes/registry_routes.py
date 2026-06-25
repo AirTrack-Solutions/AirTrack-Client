@@ -268,6 +268,20 @@ def registry_list():
                 if _slug not in _delivery_set:
                     entitled.append(_slug)
 
+        # Supplement entitled list with direct Wombat registry entitlements.
+        # This is the reinstall-safe source: survives a wiped AIRTRACK_HOME because
+        # it reads from Wombat's entitlements.json, not the local cache.
+        if not wombat_offline and _WOMBAT_URL and _CUSTOMER_ID:
+            try:
+                _ent_resp = _get(f"/api/wombat/entitled-registries/{_CUSTOMER_ID}")
+                _ent_set  = set(entitled)
+                for _reg in _ent_resp.get("registries", []):
+                    if _reg and _reg not in _ent_set:
+                        entitled.append(_reg)
+                        _ent_set.add(_reg)
+            except Exception:
+                pass  # non-fatal; cache and deliveries already merged above
+
         # Fetch what Wombat has available (to show marketplace)
         _wombat_registry_meta: dict[str, dict] = {}  # slug -> {version, records}
         # Seed registry meta from cache when offline
