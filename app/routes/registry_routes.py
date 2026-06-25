@@ -249,13 +249,24 @@ def registry_list():
             _lg.warning(f"registry_routes: Wombat exception — WOMBAT_URL={_WOMBAT_URL!r} CUSTOMER_ID={_CUSTOMER_ID!r} error={_wombat_exc!r}")
             wombat_offline = True
 
-        # If Wombat is offline, fall back to local entitlement cache
+        # Merge entitlement cache with Wombat deliveries.
+        # Marmot writes country-auto-entitled registries (e.g. australia for AU
+        # customers) to the cache; Wombat deliveries only covers paid entitlements.
+        # We always merge the cache so both sources contribute to the entitled list.
         wombat_cache_at: str | None = None
+        _cache = _read_entitlements_cache()
         if wombat_offline:
-            _cache = _read_entitlements_cache()
+            # Wombat unreachable — use cache exclusively
             if _cache:
                 entitled        = _cache.get("entitled", [])
                 wombat_cache_at = _cache.get("cached_at")
+        elif _cache:
+            # Wombat online — merge cache into deliveries (cache wins on overlap)
+            _cache_entitled = set(_cache.get("entitled", []))
+            _delivery_set   = set(entitled)
+            for _slug in _cache_entitled:
+                if _slug not in _delivery_set:
+                    entitled.append(_slug)
 
         # Fetch what Wombat has available (to show marketplace)
         _wombat_registry_meta: dict[str, dict] = {}  # slug -> {version, records}
