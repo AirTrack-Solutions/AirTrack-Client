@@ -721,7 +721,7 @@
     }
 
     async function importRegistry(dir) {
-      if (importsToday >= DAILY_LIMIT) {
+      if (DAILY_LIMIT > 0 && importsToday >= DAILY_LIMIT) {
         setFeedback(dir, '✗ Daily limit reached — come back tomorrow!', false);
         return;
       }
@@ -812,7 +812,7 @@
     }
 
     // Disable all import buttons immediately if quota is already exhausted on load
-    if (importsToday >= DAILY_LIMIT) {
+    if (DAILY_LIMIT > 0 && importsToday >= DAILY_LIMIT) {
       document.querySelectorAll('.btn-import').forEach(btn => {
         if (btn.style.display !== 'none') btn.disabled = true;
       });
