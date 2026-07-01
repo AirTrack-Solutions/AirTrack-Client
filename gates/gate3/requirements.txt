@@ -15,7 +15,7 @@ stripe==10.9.0
 PyMySQL==1.1.1
 webauthn==2.1.0
 cryptography==45.0.7
-pyOpenSSL==25.1.0
+pyOpenSSL==26.0.0
 cbor2==5.7.0
 asn1crypto==1.5.1
 itsdangerous==2.2.0
