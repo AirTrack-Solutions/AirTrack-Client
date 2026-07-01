@@ -14,7 +14,7 @@ flask-wtf==1.2.1
 stripe==10.9.0
 PyMySQL==1.1.1
 webauthn==2.1.0
-cryptography==45.0.7
+cryptography==48.0.1
 pyOpenSSL==25.1.0
 cbor2==5.7.0
 asn1crypto==1.5.1
