@@ -45,7 +45,7 @@ services:
     volumes:
       - ./app:/app:rw
       - ./app/logs:/app/logs:rw
-      - ./data:/app/data:rw
+      - ./data/airtrack_data:/airtrack_data:rw
       - ./keys:/app/keys:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -71,7 +71,6 @@ services:
       DB_USER: "${DB_USER:-airtrack}"
       DB_PASSWORD: "${DB_PASSWORD:-airtrack}"
       DB_NAME: "${DB_NAME:-airtrack}"
-      WOMBAT_URL: "http://airtrack:5000"
       WOMBAT_CODE_URL: "${WOMBAT_CODE_URL:-http://192.168.0.201:5200}"
       AIRTRACK_CODE_REPO: "AirTrack-Client"
       AIRTRACK_WEB_CONTAINER: "airtrack-client-airtrack-1"
@@ -79,7 +78,7 @@ services:
     volumes:
       - ./app:/app:rw
       - ./app/logs:/app/logs:rw
-      - ./data:/app/data:rw
+      - ./data/airtrack_data:/airtrack_data:rw
       - /var/run/docker.sock:/var/run/docker.sock:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
