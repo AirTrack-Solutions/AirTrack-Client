@@ -88,11 +88,38 @@
     .status{min-height:18px; font-size:12px; color:#aaa;}
     .status.ok{color:#7dff7d;}
     .status.err{color:#ff6b6b;}
+    #app-update-ver{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-family:monospace;font-size:0.62rem;color:rgba(125,255,125,0.45);letter-spacing:0.06em;white-space:nowrap;pointer-events:none;user-select:none;}
+    #restart-pending-banner{position:fixed;top:0;left:0;width:100%;background:#b8860b;color:#fff;text-align:center;padding:0.6rem 3rem;font-size:0.85rem;font-weight:600;z-index:10000;box-sizing:border-box;}
+    #restart-pending-banner a{color:#fff;text-decoration:underline;cursor:pointer;margin-left:1.5rem;font-weight:400;}
+    #pending-report-banner{position:fixed;top:0;left:0;width:100%;background:#1a4a6e;color:#cce4ff;text-align:center;padding:0.6rem 3rem;font-size:0.82rem;font-weight:500;z-index:9999;box-sizing:border-box;}
+    #pending-report-banner strong{color:#fff;}
+    #pending-report-banner .banner-actions{display:inline-block;margin-left:1.5rem;}
+    #pending-report-banner .banner-actions a{color:#cce4ff;text-decoration:underline;cursor:pointer;margin-left:1rem;font-weight:400;}
   </style>
 </head>
 
 <body class="theme-{{ selected_theme or 'default' }}">
   <div class="admin-background"></div>
+
+  {% if restart_pending %}
+  <div id="restart-pending-banner">
+    ⚠ App update v{{ restart_pending.version }} was applied at {{ restart_pending.queued_at }} but the service restart was never confirmed.
+    Files on disk are the new version; running code may still be the old version.
+    <a onclick="dismissRestartBanner()">Dismiss</a>
+  </div>
+  {% endif %}
+
+  {% if pending_support_report %}
+  <div id="pending-report-banner">
+    📋 <strong>Update report ready to send.</strong>
+    AirTrack encountered a problem updating to v{{ pending_support_report.version or "unknown" }}
+    ({{ pending_support_report.outcome or "unknown outcome" }}) — {{ pending_support_report.detail or "no detail" }}.
+    <span class="banner-actions">
+      <a onclick="sendSupportReport()">Send this report</a>
+      <a onclick="dismissSupportReport()">Dismiss</a>
+    </span>
+  </div>
+  {% endif %}
 
   <!-- Cockpit shutdown layers -->
   <div class="cockpit-hangar-plate" aria-hidden="true"></div>
@@ -112,6 +139,9 @@
   <div id="cockpit-center-display">
     <div id="radar-content">{{ settings.get('Callsign', '') if settings else '' }}</div>
     <div id="action-confirmation"></div>
+    {% if app_update_version %}
+    <div id="app-update-ver">APP v{{ app_update_version }}</div>
+    {% endif %}
   </div>
 
   <!-- HUD buttons (left) -->
@@ -257,6 +287,7 @@
       <div class="settings-tabs">
         <button type="button" class="tab-btn active" data-tab="callsign">Callsign</button>
         <button type="button" class="tab-btn" data-tab="timezone">Timezone</button>
+        <button type="button" class="tab-btn" data-tab="airport">Airport</button>
         <button type="button" class="tab-btn" data-tab="theme">Theme</button>
         <button type="button" class="tab-btn" data-tab="images">Images</button>
       </div>
@@ -282,6 +313,15 @@
             {% endfor %}
           </select>
           <small class="help">We can add more zones later.</small>
+        </div>
+
+        <div class="settings-pane" data-pane="airport">
+          <label class="form-label" for="set-home-airport">Home Airport</label>
+          <input type="text" class="form-control" id="set-home-airport"
+                 value="{{ (settings.get('home_airport') or '') if settings else '' }}"
+                 placeholder="e.g. YSSY" maxlength="4"
+                 style="text-transform:uppercase; width:160px;">
+          <small class="help">ICAO code of your primary spotting airport — used for weather and NOTAMs.</small>
         </div>
 
         <div class="settings-pane" data-pane="theme">
@@ -579,6 +619,7 @@
     window.saveSettings = async function saveSettings() {
       const callsign = (document.getElementById('set-callsign')?.value || '').trim();
       const timezone = (document.getElementById('set-timezone')?.value || 'UTC').trim();
+      const homeAirport = (document.getElementById('set-home-airport')?.value || '').trim().toUpperCase();
       const theme = (document.querySelector('input[name="set-theme"]:checked')?.value || 'default');
 
       const imageImportFolder =
@@ -603,6 +644,7 @@
           '{{ url_for("admin.update_app_settings") }}',
           {
             timezone,
+            home_airport: homeAirport,
             theme,
             aircraft_image_import_folder: imageImportFolder
           }
@@ -755,13 +797,39 @@
       document.getElementById('cleanupModal').style.display = 'none';
     }
 
+    function dismissRestartBanner() {
+      const b = document.getElementById('restart-pending-banner');
+      if (b) b.remove();
+    }
+
+    function sendSupportReport() {
+      fetch('/admin/send-support-report', {method: 'POST'})
+        .then(r => r.json())
+        .then(d => {
+          if (d.ok) {
+            const b = document.getElementById('pending-report-banner');
+            if (b) { b.textContent = '✓ Report sent. Thank you.'; setTimeout(() => b.remove(), 3000); }
+          } else {
+            alert('Could not send report: ' + (d.error || 'unknown error'));
+          }
+        })
+        .catch(e => alert('Network error: ' + e));
+    }
+
+    function dismissSupportReport() {
+      fetch('/admin/dismiss-support-report', {method: 'POST'})
+        .then(() => {
+          const b = document.getElementById('pending-report-banner');
+          if (b) b.remove();
+        });
+    }
+
   </script>
 
 {% if aria_enabled %}{% include "aria_chat.html" %}{% endif %}
 <script src="{{ url_for('static', filename='js/cockpit_shutdown.js') }}?v={{ time() }}"></script>
+{% if is_server %}
 <script src="{{ url_for('static', filename='js/briefing.js') }}?v={{ time() }}"></script>
-<script>document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("ariaToggle");if(b)b.style.display="none";});</script>
-
 <!-- ── Daily Briefing Overlay ─────────────────────────────────────────── -->
 <div id="briefing-overlay" class="briefing-overlay" hidden aria-modal="true" role="dialog">
   <div class="briefing-card">
@@ -780,5 +848,7 @@
     <div id="briefing-qa" class="briefing-qa" hidden></div>
   </div>
 </div>
+{% endif %}
+<script>document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("ariaToggle");if(b)b.style.display="none";});</script>
 </body>
 </html>

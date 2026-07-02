@@ -1,0 +1,115 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AirTrack — Woodland Roster</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #0a0a0a;
+      color: #e6e6e6;
+      font-family: system-ui, sans-serif;
+      padding: 24px;
+      max-width: 960px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid #1e1e1e;
+      padding-bottom: 14px;
+    }
+    .page-header h1 { margin: 0; font-size: 1.4rem; color: #00ff66; letter-spacing: .5px; }
+    .back-link {
+      margin-left: auto;
+      color: #00ff66;
+      text-decoration: none;
+      font-size: 0.85rem;
+      border: 1px solid #1e3a1e;
+      padding: 5px 12px;
+      border-radius: 6px;
+    }
+    .back-link:hover { background: #0f2a0f; }
+
+    /* Markdown content styles */
+    .roster-content h1 { color: #00ff66; font-size: 1.5rem; margin-top: 0; }
+    .roster-content h2 { color: #00ff66; font-size: 1.15rem; margin-top: 36px; padding-top: 20px; border-top: 1px solid #1a1a1a; }
+    .roster-content h2:first-of-type { border-top: none; margin-top: 0; }
+    .roster-content h3 { color: #00cc44; font-size: 1rem; margin-top: 24px; }
+    .roster-content p { color: #ccc; line-height: 1.7; margin: 8px 0; }
+    .roster-content strong { color: #e6e6e6; }
+    .roster-content em { color: #888; }
+    .roster-content code {
+      background: #1a1a1a;
+      color: #00cc44;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      font-family: monospace;
+    }
+    .roster-content ul { color: #ccc; padding-left: 20px; line-height: 1.8; }
+    .roster-content li { margin: 3px 0; }
+    .roster-content hr { border: none; border-top: 1px solid #1e1e1e; margin: 28px 0; }
+
+    /* Tables */
+    .roster-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.85rem;
+    }
+    .roster-content th {
+      text-align: left;
+      color: #666;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 6px 12px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+    .roster-content td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #141414;
+      color: #ccc;
+      vertical-align: top;
+    }
+    .roster-content tr:last-child td { border-bottom: none; }
+
+    /* Status badges in text */
+    .roster-content p strong:first-child { color: #888; }
+
+    /* Critter portraits */
+    .critter-portrait {
+      display: block;
+      width: 180px;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid #1a3a2a;
+      margin: 12px 0 18px 0;
+      box-shadow: 0 0 18px rgba(0,204,68,0.08);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>🌲 Woodland Roster</h1>
+    <a class="back-link" href="{{ url_for('admin.admin_dashboard') }}">← Cockpit</a>
+  </div>
+
+  <div class="roster-content">
+    {{ content | safe }}
+  </div>
+
+</body>
+</html>

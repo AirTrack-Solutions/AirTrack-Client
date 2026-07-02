@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AirTrack — Important Safety Notice</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0f14;
+      color: #e8e8e8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px 60px;
+    }
+
+    .container {
+      max-width: 760px;
+      width: 100%;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #888;
+    }
+
+    .logo span {
+      color: #f0a500;
+      font-weight: 600;
+    }
+
+    .notice-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .notice-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .notice-header p {
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #2a2d35;
+      margin: 24px 0;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section p {
+      margin-bottom: 12px;
+      color: #d0d0d0;
+    }
+
+    .section p strong {
+      color: #ffffff;
+    }
+
+    .prohibited {
+      background: #17191f;
+      border-left: 3px solid #c0392b;
+      border-radius: 4px;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+
+    .prohibited p {
+      font-weight: 600;
+      color: #e8e8e8;
+      margin-bottom: 10px;
+    }
+
+    .prohibited ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .prohibited ul li {
+      padding: 4px 0 4px 16px;
+      position: relative;
+      color: #e0e0e0;
+    }
+
+    .prohibited ul li::before {
+      content: "✕";
+      position: absolute;
+      left: 0;
+      color: #c0392b;
+      font-size: 12px;
+      top: 6px;
+    }
+
+    .official-sources {
+      background: #17191f;
+      border-left: 3px solid #2980b9;
+      border-radius: 4px;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+
+    .official-sources p {
+      font-weight: 600;
+      color: #e8e8e8;
+      margin-bottom: 10px;
+    }
+
+    .official-sources ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .official-sources ul li {
+      padding: 4px 0 4px 16px;
+      position: relative;
+      color: #d0d0d0;
+    }
+
+    .official-sources ul li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: #2980b9;
+    }
+
+    .pilot-note {
+      font-style: italic;
+      color: #aaa;
+      font-size: 15px;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .actions {
+      margin-top: 36px;
+      text-align: center;
+    }
+
+    form {
+      display: inline-block;
+      width: 100%;
+    }
+
+    .accept-btn {
+      display: block;
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto 20px;
+      padding: 16px 24px;
+      background: #1a4a1a;
+      border: 2px solid #2ecc71;
+      border-radius: 6px;
+      color: #2ecc71;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      line-height: 1.4;
+      text-align: center;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .accept-btn:hover {
+      background: #2ecc71;
+      color: #0d0f14;
+    }
+
+    .decline-form {
+      margin-top: 4px;
+    }
+
+    .decline-btn {
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 8px;
+    }
+
+    .decline-btn:hover {
+      color: #999;
+    }
+
+    .version-note {
+      text-align: center;
+      font-size: 12px;
+      color: #555;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="logo"><span>AirTrack</span> Solutions</div>
+
+    <div class="notice-header">
+      <h1>Important Safety Notice</h1>
+      <p>Please read this carefully before using AirTrack.</p>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <p>
+        AirTrack is a <strong>hobbyist aviation data tool</strong>. It is <strong>not</strong> a certified
+        aviation system, and it is <strong>not</strong> approved or endorsed by CASA, Airservices Australia,
+        ICAO, or any national or international aviation authority.
+      </p>
+    </div>
+
+    <div class="prohibited">
+      <p>AirTrack must never be used for:</p>
+      <ul>
+        <li>Flight planning or pre-flight decision-making</li>
+        <li>In-flight navigation or situational awareness</li>
+        <li>Determining whether an airspace, runway, navaid, or route is active, clear, or safe</li>
+        <li>Any operational decision where human life or safety depends on the accuracy of the data</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <p>
+        NOTAM data, airspace information, GPS interference reports, and all other aviation data displayed
+        in AirTrack <strong>may be incomplete, out of date, incorrectly categorised, or simply wrong.</strong>
+      </p>
+      <p>
+        AirTrack is provided as-is, for informational and hobbyist purposes only. AirTrack Solutions
+        accepts no responsibility whatsoever for any decision made, action taken, or harm resulting from
+        use of or reliance on any data displayed in this system.
+      </p>
+    </div>
+
+    <div class="official-sources">
+      <p>For all operational aviation purposes, always use official authoritative sources:</p>
+      <ul>
+        <li><strong>Australia:</strong> NAIPS — Airservices Australia (airservicesaustralia.com)</li>
+        <li><strong>New Zealand:</strong> AIP New Zealand (aip.net.nz)</li>
+        <li><strong>International:</strong> Your relevant national aviation authority</li>
+      </ul>
+    </div>
+
+    <p class="pilot-note">
+      If you are a pilot, you already know this: official sources only, always.
+    </p>
+
+    <hr class="divider">
+
+    <div class="actions">
+      <form method="POST" action="/disclaimer/accept">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="accept-btn">
+          I understand. AirTrack is not a certified aviation tool and I will never use it for operational decisions.
+        </button>
+      </form>
+
+      <form class="decline-form" method="POST" action="/disclaimer/decline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="decline-btn">I do not accept — close AirTrack</button>
+      </form>
+    </div>
+
+    <p class="version-note">AirTrack Safety Disclaimer — Version {{ version }} &nbsp;·&nbsp; Shown every 6 months</p>
+
+  </div>
+</body>
+</html>

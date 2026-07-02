@@ -65,6 +65,9 @@
       font-size: 0.82rem;
     }
     .quota-label { color: #888; white-space: nowrap; }
+    .tally-link { text-decoration: none; color: inherit; display: block; }
+    .tally-link:hover .tally-value { color: #00cc44; }
+    .tally-link:hover .tally-label { color: #aaa; }
     .quota-pips  { display: flex; gap: 5px; }
     .quota-pip {
       width: 16px; height: 16px;
@@ -217,6 +220,23 @@
       text-align: center;
     }
 
+    .registry-card.pending { border-color: #3a2800; }
+    .registry-card.pending:hover { border-color: #cc8800; }
+    .status-pending  { background: #1a1200; color: #f0a500; border: 1px solid #3a2800; }
+    .status-installed { background: #0a2a0a; color: #00cc44; border: 1px solid #1a4a1a; }
+
+    .alert-banner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-radius: 8px;
+      margin-bottom: 16px; font-size: 0.85rem;
+    }
+    .alert-banner.warn  { background: #1a1200; border: 1px solid #3a2800; color: #f0a500; }
+    .alert-banner.info  { background: #0a1a0a; border: 1px solid #1a3a1a; color: #88cc88; }
+    .alert-banner.error { background: #1a0a0a; border: 1px solid #3a1a1a; color: #cc6666; }
+    .alert-icon { font-size: 18px; flex-shrink: 0; }
+    .btn-approve { background: #f0a500; color: #0d0f14; border-color: #f0a500; }
+    .btn-approve:hover:not(:disabled) { filter: brightness(.9); }
+
     /* Record tally banner */
     .tally-bar {
       display: flex;
@@ -251,15 +271,173 @@
       height: 32px;
       background: #1e3a1e;
     }
+
+    /* ── Browse & Buy ────────────────────────────────────────────────── */
+    .market-section {
+      margin-top: 40px;
+      border-top: 1px solid #1e1e1e;
+      padding-top: 28px;
+    }
+
+    .market-header {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+
+    .market-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #e6e6e6;
+      font-weight: 600;
+    }
+
+    .market-header .market-sub {
+      color: #555;
+      font-size: 0.82rem;
+    }
+
+    .market-quota {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+      font-size: 0.8rem;
+      color: #666;
+    }
+    .market-quota-pips { display: flex; gap: 4px; }
+    .market-quota-pip {
+      width: 14px; height: 14px; border-radius: 3px;
+    }
+    .market-quota-pip.used  { background: #f5a623; border: 1px solid #f5a623; }
+    .market-quota-pip.empty { background: #1a1a1a; border: 1px solid #2a2a2a; }
+    .market-quota-text.none { color: #cc4444; }
+    .market-quota-text.warn { color: #cc8800; }
+
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .market-card {
+      background: #0d0d0d;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .market-card:hover { border-color: #f5a623; }
+    .market-card.selected {
+      border-color: #f5a623;
+      background: #120e00;
+    }
+    .market-card input[type="checkbox"] {
+      accent-color: #f5a623;
+      width: 16px; height: 16px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .market-card-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .market-card-name {
+      font-size: 0.88rem;
+      color: #ccc;
+      line-height: 1.3;
+    }
+    .market-card-records {
+      font-size: 0.72rem;
+      color: #666;
+      margin-top: 2px;
+    }
+    .market-card-price {
+      font-size: 0.78rem;
+      color: #888;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .market-footer {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 14px 18px;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+    }
+
+    .market-total {
+      flex: 1;
+    }
+    .market-total-label {
+      font-size: 0.75rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+    .market-total-amount {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f5a623;
+      letter-spacing: .5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .market-total-note {
+      font-size: 0.72rem;
+      color: #444;
+      margin-top: 2px;
+    }
+
+    .btn-purchase {
+      background: #f5a623;
+      color: #0d0d0d;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: filter .1s, opacity .1s;
+      white-space: nowrap;
+    }
+    .btn-purchase:hover:not(:disabled) { filter: brightness(.9); }
+    .btn-purchase:disabled { opacity: .4; cursor: not-allowed; }
+
+    .market-feedback {
+      font-size: 0.8rem;
+      min-height: 1.2em;
+      color: #888;
+    }
+    .market-feedback.ok  { color: #00cc44; }
+    .market-feedback.err { color: #cc4444; }
+
+    .market-empty {
+      color: #444;
+      font-size: 0.88rem;
+      padding: 24px 0;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
 
   <div class="page-header">
     <h1>✈ Registries</h1>
-    <span class="subtitle">{{ imported_count }} of {{ total_count }} imported</span>
+    <span class="subtitle">{{ imported_count }} of {{ total_count }} installed</span>
+    {% if not is_client %}
     <a class="coffee-link" href="https://buymeacoffee.com/airtracksolutions" target="_blank" rel="noopener">☕ Buy me a coffee</a>
     <a class="back-link" href="{{ url_for('registry.registry_tracker') }}">🗂 Tracker</a>
+    {% endif %}
     <a class="back-link" href="{{ url_for('admin.admin_dashboard') }}">← Cockpit</a>
   </div>
 
@@ -267,20 +445,44 @@
   <div class="tally-bar">
     <div class="tally-stat">
       <span class="tally-value" id="tallyRecords">{{ '{:,}'.format(total_records) }}</span>
-      <span class="tally-label">Total records</span>
+      <span class="tally-label">Records Imported</span>
     </div>
     <div class="tally-divider"></div>
     <div class="tally-stat">
       <span class="tally-value" id="tallyCountries">{{ imported_count }}</span>
-      <span class="tally-label">Countries imported</span>
+      <span class="tally-label">Countries Imported</span>
     </div>
+    {% if is_client and purchasable %}
     <div class="tally-divider"></div>
     <div class="tally-stat">
-      <span class="tally-value">{{ total_count - imported_count }}</span>
-      <span class="tally-label">Available to import</span>
+      <a href="#marketSection" class="tally-link">
+        <span class="tally-value">{{ purchasable | length }}</span>
+        <span class="tally-label">Available to be Purchased</span>
+      </a>
     </div>
+    {% endif %}
   </div>
 
+  {% if is_client and wombat_offline %}
+  <div class="alert-banner error">
+    <span class="alert-icon">⚠</span>
+    {% if wombat_cache_at %}
+    <span>Cannot reach Wombat — showing entitlements cached on {{ wombat_cache_at[:19]|replace("T"," ") }} UTC. Installed registry data remains fully usable. Purchase, install and remove are unavailable while offline.</span>
+    {% else %}
+    <span>Cannot reach Wombat and no cached entitlement list is available yet. Installed registry data still works if already imported. Purchase, install and remove are unavailable while offline.</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if is_client and pending_count > 0 and registry_pref == 'ask' %}
+  <div class="alert-banner warn">
+    <span class="alert-icon">📦</span>
+    <span><strong>{{ pending_count }} {% if pending_count == 1 %}registry{% else %}registries{% endif %} waiting for your approval.</strong>
+    Click <em>Install Now</em> on any card below to install it.</span>
+  </div>
+  {% endif %}
+
+  {% if is_client and daily_limit > 0 %}
   <!-- Daily import quota -->
   <div class="quota-bar" id="quotaBar">
     <span class="quota-label">Today's imports</span>
@@ -301,30 +503,39 @@
       {% endif %}
     </span>
   </div>
+  {% endif %}
 
   <div class="filter-bar">
     <button class="filter-btn active" data-filter="all">All ({{ total_count }})</button>
-    <button class="filter-btn" data-filter="imported">Imported ({{ imported_count }})</button>
-    <button class="filter-btn" data-filter="available">Available ({{ total_count - imported_count }})</button>
+    <button class="filter-btn" data-filter="imported">Installed ({{ imported_count }})</button>
+    {% if is_client and pending_count > 0 %}
+    <button class="filter-btn" data-filter="pending">Pending ({{ pending_count }})</button>
+    {% endif %}
+
   </div>
 
   {% if registries %}
   <div class="registry-grid" id="registryGrid">
     {% for r in registries %}
-    <div class="registry-card {% if r.imported %}imported{% endif %}"
-         data-state="{{ 'imported' if r.imported else 'available' }}"
+    {% set card_state = r.get('state', 'imported' if r.imported else 'available') %}
+    <div class="registry-card {% if card_state == 'installed' or r.imported %}imported{% elif card_state == 'pending' %}pending{% endif %}"
+         data-state="{{ card_state if is_client else ('imported' if r.imported else 'available') }}"
          id="card-{{ r.dir }}">
 
       <div class="card-name">{{ r.display_name }}</div>
 
       <div>
-        <span class="card-status {% if r.imported %}status-imported{% else %}status-available{% endif %}"
-              id="status-{{ r.dir }}">
-          {{ '✓ Imported' if r.imported else 'Available' }}
-        </span>
+        {% if card_state == 'installed' or r.imported %}
+        <span class="card-status {% if is_client %}status-installed{% else %}status-imported{% endif %}"
+              id="status-{{ r.dir }}">✓ Installed</span>
+        {% elif card_state == 'pending' %}
+        <span class="card-status status-pending" id="status-{{ r.dir }}">⏳ Pending Approval</span>
+        {% else %}
+        <span class="card-status status-available" id="status-{{ r.dir }}">Available</span>
+        {% endif %}
       </div>
 
-      {% if r.imported %}
+      {% if r.imported or card_state == 'installed' %}
       <div class="card-row-count" id="rowcount-{{ r.dir }}">
         {{ '{:,}'.format(r.row_count) }} records
       </div>
@@ -337,16 +548,34 @@
       {% endif %}
 
       <div class="card-actions">
+        {% if card_state == 'pending' %}
+        <button class="btn btn-approve"
+                id="btn-import-{{ r.dir }}"
+                onclick="importRegistry('{{ r.dir }}')"
+                {% if wombat_offline | default(false) %}disabled{% endif %}>
+          Install Now
+        </button>
+        {% else %}
         <button class="btn btn-import"
                 id="btn-import-{{ r.dir }}"
                 onclick="importRegistry('{{ r.dir }}')"
-                {% if r.imported %}style="display:none"{% endif %}>
-          Import
+                {% if r.imported or card_state == 'installed' %}style="display:none"{% endif %}
+                {% if wombat_offline | default(false) %}disabled{% endif %}>
+          {% if is_client %}Install{% else %}Import{% endif %}
         </button>
+        {% endif %}
+        {% if r.has_update %}
+        <button class="btn btn-approve"
+                id="btn-update-{{ r.dir }}"
+                onclick="importRegistry('{{ r.dir }}')"
+                {% if wombat_offline | default(false) %}disabled{% endif %}>
+          Update
+        </button>
+        {% endif %}
         <button class="btn btn-remove"
                 id="btn-remove-{{ r.dir }}"
                 onclick="removeRegistry('{{ r.dir }}')"
-                {% if not r.imported %}style="display:none"{% endif %}>
+                {% if not r.imported and card_state != 'installed' %}style="display:none"{% endif %}>
           Remove
         </button>
       </div>
@@ -357,6 +586,66 @@
   </div>
   {% else %}
   <div class="empty-state">No registries found in the registries directory.</div>
+  {% endif %}
+
+  {% if is_client and not wombat_offline %}
+  {% set purchasable = purchasable | default([]) %}
+  <div class="market-section" id="marketSection">
+    <div class="market-header">
+      <h2>🛒 Browse &amp; Buy</h2>
+      <span class="market-sub">Additional country registries · A$0.50 each · delivered automatically</span>
+    </div>
+
+    <!-- Daily purchase quota -->
+    {% set market_limit = purchase_limit | default(5) %}
+    {% set market_done  = purchases_today | default(0) %}
+    {% set market_left  = [market_limit - market_done, 0] | max %}
+    <div class="market-quota">
+      <div class="market-quota-pips">
+        {% for i in range(market_limit) %}
+        <div class="market-quota-pip {% if i < market_done %}used{% else %}empty{% endif %}"></div>
+        {% endfor %}
+      </div>
+      <span class="market-quota-text {% if market_left == 0 %}none{% elif market_left == 1 %}warn{% endif %}">
+        {% if market_left == 0 %}No purchases left today{% elif market_left == 1 %}1 purchase remaining today{% else %}{{ market_left }} purchases remaining today{% endif %}
+      </span>
+    </div>
+
+    {% if purchasable %}
+    <div class="market-grid" id="marketGrid">
+      {% for item in purchasable %}
+      {% set slug = item.slug %}
+      {% set records = item.records %}
+      <label class="market-card" id="mc-{{ slug }}" onclick="marketToggle('{{ slug }}', event)">
+        <input type="checkbox" id="mcheck-{{ slug }}" value="{{ slug }}" onchange="marketUpdate()">
+        <span class="market-card-body">
+          <span class="market-card-name">{{ slug.replace('_', ' ').title() }}</span>
+          {% if records %}
+          <span class="market-card-records">{{ '{:,}'.format(records) }} records</span>
+          {% endif %}
+        </span>
+        <span class="market-card-price">A$0.50</span>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="market-footer">
+      <div class="market-total">
+        <div class="market-total-label">Total</div>
+        <div class="market-total-amount" id="marketTotal">A$0.00</div>
+        <div class="market-total-note" id="marketNote">Select registries above</div>
+      </div>
+      <div>
+        <button class="btn-purchase" id="btnPurchase" disabled onclick="marketPurchase()">
+          Purchase
+        </button>
+        <div class="market-feedback" id="marketFeedback"></div>
+      </div>
+    </div>
+    {% else %}
+    <div class="market-empty">All available registries are already in your entitlements.</div>
+    {% endif %}
+  </div>
   {% endif %}
 
   <script>
@@ -425,16 +714,14 @@
       const cards = document.querySelectorAll('.registry-card');
       const total    = cards.length;
       const imported = [...cards].filter(c => c.dataset.state === 'imported').length;
-      const available = total - imported;
-      document.querySelector('[data-filter="all"]').textContent    = `All (${total})`;
-      document.querySelector('[data-filter="imported"]').textContent  = `Imported (${imported})`;
-      document.querySelector('[data-filter="available"]').textContent = `Available (${available})`;
+      document.querySelector('[data-filter="all"]').textContent       = `All (${total})`;
+      document.querySelector('[data-filter="imported"]').textContent  = `Installed (${imported})`;
       const sub = document.querySelector('.subtitle');
-      if (sub) sub.textContent = `${imported} of ${total} imported`;
+      if (sub) sub.textContent = `${imported} of ${total} installed`;
     }
 
     async function importRegistry(dir) {
-      if (importsToday >= DAILY_LIMIT) {
+      if (DAILY_LIMIT > 0 && importsToday >= DAILY_LIMIT) {
         setFeedback(dir, '✗ Daily limit reached — come back tomorrow!', false);
         return;
       }
@@ -452,19 +739,22 @@
 
         if (resp.ok && data.status === 'ok') {
           const rows = data.row_count || 0;
-          setFeedback(dir, `✓ ${rows.toLocaleString()} records imported`, true);
+          setFeedback(dir, `✓ ${rows.toLocaleString()} records installed`, true);
 
           const card = document.getElementById('card-' + dir);
+          card.classList.remove('pending');
           card.classList.add('imported');
-          card.dataset.state = 'imported';
+          card.dataset.state = 'installed';
 
-          document.getElementById('status-' + dir).className = 'card-status status-imported';
-          document.getElementById('status-' + dir).textContent = '✓ Imported';
+          const statusEl = document.getElementById('status-' + dir);
+          statusEl.className = 'card-status status-installed';
+          statusEl.textContent = '✓ Installed';
 
           document.getElementById('rowcount-' + dir).className = 'card-row-count';
           document.getElementById('rowcount-' + dir).textContent = rows.toLocaleString() + ' records';
 
-          document.getElementById('btn-import-' + dir).style.display = 'none';
+          const importBtn = document.getElementById('btn-import-' + dir);
+          if (importBtn) importBtn.style.display = 'none';
           document.getElementById('btn-remove-' + dir).style.display = '';
 
           if (data.quota) updateQuotaBar(data.quota.used);
@@ -522,11 +812,104 @@
     }
 
     // Disable all import buttons immediately if quota is already exhausted on load
-    if (importsToday >= DAILY_LIMIT) {
+    if (DAILY_LIMIT > 0 && importsToday >= DAILY_LIMIT) {
       document.querySelectorAll('.btn-import').forEach(btn => {
         if (btn.style.display !== 'none') btn.disabled = true;
       });
     }
+
+    // ── Browse & Buy ──────────────────────────────────────────────────────
+    const MARKET_LIMIT   = {{ purchase_limit | default(5) }};
+    let marketDoneToday  = {{ purchases_today | default(0) }};
+
+    function marketToggle(slug, event) {
+      // Prevent double-toggle when clicking the checkbox itself
+      if (event.target.tagName === 'INPUT') return;
+      const cb = document.getElementById('mcheck-' + slug);
+      if (cb) { cb.checked = !cb.checked; marketUpdate(); }
+    }
+
+    function marketSelectedSlugs() {
+      return [...document.querySelectorAll('#marketGrid input[type="checkbox"]:checked')]
+        .map(cb => cb.value);
+    }
+
+    function marketUpdate() {
+      const selected = marketSelectedSlugs();
+      document.querySelectorAll('.market-card').forEach(card => {
+        const slug = card.id.replace('mc-', '');
+        card.classList.toggle('selected', selected.includes(slug));
+      });
+      const count  = selected.length;
+      const total  = (count * 0.50).toFixed(2);
+      document.getElementById('marketTotal').textContent = 'A$' + total;
+      const note = count === 0 ? 'Select registries above'
+                 : count === 1 ? '1 registry selected'
+                 : count + ' registries selected';
+      document.getElementById('marketNote').textContent = note;
+      const btn = document.getElementById('btnPurchase');
+      const overLimit = (marketDoneToday + count) > MARKET_LIMIT;
+      btn.disabled = (count === 0 || overLimit);
+      if (overLimit && count > 0) {
+        document.getElementById('marketFeedback').textContent =
+          '✗ Daily limit reached — select fewer registries';
+        document.getElementById('marketFeedback').className = 'market-feedback err';
+      } else {
+        document.getElementById('marketFeedback').textContent = '';
+        document.getElementById('marketFeedback').className = 'market-feedback';
+      }
+    }
+
+    async function marketPurchase() {
+      const selected = marketSelectedSlugs();
+      if (!selected.length) return;
+
+      const btn = document.getElementById('btnPurchase');
+      const fb  = document.getElementById('marketFeedback');
+      btn.disabled = true;
+      btn.dataset.origText = btn.textContent;
+      btn.innerHTML = '<span class="spin" style="border-color:#000;border-top-color:transparent"></span> Processing…';
+      fb.textContent = '';
+      fb.className = 'market-feedback';
+
+      try {
+        const resp = await fetch('/admin/registries/purchase-checkout', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken':  csrf(),
+            'Accept':       'application/json',
+          },
+          body: JSON.stringify({ registries: selected }),
+        });
+        const data = await resp.json().catch(() => ({}));
+
+        if (resp.ok && data.status === 'ok' && data.checkout_url) {
+          fb.textContent = '✓ Redirecting to payment…';
+          fb.className = 'market-feedback ok';
+          // Open Stripe Checkout in new tab
+          window.open(data.checkout_url, '_blank');
+          // Update expected local state optimistically
+          marketDoneToday += selected.length;
+          btn.textContent = btn.dataset.origText || 'Purchase';
+          marketUpdate();
+        } else {
+          fb.textContent = '✗ ' + (data.detail || data.error || 'Checkout failed');
+          fb.className = 'market-feedback err';
+          btn.textContent = btn.dataset.origText || 'Purchase';
+          btn.disabled = false;
+        }
+      } catch (err) {
+        fb.textContent = '✗ Network error — please try again';
+        fb.className = 'market-feedback err';
+        btn.textContent = btn.dataset.origText || 'Purchase';
+        btn.disabled = false;
+      }
+    }
+
+    // Initialise market state on load
+    marketUpdate();
 
     // Filter buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -535,7 +918,10 @@
         btn.classList.add('active');
         const filter = btn.dataset.filter;
         document.querySelectorAll('.registry-card').forEach(card => {
-          const show = filter === 'all' || card.dataset.state === filter;
+          const st = card.dataset.state;
+          const show = filter === 'all'
+            || st === filter
+            || (filter === 'imported' && st === 'installed');
           card.style.display = show ? '' : 'none';
         });
       });

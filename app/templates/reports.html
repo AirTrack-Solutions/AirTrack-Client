@@ -17,7 +17,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
     <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
-    <script src="{{ url_for('static', filename='js/reports.js') }}"></script>
 </head>
 
 <body class="theme-{{ selected_theme }}">
@@ -26,31 +25,6 @@
 
     <h1 class="airtrack-section-title">Reports</h1>
 
-    <!-- Welcome / Disclaimer Modal -->
-    {% if show_disclaimer %}
-    <div id="disclaimerModal" class="modal fade" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Welcome to Reports</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>
-                        These reports are generated only from data manually entered.
-                        They do not represent real-world flight activity beyond your logged sightings
-                        and will differ between users of AirTrack.
-                    </p>
-                    {% if not license or license.edition == 'lite' %}
-                    <hr>
-                    <p>
-                        <strong>Running in Lite mode.</strong> To unlock all features, copy your
-                        <code>license.lic</code> file into the <code>app/config/</code> folder
-                        inside your AirTrack directory and restart.
-                        If you don't have a license, visit
-                        <a href="https://www.airtracksolutions.com" target="_blank" rel="noopener">airtracksolutions.com</a>.
-                    </p>
-                    {% endif %}
                     <hr>
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="hideDisclaimer">
@@ -112,28 +86,6 @@
             });
         });
 
-        // ── Welcome / Disclaimer modal ──
-        const disclaimerModal = document.getElementById("disclaimerModal");
-        const acceptBtn = document.getElementById("acceptDisclaimer");
-
-        if (disclaimerModal && typeof bootstrap !== "undefined") {
-            // Only show if not already dismissed in localStorage
-            if (localStorage.getItem("disclaimerDismissed") !== "1") {
-                const modal = new bootstrap.Modal(disclaimerModal);
-                modal.show();
-
-                if (acceptBtn) {
-                    acceptBtn.addEventListener("click", function() {
-                        if (document.getElementById("hideDisclaimer")?.checked) {
-                            localStorage.setItem("disclaimerDismissed", "1");
-                            // Also tell the server if possible
-                            fetch("/hide_disclaimer", { method: "POST" }).catch(() => {});
-                        }
-                        modal.hide();
-                    });
-                }
-            }
-        }
     </script>
 
     {% include 'footer.html' %}

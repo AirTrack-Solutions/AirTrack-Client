@@ -6,6 +6,7 @@
 from pathlib import Path
 
 from flask import (
+    current_app,
     Blueprint,
     flash,
     redirect,
@@ -27,7 +28,7 @@ airline_logo_linker = Blueprint(
 @airline_logo_linker.route("/", methods=["GET", "POST"])
 def link_airline_logos():
     search = request.args.get("search", "").lower()
-    logos_path = Path("static/logos")
+    logos_path = Path(current_app.root_path) / "static" / "logos"
     all_logos = {f.stem for f in logos_path.glob("*.png")}
 
     if request.method == "POST":

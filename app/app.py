@@ -187,10 +187,13 @@ def inject_time():
 
 def inject_env_vars():
     try:
+        role = os.getenv("AIRTRACK_ROLE", "client").lower()
         return {
             "AIRTRACK_UPDATE_MODE": os.getenv("AIRTRACK_UPDATE_MODE", ""),
             "AIRTRACK_SYNC_USER":   os.getenv("AIRTRACK_SYNC_USER", ""),
             "aria_enabled":         os.getenv("ARIA_ENABLED", "0").lower() in ("1", "true", "yes"),
+            "is_server":            role == "server",
+            "is_client":            role == "client",
         }
     except Exception:
         return {}
@@ -228,11 +231,9 @@ app.register_blueprint(server_webauthn)
 # ---------------------------------------------------------------------------
 # Configuration (DB / debug / secrets)
 # ---------------------------------------------------------------------------
-app.config["SQLALCHEMY_DATABASE_URI"] = (
-    f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-    f"@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}?charset=utf8mb4"
-)
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+# NOTE: SQLALCHEMY_DATABASE_URI is already set above from DATABASE_URI (or fallback).
+# Do NOT overwrite it here with individual DB_* vars — that ignores the cfg-supplied
+# DATABASE_URI and breaks port/password when the system env has stale DB_HOST values.
 app.config["DEBUG"] = True
 app.config["TESTING"] = False
 
@@ -241,12 +242,15 @@ app.secret_key = os.getenv("SECRET_KEY", "fallback-hardcoded-key")
 
 
 # ---------------------------------------------------------------------------
-# Theme refresh hook
+# Request gates — disclaimer first, setup second
 # ---------------------------------------------------------------------------
 @app.before_request
+def _disclaimer_gate():
+    return check_disclaimer()
 
-def _themes_auto_refresh():
-    pass
+@app.before_request
+def _setup_gate():
+    return check_setup()
 
 
 # ---------------------------------------------------------------------------
@@ -255,12 +259,18 @@ def _themes_auto_refresh():
 
 def get_backup_dir() -> Path:
     """
-    Returns the *correct* backup directory inside the container.
+    Returns the correct backup directory.
+
+    Respects AIRTRACK_HOME env var (set by Windows service from airtrack.cfg).
+    Falls back to /app/backups inside Docker.
 
     Always returns a Path, never None.
     """
-    # Inside Docker, backups MUST go here
-    base = Path("/app/backups")
+    airtrack_home = os.getenv("AIRTRACK_HOME", "").strip()
+    if airtrack_home:
+        base = Path(airtrack_home) / "backups"
+    else:
+        base = Path("/app/backups")
 
     try:
         base.mkdir(parents=True, exist_ok=True)
@@ -268,6 +278,59 @@ def get_backup_dir() -> Path:
         logging.error(f"❌ Failed to create backup directory {base}: {e}")
 
     return base
+
+
+def _auto_backup() -> None:
+    """
+    Automatic daily database backup.
+    Writes airtrack_auto_YYYYMMDD_HHMMSS.sql to the backup directory.
+    Keeps the 7 most recent auto-backups; older ones are silently removed.
+    Safe to call even if mysqldump is unavailable — logs and returns.
+    """
+    try:
+        backup_dir = get_backup_dir()
+        backup_dir.mkdir(parents=True, exist_ok=True)
+
+        from datetime import datetime as _dt
+        now      = _dt.utcnow().strftime("%Y%m%d_%H%M%S")
+        filename = f"airtrack_auto_{now}.sql"
+        filepath = backup_dir / filename
+
+        cmd = [
+            "mysqldump",
+            "-h", os.getenv("DB_HOST", "airtrack-db"),
+            "-P", os.getenv("DB_PORT", "3306"),
+            "-u", os.getenv("DB_USER", ""),
+            f"-p{os.getenv('DB_PASSWORD', '')}",
+            os.getenv("DB_NAME", "airtrack"),
+        ]
+
+        with open(filepath, "wb") as _out:
+            _proc = subprocess.run(cmd, stdout=_out, stderr=subprocess.PIPE)
+
+        if _proc.returncode != 0:
+            filepath.unlink(missing_ok=True)
+            _err_msg = _proc.stderr.decode("utf-8", errors="replace").strip()
+            logging.error("Auto-backup: mysqldump failed — %s", _err_msg)
+            return
+
+        logging.info("Auto-backup: saved %s", filepath)
+
+        # Retention: keep newest 7 auto-backups, delete the rest
+        auto_files = sorted(
+            backup_dir.glob("airtrack_auto_*.sql"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        for _old_file in auto_files[7:]:
+            try:
+                _old_file.unlink()
+                logging.info("Auto-backup: removed old backup %s", _old_file.name)
+            except Exception as _del_exc:
+                logging.warning("Auto-backup: could not remove %s — %s", _old_file.name, _del_exc)
+
+    except Exception as _exc:
+        logging.error("Auto-backup: unexpected error — %s", _exc, exc_info=True)
 
 
 def _safe_tz(name: str | None):
@@ -392,14 +455,6 @@ with app.app_context():
                 """
                 )
             )
-            conn.execute(
-                text(
-                    """
-                    INSERT IGNORE INTO settings (id, show_disclaimer)
-                    VALUES (1, 1)
-                """
-                )
-            )
     except Exception as e:
         logging.warning("Could not seed defaults: %s", e)
 
@@ -451,17 +506,11 @@ def splash():
 
 def reports():
     try:
-        with db.engine.connect() as conn:
-            result = conn.execute(
-                text("SELECT show_disclaimer FROM settings WHERE id=1")
-            ).fetchone()
-            show_disclaimer = result[0] if result else True
         now = convert_to_local(datetime.utcnow())
         # NOTE: original code didn’t return; leaving behaviour minimal
         # so we don’t change functional behaviour unexpectedly.
         return render_template(
             "reports.html",
-            show_disclaimer=show_disclaimer,
             now=now,
             is_server=os.getenv("AIRTRACK_ROLE", "").lower() == "server",
             has_api_key=bool(os.getenv("ANTHROPIC_API_KEY", "").strip()),
@@ -526,6 +575,18 @@ def index():
             no_aircraft_message="", current_year=current_year,
             settings={},
         )
+
+
+@app.route("/glossary")
+def glossary():
+    from time import time as _time
+    from datetime import datetime
+    return render_template(
+        "glossary.html",
+        selected_theme=get_current_theme(),
+        cache_bust=int(_time()),
+        current_year=datetime.utcnow().year,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -920,39 +981,6 @@ def delete_airline(airline_id):
         return redirect(url_for("airlines.airlines_table"))
 
 
-# Disclaimer routes
-# ---------------------------------------------------------------------------
-@app.route("/get_disclaimer_status")
-
-def get_disclaimer_status():
-    try:
-        with db.engine.connect() as conn:
-            r = conn.execute(
-                text(
-                    "SELECT show_disclaimer FROM settings "
-                    "WHERE id=1"
-                )
-            ).fetchone()
-            return jsonify({"show_disclaimer": bool(r[0]) if r else True})
-    except Exception as e:
-        logging.error("❌ Disclaimer error: %s", e)
-        return jsonify({"error": "Database error"}), 500
-
-
-@app.route("/hide_disclaimer", methods=["POST"])
-@csrf.exempt
-def hide_disclaimer():
-    try:
-        with db.engine.begin() as conn:
-            conn.execute(
-                text("UPDATE settings SET show_disclaimer=FALSE WHERE id=1")
-            )
-        return jsonify({"status": "ok"})
-    except Exception as e:
-        logging.error("❌ Disclaimer update error: %s", e)
-        return jsonify({"error": "Database error"}), 500
-
-
 # ---------------------------------------------------------------------------
 # Admin: backup / restore / flush
 # ---------------------------------------------------------------------------
@@ -1040,7 +1068,7 @@ def restore_database():
 
 def flush_backups():
     try:
-        backup_dir = os.path.join(os.path.dirname(__file__), "backups")
+        backup_dir = get_backup_dir()
         files = [f for f in os.listdir(backup_dir) if f.endswith(".sql")]
 
         if not files:
@@ -1064,7 +1092,10 @@ def flush_backups():
 
 def flush_logs():
     try:
-        open("logs/airtrack.log", "w").close()
+        _log_dir = os.getenv("AIRTRACK_LOG_DIR", "").strip()
+        _log_path = (Path(_log_dir) / "airtrack.log") if _log_dir else Path("logs/airtrack.log")
+        _log_path.parent.mkdir(parents=True, exist_ok=True)
+        open(_log_path, "w").close()
         log_admin_action("Logs flushed.")
         flash("Logs flushed.", "success")
     except Exception:
@@ -1104,11 +1135,7 @@ def admin_panel():
     except Exception:
         stats = {}
 
-    def _backup_dir():
-        env = os.getenv("AIRTRACK_BACKUP_DIR")
-        return Path(env).resolve() if env else Path("/app/logs/backups").resolve()
-
-    backup_dir = _backup_dir()
+    backup_dir = get_backup_dir()
     backup_files = []
     try:
         backup_dir.mkdir(parents=True, exist_ok=True)
@@ -1199,6 +1226,9 @@ def test_direct():
 # ---------------------------------------------------------------------------
 # Blueprints
 # ---------------------------------------------------------------------------
+from routes.disclaimer_routes import disclaimer_bp, check_disclaimer
+from routes.setup_routes import setup_bp, check_setup
+
 from routes.search_routes import search_unified_bp
 
 from routes.add_aircraft_routes import add_aircraft_bp
@@ -1241,6 +1271,8 @@ except ImportError:
     billing_bp = None
     billing_webhook_bp = None
 
+app.register_blueprint(disclaimer_bp)
+app.register_blueprint(setup_bp)
 app.register_blueprint(search_unified_bp)
 logging.info("✅ Registered blueprint: search_unified_bp (/search_unified)")
 app.register_blueprint(admin_bp)
@@ -1333,3 +1365,30 @@ try:
         _run_mangy_marmot()  # run immediately on startup
 except Exception as _sched_exc:
     logging.error("Woodland Scheduler failed to start: %s", _sched_exc, exc_info=True)
+
+# ---------------------------------------------------------------------------
+# Auto-Backup Scheduler — runs regardless of Wombat configuration
+# ---------------------------------------------------------------------------
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler as _BSched
+    from apscheduler.triggers.cron import CronTrigger as _CronTrigger
+
+    def _run_auto_backup():
+        try:
+            _auto_backup()
+        except Exception as _exc:
+            logging.error("Auto-backup scheduler: unexpected error — %s", _exc, exc_info=True)
+
+    _backup_scheduler = _BSched(timezone="UTC")
+    _backup_scheduler.add_job(
+        _run_auto_backup,
+        _CronTrigger(hour=2, minute=0),
+        id="auto_backup",
+        name="Auto Backup",
+        max_instances=1,
+        coalesce=True,
+    )
+    _backup_scheduler.start()
+    logging.info("Auto-Backup Scheduler started — daily at 02:00 UTC")
+except Exception as _backup_sched_exc:
+    logging.error("Auto-Backup Scheduler failed to start: %s", _backup_sched_exc, exc_info=True)
