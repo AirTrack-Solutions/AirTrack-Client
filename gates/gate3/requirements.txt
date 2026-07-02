@@ -21,6 +21,6 @@ asn1crypto==1.5.1
 itsdangerous==2.2.0
 paramiko==3.4.0
 apscheduler>=3.10
-waitress==3.0.0
+waitress==3.0.1
 pywin32==311
 pyinstaller==6.3.0
