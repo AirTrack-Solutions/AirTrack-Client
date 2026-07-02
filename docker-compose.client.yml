@@ -1,32 +1,97 @@
 # AirTrack Linux Client
 # https://github.com/AirTrack-Solutions/AirTrack-Client
+#
+# Volume-mounted build — app/ is live on the host filesystem.
+# Marmot pulls rolling code updates from Mrs Wombat and applies them
+# by extracting a new tarball over app/, then restarting these containers.
+
+name: airtrack-client
 
 services:
+
   airtrack:
-    image: ghcr.io/airtrack-solutions/airtrack-client:latest
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    image: airtrack:client
+    working_dir: /app
+    entrypoint: ["/bin/sh", "/app/wait-for-mariadb.sh"]
+    command:
+      [
+        "/venv/bin/gunicorn",
+        "-w", "1",
+        "-k", "gthread", "--threads", "8",
+        "-b", "0.0.0.0:5000",
+        "wsgi:app"
+      ]
     restart: unless-stopped
     depends_on:
-      airtrack-db:
-        condition: service_started
+      - airtrack-db
     ports:
-      - "${AIRTRACK_PORT:-5000}:5000"
+      - "${AIRTRACK_PORT:-5001}:5000"
     env_file: .env
     environment:
-      - FLASK_DEBUG=0
-      - AIRTRACK_ROLE=client
-      - AIRTRACK_HOME=/airtrack_data
-      - MYSQL_HOST=airtrack-db
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: "/app"
+      FLASK_DEBUG: "0"
+      AIRTRACK_ROLE: "client"
+      MYSQL_HOST: "airtrack-db"
+      MYSQL_PORT: "3306"
+      WAIT_TIMEOUT: "60"
+      DB_HOST: "airtrack-db"
+      DB_USER: "${DB_USER:-airtrack}"
+      DB_PASSWORD: "${DB_PASSWORD:-airtrack}"
+      DB_NAME: "${DB_NAME:-airtrack}"
     volumes:
-      - ./data:/airtrack_data:rw
-      - ./logs:/app/logs:rw
+      - ./app:/app:rw
+      - ./app/logs:/app/logs:rw
+      - ./data:/app/data:rw
       - ./keys:/app/keys:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  airtrack-scheduler:
+    image: airtrack:client
+    working_dir: /app
+    entrypoint: ["/bin/sh", "/app/wait-for-mariadb.sh"]
+    command: ["/bin/sh", "-c", "/venv/bin/pip install -q 'APScheduler>=3.10,<4' beautifulsoup4 docker && exec /venv/bin/python /app/scheduler.py"]
+    restart: unless-stopped
+    depends_on:
+      - airtrack-db
+    env_file: .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: "/app"
+      AIRTRACK_ROLE: "client"
+      SCHEDULER_TZ: "Australia/Sydney"
+      MYSQL_HOST: "airtrack-db"
+      MYSQL_PORT: "3306"
+      WAIT_TIMEOUT: "60"
+      DB_HOST: "airtrack-db"
+      DB_USER: "${DB_USER:-airtrack}"
+      DB_PASSWORD: "${DB_PASSWORD:-airtrack}"
+      DB_NAME: "${DB_NAME:-airtrack}"
+      WOMBAT_URL: "http://airtrack:5000"
+      WOMBAT_CODE_URL: "${WOMBAT_CODE_URL:-http://192.168.0.201:5200}"
+      AIRTRACK_CODE_REPO: "AirTrack-Client"
+      AIRTRACK_WEB_CONTAINER: "airtrack-client-airtrack-1"
+      AIRTRACK_SCHEDULER_CONTAINER: "airtrack-client-airtrack-scheduler-1"
+    volumes:
+      - ./app:/app:rw
+      - ./app/logs:/app/logs:rw
+      - ./data:/app/data:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
   airtrack-db:
     image: mariadb:11.4
     restart: unless-stopped
-    env_file: .env
+    environment:
+      MARIADB_ROOT_PASSWORD: "${DB_PASSWORD:-airtrack}"
+      MARIADB_DATABASE: "${DB_NAME:-airtrack}"
+      MARIADB_USER: "${DB_USER:-airtrack}"
+      MARIADB_PASSWORD: "${DB_PASSWORD:-airtrack}"
     volumes:
       - db_data:/var/lib/mysql
 
