@@ -215,6 +215,47 @@ def admin_dashboard():
         "logs_tail":     _endpoint_url('admin_tools.logs_tail'),
     }.items() if v}
 
+    # Applied app update version + restart-pending check
+    # (client only — reads AIRTRACK_HOME files)
+    app_update_version  = None
+    restart_pending     = None   # dict {version, queued_at} if flag file exists
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+        _home = _Path(os.environ.get('AIRTRACK_HOME') or (
+            os.path.join(os.environ.get('ProgramData', 'C:/ProgramData'), 'AirTrack')
+            if _sys.platform == 'win32' else '/airtrack_data'
+        ))
+        _vf = _home / 'app_update_version.txt'
+        if _vf.exists():
+            _v = _vf.read_text(encoding='utf-8').strip()
+            if _v and _v != '0.0.0':
+                app_update_version = _v
+        _pf = _home / 'restart_pending.txt'
+        if _pf.exists():
+            _lines = _pf.read_text(encoding='utf-8').strip().splitlines()
+            restart_pending = {
+                'version':   _lines[0] if _lines else 'unknown',
+                'queued_at': _lines[1] if len(_lines) > 1 else 'unknown',
+            }
+    except Exception:
+        pass
+
+    # Pending support report (written by app_updater when mode=="ask")
+    pending_support_report = None
+    try:
+        import sys as _sys2
+        from pathlib import Path as _Path2
+        _home2 = _Path2(os.environ.get('AIRTRACK_HOME') or (
+            os.path.join(os.environ.get('ProgramData', 'C:/ProgramData'), 'AirTrack')
+            if _sys2.platform == 'win32' else '/airtrack_data'
+        ))
+        _rf = _home2 / 'pending_support_report.json'
+        if _rf.exists():
+            pending_support_report = json.loads(_rf.read_text(encoding='utf-8'))
+    except Exception:
+        pass
+
     return render_template(
         'admin.html',
         stats=stats,
@@ -222,6 +263,9 @@ def admin_dashboard():
         show_commit_push=show_commit_push,
         airtrack_urls=airtrack_urls,
         is_server=is_server,
+        app_update_version=app_update_version,
+        restart_pending=restart_pending,
+        pending_support_report=pending_support_report,
     )
 
 
@@ -230,6 +274,56 @@ def admin_dashboard():
 def admin_settings():
     # Settings live in the admin.html modal — redirect there
     return redirect(url_for('admin.admin_dashboard'))
+
+
+@admin_bp.route('/send-support-report', methods=['POST'])
+def send_support_report():
+    """Read pending_support_report.json, POST to Wombat, delete local file."""
+    import sys as _sys3
+    from pathlib import Path as _Path3
+    try:
+        _home3 = _Path3(os.environ.get('AIRTRACK_HOME') or (
+            os.path.join(os.environ.get('ProgramData', 'C:/ProgramData'), 'AirTrack')
+            if _sys3.platform == 'win32' else '/airtrack_data'
+        ))
+        _rf = _home3 / 'pending_support_report.json'
+        if not _rf.exists():
+            return jsonify({'ok': False, 'error': 'No pending report found'}), 404
+        payload = json.loads(_rf.read_text(encoding='utf-8'))
+        # Send to Wombat
+        import urllib.request as _ur3
+        wombat_url = current_app.config.get('WOMBAT_URL', '')
+        if not wombat_url:
+            return jsonify({'ok': False, 'error': 'WOMBAT_URL not configured'}), 500
+        endpoint = wombat_url.rstrip('/') + '/api/wombat/client-rollback-event'
+        req = _ur3.Request(
+            endpoint,
+            data=json.dumps(payload).encode('utf-8'),
+            headers={'Content-Type': 'application/json'},
+            method='POST',
+        )
+        with _ur3.urlopen(req, timeout=10) as resp:
+            _resp_data = resp.read()
+        _rf.unlink(missing_ok=True)
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/dismiss-support-report', methods=['POST'])
+def dismiss_support_report():
+    """Delete pending_support_report.json without sending."""
+    import sys as _sys4
+    from pathlib import Path as _Path4
+    try:
+        _home4 = _Path4(os.environ.get('AIRTRACK_HOME') or (
+            os.path.join(os.environ.get('ProgramData', 'C:/ProgramData'), 'AirTrack')
+            if _sys4.platform == 'win32' else '/airtrack_data'
+        ))
+        (_home4 / 'pending_support_report.json').unlink(missing_ok=True)
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 @admin_bp.route('/save_settings', methods=['POST'])
@@ -306,6 +400,7 @@ def update_app_settings():
 
         theme = (data.get("theme") or 'default').strip()
         timezone = (data.get("timezone") or '').strip()
+        home_airport = (data.get("home_airport") or '').strip().upper()[:4]
 
         image_import_folder = (
             data.get("aircraft_image_import_folder")
@@ -315,6 +410,7 @@ def update_app_settings():
         with db.engine.begin() as conn:
             for k, v in (
                 ('timezone', timezone),
+                ('home_airport', home_airport),
                 ('Theme', theme),
                 ('aircraft_image_import_folder', image_import_folder),
             ):

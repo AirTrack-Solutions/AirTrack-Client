@@ -1,0 +1,297 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AirTrack — Registry Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #0a0a0a;
+      color: #e6e6e6;
+      font-family: system-ui, sans-serif;
+      padding: 24px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid #1e1e1e;
+      padding-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .page-header h1 { margin: 0; font-size: 1.4rem; color: #00ff66; letter-spacing: .5px; }
+    .page-header .subtitle { color: #666; font-size: 0.875rem; }
+    .back-link {
+      margin-left: auto;
+      color: #00ff66;
+      text-decoration: none;
+      font-size: 0.85rem;
+      border: 1px solid #1e3a1e;
+      padding: 5px 12px;
+      border-radius: 6px;
+    }
+    .back-link:hover { background: #0f2a0f; }
+
+    /* Progress bar */
+    .progress-section {
+      margin-bottom: 22px;
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+    .progress-bar-wrap {
+      display: flex;
+      height: 14px;
+      border-radius: 7px;
+      overflow: hidden;
+      margin-bottom: 14px;
+      gap: 2px;
+    }
+    .pb-imported { background: #00cc44; }
+    .pb-sql_ready { background: #3399ff; }
+    .pb-in_packs { background: #f5a623; }
+    .pb-missing { background: #2a2a2a; }
+
+    .legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 0.82rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; color: #aaa; }
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-imported  { background: #00cc44; }
+    .dot-sql_ready { background: #3399ff; }
+    .dot-in_packs  { background: #f5a623; }
+    .dot-missing   { background: #333; border: 1px solid #444; }
+    .legend-count { color: #e6e6e6; font-weight: 600; }
+
+    /* Filter bar */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-btn {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      color: #ccc;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: border-color .15s, color .15s;
+    }
+    .filter-btn:hover { border-color: #00ff66; color: #00ff66; }
+    .filter-btn.active { border-color: #00ff66; color: #00ff66; background: #0a1a0a; }
+    .filter-btn.f-imported.active  { border-color: #00cc44; color: #00cc44; background: #091a0f; }
+    .filter-btn.f-sql_ready.active { border-color: #3399ff; color: #3399ff; background: #091527; }
+    .filter-btn.f-in_packs.active  { border-color: #f5a623; color: #f5a623; background: #1a1200; }
+    .filter-btn.f-missing.active   { border-color: #555;    color: #888;    background: #111; }
+
+    .search-input {
+      margin-left: auto;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      color: #e6e6e6;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      width: 200px;
+      outline: none;
+    }
+    .search-input:focus { border-color: #00ff66; }
+    .search-input::placeholder { color: #444; }
+
+    /* Table */
+    .tracker-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .tracker-table th {
+      text-align: left;
+      color: #666;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 6px 12px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+    .tracker-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #141414;
+      vertical-align: middle;
+    }
+    .tracker-table tr:last-child td { border-bottom: none; }
+    .tracker-table tr:hover td { background: #111; }
+
+    .prefix-badge {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 0.8rem;
+      background: #1a1a1a;
+      color: #888;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid #2a2a2a;
+    }
+
+    .status-pill {
+      display: inline-block;
+      font-size: 0.73rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .pill-imported  { background: #0a2a0a; color: #00cc44; border: 1px solid #1a4a1a; }
+    .pill-sql_ready { background: #091527; color: #3399ff; border: 1px solid #1a3a5a; }
+    .pill-in_packs  { background: #1a1200; color: #f5a623; border: 1px solid #3a2a00; }
+    .pill-missing   { background: #111;    color: #444;    border: 1px solid #222; }
+
+    .row-count { color: #00cc44; font-size: 0.78rem; }
+    .row-count-dim { color: #555; font-size: 0.78rem; }
+
+    .country-name { color: #e6e6e6; }
+
+    .empty-state { color: #444; text-align: center; padding: 40px; font-size: 0.9rem; }
+
+    /* Packs hint */
+    .packs-hint {
+      margin-bottom: 18px;
+      padding: 10px 14px;
+      background: #111;
+      border: 1px solid #2a1a00;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: #888;
+    }
+    .packs-hint span { color: #f5a623; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>🗂 Registry Tracker</h1>
+    <span class="subtitle">{{ counts.imported }} of {{ total }} countries imported</span>
+    <a class="back-link" href="{{ url_for('registry.registry_list') }}">← Registries</a>
+    <a class="back-link" href="{{ url_for('admin.admin_dashboard') }}" style="margin-left:8px">← Cockpit</a>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-section">
+    <div class="progress-bar-wrap">
+      {% set pct_imported  = (counts.imported  / total * 100) | round(2) %}
+      {% set pct_sql_ready = (counts.sql_ready / total * 100) | round(2) %}
+      {% set pct_in_packs  = (counts.in_packs  / total * 100) | round(2) %}
+      {% set pct_missing   = (counts.missing   / total * 100) | round(2) %}
+      {% if pct_imported  > 0 %}<div class="pb-imported"  style="flex: {{ pct_imported }}"></div>{% endif %}
+      {% if pct_sql_ready > 0 %}<div class="pb-sql_ready" style="flex: {{ pct_sql_ready }}"></div>{% endif %}
+      {% if pct_in_packs  > 0 %}<div class="pb-in_packs"  style="flex: {{ pct_in_packs }}"></div>{% endif %}
+      {% if pct_missing   > 0 %}<div class="pb-missing"   style="flex: {{ pct_missing }}"></div>{% endif %}
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot dot-imported"></div>  Imported <span class="legend-count">{{ counts.imported }}</span></div>
+      <div class="legend-item"><div class="legend-dot dot-sql_ready"></div> SQL Ready <span class="legend-count">{{ counts.sql_ready }}</span></div>
+      <div class="legend-item"><div class="legend-dot dot-in_packs"></div>  In Packs <span class="legend-count">{{ counts.in_packs }}</span></div>
+      <div class="legend-item"><div class="legend-dot dot-missing"></div>   Missing <span class="legend-count">{{ counts.missing }}</span></div>
+    </div>
+  </div>
+
+  <div class="packs-hint">
+    Drop raw registry files (<span>.xlsx .pdf .txt .csv .sql</span>) into the
+    <span>registries/packs/</span> folder — this page will auto-detect them
+    and show the country as <span>In Packs</span>.
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active"         data-filter="all">All ({{ total }})</button>
+    <button class="filter-btn f-imported"     data-filter="imported">✓ Imported ({{ counts.imported }})</button>
+    <button class="filter-btn f-sql_ready"    data-filter="sql_ready">SQL Ready ({{ counts.sql_ready }})</button>
+    <button class="filter-btn f-in_packs"     data-filter="in_packs">In Packs ({{ counts.in_packs }})</button>
+    <button class="filter-btn f-missing"      data-filter="missing">Missing ({{ counts.missing }})</button>
+    <input class="search-input" type="text" id="searchBox" placeholder="Search country…" autocomplete="off">
+  </div>
+
+  <table class="tracker-table" id="trackerTable">
+    <thead>
+      <tr>
+        <th style="width:90px">Prefix</th>
+        <th>Country</th>
+        <th style="width:130px">Status</th>
+        <th style="width:120px; text-align:right">Records</th>
+      </tr>
+    </thead>
+    <tbody id="trackerBody">
+      {% for c in countries %}
+      <tr data-status="{{ c.status }}" data-name="{{ c.name | lower }}">
+        <td><span class="prefix-badge">{{ c.prefix }}</span></td>
+        <td class="country-name">{{ c.name }}</td>
+        <td><span class="status-pill pill-{{ c.status }}">{{ c.status_label }}</span></td>
+        <td style="text-align:right">
+          {% if c.rows > 0 %}
+            <span class="{{ 'row-count' if c.status == 'imported' else 'row-count-dim' }}">
+              {{ '{:,}'.format(c.rows) }}
+            </span>
+          {% else %}
+            <span class="row-count-dim">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="empty-state" id="emptyState" style="display:none">No countries match your filter.</div>
+
+  <script>
+    let activeFilter = 'all';
+    let searchTerm   = '';
+
+    function applyFilter() {
+      const rows = document.querySelectorAll('#trackerBody tr');
+      let visible = 0;
+      rows.forEach(row => {
+        const statusMatch = activeFilter === 'all' || row.dataset.status === activeFilter;
+        const searchMatch = !searchTerm || row.dataset.name.includes(searchTerm);
+        const show = statusMatch && searchMatch;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      document.getElementById('emptyState').style.display = visible === 0 ? '' : 'none';
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeFilter = btn.dataset.filter;
+        applyFilter();
+      });
+    });
+
+    document.getElementById('searchBox').addEventListener('input', e => {
+      searchTerm = e.target.value.toLowerCase().trim();
+      applyFilter();
+    });
+  </script>
+</body>
+</html>

@@ -22,8 +22,19 @@ import requests
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-BASE_DIR    = Path(__file__).resolve().parent.parent   # /app
-LOG_DIR     = BASE_DIR / "logs"
+BASE_DIR    = Path(__file__).resolve().parent.parent   # /app (or _internal/app in PyInstaller)
+
+# Log directory — use AIRTRACK_LOG_DIR (set by service.py on Windows) or
+# fall back alongside the app root. _internal/ is read-only in frozen builds.
+_airtrack_log_dir = os.getenv("AIRTRACK_LOG_DIR", "").strip()
+_airtrack_home    = os.getenv("AIRTRACK_HOME", "").strip()
+if _airtrack_log_dir:
+    LOG_DIR = Path(_airtrack_log_dir)
+elif _airtrack_home:
+    LOG_DIR = Path(_airtrack_home) / "logs"
+else:
+    LOG_DIR = BASE_DIR / "logs"
+
 LOG_FILE    = LOG_DIR / "updater.log"
 CONFIG_FILE = BASE_DIR / "config.json"
 

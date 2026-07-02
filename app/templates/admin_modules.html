@@ -1,0 +1,214 @@
+<!--
+  AirTrack 1.0.0
+  Copyright (c) 2025 Trevor ("Subhuti"). All rights reserved.
+  SPDX-License-Identifier: LicenseRef-AirTrack-Proprietary-NC
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AirTrack — Modules</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #0a0a0a;
+      color: #e6e6e6;
+      font-family: system-ui, sans-serif;
+      padding: 24px;
+      max-width: 960px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid #1e1e1e;
+      padding-bottom: 14px;
+    }
+    .page-header h1 { margin: 0; font-size: 1.4rem; color: #00ff66; letter-spacing: .5px; }
+    .back-link {
+      margin-left: auto;
+      color: #00ff66;
+      text-decoration: none;
+      font-size: 0.85rem;
+      border: 1px solid #1e3a1e;
+      padding: 5px 12px;
+      border-radius: 6px;
+    }
+    .back-link:hover { background: #0f2a0f; }
+
+    .flash-list { list-style: none; margin: 0 0 20px; padding: 0; }
+    .flash-list li {
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      margin-bottom: 6px;
+    }
+    .flash-success { background: rgba(0,255,102,0.08); border: 1px solid rgba(0,255,102,0.25); color: #00ff66; }
+    .flash-danger  { background: rgba(204,68,68,0.1);  border: 1px solid rgba(204,68,68,0.3);  color: #ff6666; }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .module-card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.2s;
+    }
+    .module-card.enabled  { border-color: #1e3a1e; }
+    .module-card.disabled { border-color: #222; opacity: 0.7; }
+    .module-card.enabled:hover { border-color: #00cc44; }
+
+    .module-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .module-name {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e6e6e6;
+    }
+
+    .status-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+    .badge-enabled  { background: rgba(0,255,102,0.12); color: #00ff66; border: 1px solid rgba(0,255,102,0.3); }
+    .badge-disabled { background: #1a1a1a; color: #666; border: 1px solid #2a2a2a; }
+
+    .module-desc {
+      font-size: 0.83rem;
+      color: #999;
+      line-height: 1.5;
+    }
+
+    .module-meta {
+      font-size: 0.75rem;
+      color: #555;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .module-actions {
+      margin-top: 4px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-toggle {
+      padding: 5px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 5px;
+      cursor: pointer;
+      border: 1px solid;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-enable {
+      background: transparent;
+      color: #00cc44;
+      border-color: #1e3a1e;
+    }
+    .btn-enable:hover { background: #0f2a0f; border-color: #00cc44; }
+
+    .btn-disable {
+      background: transparent;
+      color: #888;
+      border-color: #2a2a2a;
+    }
+    .btn-disable:hover { background: #1a1a1a; color: #ccc; border-color: #444; }
+
+    .restart-note {
+      font-size: 0.75rem;
+      color: #555;
+      font-style: italic;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>Modules</h1>
+    <a href="{{ url_for('admin.admin_dashboard') }}" class="back-link">← Admin Cockpit</a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flash-list">
+        {% for category, message in messages %}
+          <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  {% if modules %}
+    <div class="module-grid">
+      {% for m in modules %}
+        <div class="module-card {{ 'enabled' if m.enabled else 'disabled' }}">
+          <div class="module-header">
+            <span class="module-name">{{ m.title or m.name }}</span>
+            <span class="status-badge {{ 'badge-enabled' if m.enabled else 'badge-disabled' }}">
+              {{ 'Enabled' if m.enabled else 'Disabled' }}
+            </span>
+          </div>
+
+          {% if m.description %}
+            <div class="module-desc">{{ m.description }}</div>
+          {% endif %}
+
+          <div class="module-meta">
+            {% if m.version %}<span>v{{ m.version }}</span>{% endif %}
+            {% if m.provider %}<span>{{ m.provider }}</span>{% endif %}
+            {% if m.country %}<span>{{ m.country }}</span>{% endif %}
+          </div>
+
+          <div class="module-actions">
+            {% if m.enabled %}
+              <form method="POST" action="{{ url_for('admin.modules_toggle') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="folder"  value="{{ m.folder }}">
+                <input type="hidden" name="enabled" value="0">
+                <button type="submit" class="btn-toggle btn-disable">Disable</button>
+              </form>
+            {% else %}
+              <form method="POST" action="{{ url_for('admin.modules_toggle') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="folder"  value="{{ m.folder }}">
+                <input type="hidden" name="enabled" value="1">
+                <button type="submit" class="btn-toggle btn-enable">Enable</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <p class="restart-note">Changes take effect after container restart.</p>
+
+  {% else %}
+    <p style="color:#555;">No optional modules found.</p>
+  {% endif %}
+
+</body>
+</html>

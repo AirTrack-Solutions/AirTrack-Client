@@ -37,21 +37,22 @@ def _load_config():
     # DATABASE_URI includes host, port, user, password, db name in one string.
     # app.py prefers DATABASE_URI over the individual DB_* vars, so we set this
     # directly to ensure port 3307 is honoured (app.py's URI builder omits port).
-    os.environ.setdefault(
-        'DATABASE_URI',
-        cfg.get('database', 'uri',
-                fallback='mysql+pymysql://airtrack:change-me@127.0.0.1:3307/airtrack?charset=utf8mb4')
+    # Direct assignment (not setdefault) so the cfg always wins over any
+    # stale values that may exist in the Windows system environment.
+    os.environ['DATABASE_URI'] = cfg.get(
+        'database', 'uri',
+        fallback='mysql+pymysql://airtrack:change-me@127.0.0.1:3307/airtrack?charset=utf8mb4'
     )
 
     # Individual vars — used by mysqldump in admin backup route (future use).
     _db_host = cfg.get('database', 'host', fallback='127.0.0.1')
     _db_port = cfg.get('database', 'port', fallback='3307')
     # Include port in DB_HOST so app.py's second URI construction gets the right port
-    os.environ.setdefault('DB_HOST', f'{_db_host}:{_db_port}')
-    os.environ.setdefault('DB_PORT', _db_port)
-    os.environ.setdefault('DB_NAME',     cfg.get('database', 'name',     fallback='airtrack'))
-    os.environ.setdefault('DB_USER',     cfg.get('database', 'user',     fallback='airtrack'))
-    os.environ.setdefault('DB_PASSWORD', cfg.get('database', 'password', fallback=''))
+    os.environ['DB_HOST']     = f'{_db_host}:{_db_port}'
+    os.environ['DB_PORT']     = _db_port
+    os.environ['DB_NAME']     = cfg.get('database', 'name',     fallback='airtrack')
+    os.environ['DB_USER']     = cfg.get('database', 'user',     fallback='airtrack')
+    os.environ['DB_PASSWORD'] = cfg.get('database', 'password', fallback='')
 
     os.environ.setdefault('SECRET_KEY',     cfg.get('app', 'secret_key', fallback='change-me'))
     os.environ.setdefault('AIRTRACK_ROLE',  cfg.get('app', 'role',       fallback='client'))
@@ -106,6 +107,161 @@ def _bootstrap_core():
 
 _load_config()
 _bootstrap_core()
+
+# Post-update startup sequence:
+# 1. Clear restart_pending.txt (written by app_updater before scheduling restart).
+# 2. If this IS a post-update restart, write update_health_check.txt so the
+#    watchdog thread knows which version to validate (and roll back if needed).
+#    If update_health_check.txt already exists with attempt>=2, this is the
+#    post-rollback restart — log and clear the flag instead.
+_POST_UPDATE_VERSION = None   # set below; read by _start_server watchdog
+try:
+    import importlib.util as _ilu
+    _home = Path(os.environ.get(
+        'AIRTRACK_HOME',
+        os.path.join(os.environ.get('ProgramData', 'C:\\ProgramData'), 'AirTrack')
+    ))
+    _updater_path = _home / 'core' / 'app_updater.py'
+    if _updater_path.exists():
+        _spec = _ilu.spec_from_file_location('_app_updater_svc', _updater_path)
+        _mod  = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+
+        _pending_ver = _mod.clear_restart_pending(_home)
+
+        if _pending_ver:
+            # Check if a health-check flag already exists (post-rollback restart)
+            _hc_ver, _hc_attempt = _mod.read_health_check_flag(_home)
+            if _hc_ver == _pending_ver and _hc_attempt >= 2:
+                # Post-rollback restart — just clear the flag
+                import logging as _lg
+                _lg.info(
+                    f'App update v{_pending_ver}: post-rollback restart confirmed on startup'
+                )
+                _mod.clear_health_check_flag(_home)
+            else:
+                # First post-update restart — arm the watchdog
+                _mod.write_health_check_flag(_pending_ver, _home, attempt=1)
+                _POST_UPDATE_VERSION = _pending_ver
+                import logging as _lg
+                _lg.info(f'App update v{_pending_ver}: health watchdog armed')
+except Exception:
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Post-update health watchdog
+# ---------------------------------------------------------------------------
+
+def _health_watchdog(version: str) -> None:
+    """
+    Daemon thread launched after a post-update service restart.
+
+    Waits up to 45 s for Flask/Waitress to prove it's healthy:
+      - Phase 1 (0-30 s): poll TCP port 5000 every 2 s (did Waitress bind?)
+      - Phase 2 (0-15 s): HTTP GET / (did Flask render without 500?)
+
+    Healthy → clears update_health_check.txt and logs success.
+    Unhealthy → calls attempt_rollback() which restores the pre-update backup
+                and schedules another service restart (attempt 2).
+    On attempt 2 failure: logs and stops — no further restart loops.
+    """
+    import importlib.util as _ilu
+    import logging
+    import socket
+    import time
+    import urllib.request
+
+    log = logging.getLogger(__name__)
+
+    _home = Path(os.environ.get(
+        'AIRTRACK_HOME',
+        os.path.join(os.environ.get('ProgramData', 'C:\\ProgramData'), 'AirTrack')
+    ))
+    _updater_path = _home / 'core' / 'app_updater.py'
+
+    def _load_updater():
+        try:
+            spec = _ilu.spec_from_file_location('_app_updater_wdog', _updater_path)
+            mod  = _ilu.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
+        except Exception as exc:
+            log.warning(f'Watchdog: could not load app_updater: {exc}')
+            return None
+
+    # --- Phase 1: wait for Waitress to bind on port 5000 ---
+    bound    = False
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        try:
+            s = socket.create_connection(('127.0.0.1', 5000), timeout=1)
+            s.close()
+            bound = True
+            break
+        except OSError:
+            time.sleep(2)
+
+    if not bound:
+        log.error(f'Watchdog: v{version} — Waitress did not bind within 30 s, attempting rollback')
+        mod = _load_updater()
+        if mod:
+            _, attempt = mod.read_health_check_flag(_home)
+            if attempt >= 2:
+                log.error(f'Watchdog: v{version} — post-rollback startup also failed (no bind). Giving up.')
+                mod.clear_health_check_flag(_home)
+                mod.report_rollback_event(version, "failed_post_rollback",
+                                          detail="Waitress did not bind after rollback", log_fn=log.info)
+            else:
+                app_root = Path(sys.executable).parent / '_internal' / 'app'                     if getattr(sys, 'frozen', False)                     else Path(__file__).resolve().parent.parent.parent / 'app'
+                mod.attempt_rollback(version, _home, app_root, log.info)
+        return
+
+    # --- Phase 2: HTTP health check ---
+    healthy  = False
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen('http://127.0.0.1:5000/', timeout=5) as resp:
+                if resp.status < 500:
+                    healthy = True
+                    break
+        except urllib.error.HTTPError as exc:
+            if exc.code < 500:
+                healthy = True
+                break
+        except Exception:
+            pass
+        time.sleep(2)
+
+    mod = _load_updater()
+    if not mod:
+        return
+
+    _, attempt = mod.read_health_check_flag(_home)
+
+    if healthy:
+        if attempt >= 2:
+            # Second startup — this is post-rollback confirmation
+            log.info(f'Watchdog: v{version} — rollback confirmed healthy (attempt {attempt})')
+            mod.report_rollback_event(version, "recovered",
+                                      detail="Flask healthy after rollback", log_fn=log.info)
+        else:
+            log.info(f'Watchdog: v{version} health check passed — update confirmed')
+        mod.clear_health_check_flag(_home)
+    else:
+        if attempt >= 2:
+            log.error(
+                f'Watchdog: v{version} — post-rollback health check also failed. '
+                f'Manual intervention required. Clearing flag.'
+            )
+            mod.clear_health_check_flag(_home)
+            mod.report_rollback_event(version, "failed_post_rollback",
+                                      detail="Flask unhealthy after rollback", log_fn=log.info)
+        else:
+            log.error(f'Watchdog: v{version} — health check failed, attempting rollback')
+            app_root = Path(sys.executable).parent / '_internal' / 'app'                 if getattr(sys, 'frozen', False)                 else Path(__file__).resolve().parent.parent.parent / 'app'
+            mod.attempt_rollback(version, _home, app_root, log.info)
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +319,16 @@ class AirTrackService(win32serviceutil.ServiceFramework):
             daemon=True,
         )
         t.start()
+
+        # If this is a post-update restart, launch a health watchdog that
+        # verifies Flask is responding and rolls back if it isn't.
+        if _POST_UPDATE_VERSION:
+            _wdog = threading.Thread(
+                target=_health_watchdog,
+                args=(_POST_UPDATE_VERSION,),
+                daemon=True,
+            )
+            _wdog.start()
 
 
 # ---------------------------------------------------------------------------

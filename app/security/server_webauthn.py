@@ -39,9 +39,16 @@ SERVER_SESSION_TTL = int(
     os.environ.get("AIRTRACK_SERVER_TTL", "300")
 )  # seconds (default 5 min)
 
-CRED_STORE = pathlib.Path(
-    os.environ.get("AIRTRACK_SERVER_CRED_STORE", "app_data/server_creds.json")
-)
+def _default_cred_store() -> pathlib.Path:
+    explicit = os.environ.get("AIRTRACK_SERVER_CRED_STORE", "")
+    if explicit:
+        return pathlib.Path(explicit)
+    airtrack_home = os.environ.get("AIRTRACK_HOME", "").strip()
+    if airtrack_home:
+        return pathlib.Path(airtrack_home) / "app_data" / "server_creds.json"
+    return pathlib.Path("app_data") / "server_creds.json"
+
+CRED_STORE = _default_cred_store()
 
 RP_NAME = os.environ.get("AIRTRACK_RP_NAME", "AirTrack")
 # RP_ID must equal the host you browse with (e.g., 'localhost')
@@ -50,9 +57,13 @@ RP_ID = os.environ.get("AIRTRACK_RP_ID")  # if None, infer from request.host
 server_webauthn = Blueprint("server_webauthn", __name__)
 
 # Ensure storage path exists (and file too)
-CRED_STORE.parent.mkdir(parents=True, exist_ok=True)
-if not CRED_STORE.exists():
-    CRED_STORE.write_text(json.dumps({"credentials": []}, indent=2))
+try:
+    CRED_STORE.parent.mkdir(parents=True, exist_ok=True)
+    if not CRED_STORE.exists():
+        CRED_STORE.write_text(json.dumps({"credentials": []}, indent=2))
+except Exception as _e:
+    import logging as _logging
+    _logging.warning("⚠️ Could not initialise WebAuthn credential store at %s: %s", CRED_STORE, _e)
 
 # ---- Helpers ----
 

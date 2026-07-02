@@ -88,7 +88,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # AirTrack environment
 # All paths are derived from AIRTRACK_HOME.
-# Never hardcode /home/trevor or /home/airtrack — this runs on multiple hosts.
+# Never hardcode /home/trevor or /home/airtrack - this runs on multiple hosts.
 #
 # Required env vars:
 #   AIRTRACK_HOME       Root AirTrack directory (e.g. /home/airtrack/AirTrack)
@@ -359,7 +359,7 @@ def stage_package(zf: zipfile.ZipFile, manifest: dict) -> tuple:
     staged: list = []
     for filename in sorted(payload_files):
         if filename not in zip_names:
-            continue  # optional file absent — skip
+            continue  # optional file absent - skip
         data = zf.read(filename)
         (dest / filename).write_bytes(data)
         staged.append(filename)
@@ -445,7 +445,7 @@ def run_healthcheck(install_dir: Path, manifest: dict) -> tuple:
     this point, so auto-passing is safe in frozen context.
     """
     if getattr(sys, "frozen", False):
-        return True, None  # frozen bundle — healthcheck subprocess not runnable
+        return True, None  # frozen bundle - healthcheck subprocess not runnable
 
     healthcheck_file = manifest.get("healthcheck")
     if not healthcheck_file:
@@ -589,7 +589,7 @@ def validate_package(package_path: Path) -> ValidationResult:
             errors=[f"Package is not compatible with AirTrack {AIRTRACK_VERSION}"],
         )
 
-    # Stage 0 (runs here — signature covers checksums, must verify before checksums):
+    # Stage 0 (runs here - signature covers checksums, must verify before checksums):
     sig_error = verify_signature(zf)
     if sig_error:
         zf.close()

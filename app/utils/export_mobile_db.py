@@ -16,13 +16,17 @@ from pathlib import Path
 # ============================================================================
 
 def _detect_export_dir() -> Path:
-    container_path = Path('/app/export')
-    local_fallback = Path(__file__).resolve().parent / 'mobile_exports'
+    # On Windows (AIRTRACK_HOME set by service.py), use AIRTRACK_HOME/exports
+    airtrack_home = os.getenv("AIRTRACK_HOME", "").strip()
+    if airtrack_home:
+        return Path(airtrack_home) / "exports"
 
+    # Docker: /app/export if writable
+    container_path = Path('/app/export')
     if container_path.exists() and os.access(container_path, os.W_OK):
         return container_path
 
-    return local_fallback
+    return Path(__file__).resolve().parent / 'mobile_exports'
 
 
 EXPORT_DIR = _detect_export_dir()
@@ -32,16 +36,26 @@ EXPORT_DB = EXPORT_DIR / 'airtrack_mobile.db'
 
 
 # ============================================================================
-#  MySQL Configuration
+#  MySQL Configuration (reads from env — works on both server and client)
 # ============================================================================
 
-MYSQL_CONFIG = {
-    "host": "airtrack-db",
-    "user": "SirBob",
-    "password": "ofAirTrack",
-    "database": "airtrack",
-    "port": 3306,
-}
+def _mysql_config() -> dict:
+    host = os.getenv("DB_HOST", "airtrack-db")
+    # DB_HOST may include port as "host:port" — split if needed
+    if ":" in host:
+        host, _, port_str = host.partition(":")
+    else:
+        port_str = os.getenv("DB_PORT", "3306")
+    return {
+        "host": host,
+        "user": os.getenv("DB_USER", "SirBob"),
+        "password": os.getenv("DB_PASSWORD", "ofAirTrack"),
+        "database": os.getenv("DB_NAME", "airtrack"),
+        "port": int(port_str),
+    }
+
+
+MYSQL_CONFIG = _mysql_config()
 
 
 # ============================================================================

@@ -76,8 +76,26 @@ DB_CONFIG = {
 
 
 def _get_airports() -> list[str]:
-    raw = os.getenv("NOTAM_PRIMARY_AIRPORTS", "YSSY,YSBK,YSRI,YWLM")
-    return [x.strip().upper() for x in raw.split(",") if x.strip()]
+    env_val = os.getenv("NOTAM_PRIMARY_AIRPORTS", "").strip()
+    if env_val:
+        return [x.strip().upper() for x in env_val.split(",") if x.strip()]
+    # Fall back to home_airport from app_settings
+    try:
+        import sqlalchemy
+        from sqlalchemy import text as sa_text
+        db_cfg = {k: v for k, v in _DB_CFG.items() if v}
+        url = sqlalchemy.engine.URL.create("mysql+pymysql", **db_cfg)
+        eng = sqlalchemy.create_engine(url, pool_pre_ping=True)
+        with eng.connect() as conn:
+            val = conn.execute(
+                sa_text("SELECT SettingValue FROM app_settings WHERE SettingKey='home_airport' LIMIT 1")
+            ).scalar()
+        eng.dispose()
+        if val and val.strip():
+            return [val.strip().upper()]
+    except Exception:
+        pass
+    return ["YSSY"]  # last-resort default
 
 
 def _get_home_icaos() -> set[str]:

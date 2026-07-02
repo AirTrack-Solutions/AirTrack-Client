@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AirTrack — Ready</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d0f14;
+      color: #e8e8e8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px 60px;
+    }
+    .container { max-width: 600px; width: 100%; }
+    .brand {
+      text-align: center;
+      margin-bottom: 32px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #666;
+    }
+    .brand span { color: #f0a500; font-weight: 700; }
+    .card {
+      background: #161820;
+      border: 1px solid #2a2d38;
+      border-radius: 10px;
+      padding: 40px 48px;
+      text-align: center;
+    }
+    .ready-icon { font-size: 48px; margin-bottom: 16px; }
+    h2 { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .sub { font-size: 14px; color: #888; margin-bottom: 32px; }
+    .checklist { text-align: left; margin-bottom: 36px; display: grid; gap: 10px; }
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #1c1f2b;
+      border: 1px solid #2a2d38;
+      border-radius: 7px;
+      font-size: 14px;
+      color: #ccc;
+    }
+    .check-item.ok { border-color: #2e4a2e; }
+    .check-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+    .btn-open {
+      display: block;
+      width: 100%;
+      padding: 20px;
+      font-size: 18px;
+      font-weight: 700;
+      background: #f0a500;
+      color: #0d0f14;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .btn-open:hover { opacity: 0.88; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="brand"><span>AirTrack</span> Solutions</div>
+  <div class="card">
+    <div class="ready-icon">✅</div>
+    <h2>AirTrack is Ready</h2>
+    <div class="sub">Setup complete. Everything is configured and running.</div>
+
+    <div class="checklist">
+      <div class="check-item ok">
+        <span class="check-icon">✓</span>
+        Database configured
+      </div>
+      <div class="check-item ok">
+        <span class="check-icon">✓</span>
+        Services running
+      </div>
+      <div class="check-item ok">
+        <span class="check-icon">✓</span>
+        Register updates: {{ settings.get('registry_updates', 'automatic') | capitalize }}
+      </div>
+      <div class="check-item ok">
+        <span class="check-icon">✓</span>
+        Photo storage: {{ settings.get('photo_storage', 'disk') | capitalize }}
+      </div>
+      <div class="check-item {% if settings.get('aria_enabled') == 'true' %}ok{% endif %}">
+        <span class="check-icon">{% if settings.get('aria_enabled') == 'true' %}✓{% else %}—{% endif %}</span>
+        Aria: {% if settings.get('aria_enabled') == 'true' %}Enabled{% else %}Not enabled — configure later in Cockpit{% endif %}
+      </div>
+      <div class="check-item ok">
+        <span class="check-icon">✓</span>
+        Licence: AirTrack {{ settings.get('edition', 'Lite') if settings.get('edition') else 'Lite' }}
+      </div>
+    </div>
+
+    <a href="/" class="btn-open">Open AirTrack →</a>
+    <p style="margin-top:18px; font-size:13px; color:#666; text-align:center;">
+      First step: <a href="/airlines/add" style="color:#f0a500;">Add an airline</a> — then add your first aircraft.
+    </p>
+  </div>
+</div>
+</body>
+</html>

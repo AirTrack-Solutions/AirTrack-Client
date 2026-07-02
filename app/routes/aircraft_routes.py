@@ -337,27 +337,30 @@ def aircraft_info(aircraft_id):
     # --------------------------------------------------
     manual = {}
 
-    manual_row = db.session.execute(
-        text("""
-            SELECT *
-            FROM aircraft_manual_registry
-            WHERE registration = :reg
-            LIMIT 1
-        """),
-        {"reg": reg},
-    ).fetchone()
+    try:
+        manual_row = db.session.execute(
+            text("""
+                SELECT *
+                FROM aircraft_manual_registry
+                WHERE registration = :reg
+                LIMIT 1
+            """),
+            {"reg": reg},
+        ).fetchone()
 
-    if manual_row:
-        manual = dict(manual_row._mapping)
+        if manual_row:
+            manual = dict(manual_row._mapping)
 
-        if not aircraft.get("MSN"):
-            aircraft["MSN"] = manual.get("serial_number")
+            if not aircraft.get("MSN"):
+                aircraft["MSN"] = manual.get("serial_number")
 
-        if not aircraft.get("Manufacture_Year"):
-            aircraft["Manufacture_Year"] = manual.get("year")
+            if not aircraft.get("Manufacture_Year"):
+                aircraft["Manufacture_Year"] = manual.get("year")
 
-        if not aircraft.get("Engine_Type"):
-            aircraft["Engine_Type"] = manual.get("engine")
+            if not aircraft.get("Engine_Type"):
+                aircraft["Engine_Type"] = manual.get("engine")
+    except Exception:
+        pass  # Table may not exist on older installs — enrichment is optional
 
     # Times seen
     times_seen = db.session.execute(
@@ -532,7 +535,10 @@ def aircraft_info(aircraft_id):
         current_year=datetime.now().year,
         selected_theme=get_current_theme(),
         cache_bust=int(datetime.utcnow().timestamp()),
-        image_import_folder=load_settings().get("aircraft_image_import_folder", "/app/static/uploads/aircraft_imports"),
+        image_import_folder=(
+            load_settings().get("aircraft_image_import_folder")
+            or (str(Path(os.getenv("AIRTRACK_HOME")) / "pics") if os.getenv("AIRTRACK_HOME") else "/app/static/uploads/aircraft_imports")
+        ),
     )
 
 
@@ -1056,7 +1062,12 @@ def delete_extra_image(image_id):
 @aircraft_bp.route("/quick_add_image/<int:aircraft_id>", methods=["GET", "POST"])
 
 def quick_add_image(aircraft_id):
-    PICS_DIR = Path("/home/airtrack/pics")
+    _airtrack_home = os.getenv("AIRTRACK_HOME", "")
+    PICS_DIR = (
+        Path(os.getenv("AIRTRACK_PICS_DIR"))
+        if os.getenv("AIRTRACK_PICS_DIR")
+        else (Path(_airtrack_home) / "pics" if _airtrack_home else Path("/home/airtrack/pics"))
+    )
 
     try:
         ac_row = db.session.execute(
