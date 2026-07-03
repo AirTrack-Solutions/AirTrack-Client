@@ -151,7 +151,8 @@ def upload_license():
             "license_id":   data.get("license_id", ""),
         })
     except Exception as exc:
-        return jsonify({"ok": False, "error": str(exc)}), 500
+        current_app.logger.exception("setup error")
+        return jsonify({"ok": False, "error": "Internal server error"}), 500
 
 
 @setup_bp.route("/detect-ollama", methods=["GET"])

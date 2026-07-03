@@ -307,7 +307,8 @@ def airline_lookup():
         return jsonify({"results": results})
     except Exception as exc:
         logging.warning("airline_lookup: DB error: %s", exc)
-        return jsonify({"results": [], "error": str(exc)})
+        current_app.logger.exception("airline search failed")
+        return jsonify({"results": [], "error": "Search failed"})
 
 
 @airlines_bp.route("/add", methods=["GET", "POST"], endpoint="add_airline")
