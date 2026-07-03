@@ -29,5 +29,4 @@ paramiko==3.4.0
 
 # Prod server
 gunicorn==22.0.0
-nano
 apscheduler>=3.10
