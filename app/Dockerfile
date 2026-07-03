@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive TZ=Australia/Sydney
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # minimal deps (plus gunicorn & DB client)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-mariadb-client gcc build-essential libmariadb3 libmariadb-dev \
+nano mariadb-client gcc build-essential libmariadb3 libmariadb-dev \
 python3-dev python3-venv curl rsync tzdata netcat-openbsd git openssh-client ca-certificates \
 && rm -rf /var/lib/apt/lists/*
 # Add system user for uid 1000 so Git doesn't abort
