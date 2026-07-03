@@ -216,14 +216,16 @@ def update_airport_link():
     field     = request.form.get('field')   # 'home_link' or 'wikipedia_link'
     new_value = (request.form.get('new_value') or '').strip()
 
-    allowed_fields = {'home_link', 'wikipedia_link'}
-    if not icao or field not in allowed_fields or not new_value:
+    # Hardcoded map prevents any user-supplied value reaching the SQL string
+    _AIRPORT_LINK_COLS = {'home_link': 'home_link', 'wikipedia_link': 'wikipedia_link'}
+    safe_col = _AIRPORT_LINK_COLS.get(field)
+    if not icao or safe_col is None or not new_value:
         flash("Missing or invalid fields.", 'danger')
         return redirect(url_for('admin_tools.broken_links'))
 
     try:
         db.session.execute(
-            text(f"UPDATE airports SET {field} = :val WHERE ICAO = :icao"),
+            text(f"UPDATE airports SET {safe_col} = :val WHERE ICAO = :icao"),
             {"val": new_value, "icao": icao},
         )
         db.session.commit()
@@ -484,10 +486,14 @@ def logs():
 def logs_view(filename):
     """Display a log file's contents in a browser."""
     logs_dir = Path(current_app.root_path) / "logs"
-    file_path = logs_dir / filename
+    file_path = (logs_dir / filename).resolve()
+    try:
+        file_path.relative_to(logs_dir.resolve())
+    except ValueError:
+        return "Access denied", 403
 
     if not file_path.exists() or not file_path.is_file():
-        return f"❌ Log file not found: {filename}", 404
+        return html.escape(f"Log file not found: {filename}"), 404
 
     try:
         with file_path.open(
@@ -515,9 +521,13 @@ def logs_view(filename):
 def logs_download(filename):
     """Allow downloading a log file."""
     logs_dir = Path(current_app.root_path) / 'logs'
-    file_path = logs_dir / filename
+    file_path = (logs_dir / filename).resolve()
+    try:
+        file_path.relative_to(logs_dir.resolve())
+    except ValueError:
+        return "Access denied", 403
     if not file_path.exists() or not file_path.is_file():
-        return f"❌ Log file not found: {filename}", 404
+        return html.escape(f"Log file not found: {filename}"), 404
 
     try:
         return send_file(
