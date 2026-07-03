@@ -307,7 +307,8 @@ def send_support_report():
         _rf.unlink(missing_ok=True)
         return jsonify({'ok': True})
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        current_app.logger.exception('operation failed')
+        return jsonify({'ok': False, 'error': 'Internal server error'}), 500
 
 
 @admin_bp.route('/dismiss-support-report', methods=['POST'])
@@ -323,7 +324,8 @@ def dismiss_support_report():
         (_home4 / 'pending_support_report.json').unlink(missing_ok=True)
         return jsonify({'ok': True})
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        current_app.logger.exception('operation failed')
+        return jsonify({'ok': False, 'error': 'Internal server error'}), 500
 
 
 @admin_bp.route('/save_settings', methods=['POST'])
@@ -357,7 +359,7 @@ def save_settings():
 
     except Exception as e:
         current_app.logger.exception('save_settings failed')
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "Internal server error"}), 500
 
 # ---------------------------------------------------------------------------
 # Manual Aircraft Entry
@@ -430,7 +432,7 @@ def update_app_settings():
 
     except Exception as e:
         current_app.logger.exception('update_app_settings failed')
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "Internal server error"}), 500
 
 
 @admin_bp.route('/user_guide')
@@ -500,7 +502,8 @@ def woodland_roster():
 
         content_html = md_to_html(raw)
     except Exception as e:
-        content_html = '<p style="color:#cc4444">Could not load roster: ' + str(e) + '</p>'
+        logging.exception('Could not load woodland ops roster')
+        content_html = '<p style="color:#cc4444">Could not load roster. Check server logs.</p>'
     return render_template('admin_woodland.html', content=content_html)
 
 
@@ -532,11 +535,19 @@ def modules_toggle():
     folder   = request.form.get('folder', '').strip()
     enabled  = request.form.get('enabled') == '1'
 
-    if not folder or '/' in folder or folder.startswith('.'):
+    # Reject names that could traverse outside the modules directory
+    safe_folder = Path(folder).name  # strips any directory components
+    if not safe_folder or safe_folder.startswith('.') or safe_folder != folder:
         flash('Invalid module name.', 'danger')
         return redirect(url_for('admin.modules_page'))
 
-    meta_path = Path(current_app.root_path) / 'modules' / folder / 'module.json'
+    modules_dir = Path(current_app.root_path) / 'modules'
+    meta_path = (modules_dir / safe_folder / 'module.json').resolve()
+    try:
+        meta_path.relative_to(modules_dir.resolve())
+    except ValueError:
+        flash('Invalid module name.', 'danger')
+        return redirect(url_for('admin.modules_page'))
     if not meta_path.exists():
         flash(f'Module {folder} not found.', 'danger')
         return redirect(url_for('admin.modules_page'))

@@ -25,6 +25,21 @@ _SKIP_DIRS = {
 
 DAILY_IMPORT_LIMIT = 5
 
+_SAFE_IDENT_RE = re.compile(r'^[a-z][a-z0-9_]*$')
+
+
+def _safe_ident(name: str) -> str:
+    """Sanitise a string for safe use as a backtick-quoted SQL identifier.
+
+    Only lowercase letters, digits, and underscores are permitted.
+    Raises ValueError if the result would be empty or invalid.
+    """
+    clean = re.sub(r'[^a-z0-9_]', '',
+                   (name or '').strip().lower().replace(' ', '_').replace('-', '_'))
+    if not clean or not _SAFE_IDENT_RE.match(clean):
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
+    return clean
+
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -100,7 +115,7 @@ def _table_exists(table_name: str) -> bool:
 def _row_count(table_name: str) -> int:
     try:
         return db.session.execute(
-            text(f"SELECT COUNT(*) FROM `{table_name}`")
+            text(f"SELECT COUNT(*) FROM `{_safe_ident(table_name)}`")
         ).scalar() or 0
     except Exception:
         return 0
@@ -472,7 +487,11 @@ def import_registry(country):
 
     # ── Server mode: import from local SQL file ───────────────────────────────
     reg_dir = _registries_dir()
-    country_dir = reg_dir / country
+    country_dir = (reg_dir / country).resolve()
+    try:
+        country_dir.relative_to(reg_dir.resolve())
+    except ValueError:
+        return jsonify({'status': 'error', 'detail': 'Invalid country'}), 400
 
     if not country_dir.is_dir():
         return jsonify({'status': 'error', 'detail': f'Not found: {country}'}), 404
@@ -534,7 +553,7 @@ def remove_registry(country):
         except Exception:
             pass
         try:
-            db.session.execute(text(f"DROP TABLE IF EXISTS `{table_name}`"))
+            db.session.execute(text(f"DROP TABLE IF EXISTS `{_safe_ident(table_name)}`"))
             db.session.commit()
         except Exception as e:
             return jsonify({'status': 'error', 'detail': str(e)}), 500
@@ -548,7 +567,11 @@ def remove_registry(country):
 
     # Server mode
     reg_dir = _registries_dir()
-    country_dir = reg_dir / country
+    country_dir = (reg_dir / country).resolve()
+    try:
+        country_dir.relative_to(reg_dir.resolve())
+    except ValueError:
+        return jsonify({'status': 'error', 'detail': 'Invalid country'}), 400
     table_name = None
     if country_dir.is_dir():
         sql_file = _find_sql_file(country_dir)
@@ -557,7 +580,7 @@ def remove_registry(country):
     if not table_name:
         table_name = country.lower().replace(' ', '_')
     try:
-        db.session.execute(text(f"DROP TABLE IF EXISTS `{table_name}`"))
+        db.session.execute(text(f"DROP TABLE IF EXISTS `{_safe_ident(table_name)}`"))
         db.session.commit()
         return jsonify({'status': 'ok', 'detail': f'Removed {country}'})
     except Exception as e:
@@ -860,8 +883,12 @@ def registry_sql(country):
     """Stream the SQL file for a registry — consumed by client installs."""
     from flask import send_file, abort
     reg_dir = _registries_dir()
-    # Sanitise: only allow Title_Case dir names that exist
-    country_dir = reg_dir / country
+    # Sanitise: only allow Title_Case dir names that exist, and must be within reg_dir
+    country_dir = (reg_dir / country).resolve()
+    try:
+        country_dir.relative_to(reg_dir.resolve())
+    except ValueError:
+        abort(404)
     if not country_dir.is_dir() or country.lower() in _SKIP_DIRS or not country[0].isupper():
         abort(404)
     sql_file = _find_sql_file(country_dir)
