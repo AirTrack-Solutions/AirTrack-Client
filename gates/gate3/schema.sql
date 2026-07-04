@@ -990,6 +990,16 @@ CREATE TABLE `uruguay` (
   `valid_until` date DEFAULT NULL,
   PRIMARY KEY (`registration`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+DROP TABLE IF EXISTS `disclaimer_acceptance`;
+CREATE TABLE `disclaimer_acceptance` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `disclaimer_version` varchar(20) NOT NULL,
+  `accepted_at` datetime NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
