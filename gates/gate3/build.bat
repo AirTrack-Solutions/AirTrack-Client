@@ -43,7 +43,8 @@ pyinstaller --noconfirm ^
   --hidden-import version ^
   --hidden-import extensions ^
   --hidden-import routes ^
-  --collect-submodules app ^
+  --collect-submodules utils ^
+  --collect-submodules security ^
   --collect-all jaraco ^
   --distpath "%GATE3%dist" ^
   --workpath "%GATE3%build" ^
