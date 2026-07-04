@@ -77,10 +77,23 @@ var
   SqlFile, BatchFile: String;
   LicSrc, LicDest: String;
   IsFreshInstall: Boolean;
+  ResultCode: Integer;
 begin
   // ssInstall fires before files are copied - write helper scripts to {tmp}
   if CurStep = ssInstall then
   begin
+    { Stop and remove any existing AirTrack service BEFORE files are copied.
+      Without this, Windows locks AirTrack.exe while the service is running,
+      preventing the new binary from being written. The old (potentially stale)
+      exe would then survive the install and keep serving the old code.
+      Errors are intentionally ignored - the service may not exist on first install. }
+    Exec(ExpandConstant('{sys}\net.exe'), 'stop AirTrackClient',
+         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(2000);
+    Exec(ExpandConstant('{sys}\sc.exe'), 'delete AirTrackClient',
+         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(1000);
+
     CfgFile := ExpandConstant('{src}\airtrack.cfg');
 
     { Read per-customer credentials from sidecar airtrack.cfg }
