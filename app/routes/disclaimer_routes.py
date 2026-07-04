@@ -124,6 +124,7 @@ def accept_disclaimer():
         db.session.commit()
         log.info(f"disclaimer_routes: accepted v{DISCLAIMER_VERSION} from {request.remote_addr}")
     except Exception as exc:
+        db.session.rollback()
         log.warning(f"disclaimer_routes: DB log failed (session still set): {exc}")
 
     # Redirect to intended destination or home
