@@ -45,6 +45,7 @@ pyinstaller --noconfirm ^
   --collect-submodules utils ^
   --collect-submodules security ^
   --collect-submodules routes ^
+  --collect-submodules woodland ^
   --collect-all jaraco ^
   --distpath "%GATE3%dist" ^
   --workpath "%GATE3%build" ^
