@@ -86,11 +86,16 @@ begin
       Without this, Windows locks AirTrack.exe while the service is running,
       preventing the new binary from being written. The old (potentially stale)
       exe would then survive the install and keep serving the old code.
-      Errors are intentionally ignored - the service may not exist on first install. }
+      Errors are intentionally ignored - the service may not exist on first install.
+      Both AirTrackClient (current) and AirTrackGate3 (legacy name) are handled. }
     Exec(ExpandConstant('{sys}\net.exe'), 'stop AirTrackClient',
+         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec(ExpandConstant('{sys}\net.exe'), 'stop AirTrackGate3',
          '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Sleep(2000);
     Exec(ExpandConstant('{sys}\sc.exe'), 'delete AirTrackClient',
+         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec(ExpandConstant('{sys}\sc.exe'), 'delete AirTrackGate3',
          '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Sleep(1000);
 
