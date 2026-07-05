@@ -66,6 +66,7 @@ run([
     '--collect-submodules', 'utils',
     '--collect-submodules', 'security',
     '--collect-submodules', 'routes',
+    '--collect-submodules', 'woodland',
     '--collect-all', 'jaraco',
     '--distpath', str(GATE3 / 'dist'),
     '--workpath', str(GATE3 / 'build'),
