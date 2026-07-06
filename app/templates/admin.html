@@ -160,6 +160,7 @@
       </form>
 
       <form class="cockpit-hud-form" action="{{ url_for('flush_backups') }}" method="post" onsubmit="showCockpitConfirmation('Backups flushed');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="cockpit-hud-button" title="Make some room in the hold.">Flush Backups</button>
       </form>
 
