@@ -39,13 +39,16 @@ def _load_config():
     # directly to ensure port 3307 is honoured (app.py's URI builder omits port).
     # Direct assignment (not setdefault) so the cfg always wins over any
     # stale values that may exist in the Windows system environment.
-    os.environ['DATABASE_URI'] = cfg.get(
+    # Replace localhost with 127.0.0.1 — MariaDB on Windows treats them as
+    # different hosts for user grants; the installer creates users for 127.0.0.1.
+    _raw_uri = cfg.get(
         'database', 'uri',
         fallback='mysql+pymysql://airtrack:change-me@127.0.0.1:3307/airtrack?charset=utf8mb4'
-    )
+    ).replace('@localhost:', '@127.0.0.1:').replace('@localhost/', '@127.0.0.1/')
+    os.environ['DATABASE_URI'] = _raw_uri
 
     # Individual vars — used by mysqldump in admin backup route (future use).
-    _db_host = cfg.get('database', 'host', fallback='127.0.0.1')
+    _db_host = cfg.get('database', 'host', fallback='127.0.0.1').replace('localhost', '127.0.0.1')
     _db_port = cfg.get('database', 'port', fallback='3307')
     # Include port in DB_HOST so app.py's second URI construction gets the right port
     os.environ['DB_HOST']     = f'{_db_host}:{_db_port}'
