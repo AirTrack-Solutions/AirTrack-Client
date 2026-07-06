@@ -19,6 +19,7 @@
     <p>Enter your database credentials to proceed.</p>
 
     <form action="/db_config" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="db_user">Database Username:</label>
         <input type="text" id="db_user" name="db_user" required>
 
