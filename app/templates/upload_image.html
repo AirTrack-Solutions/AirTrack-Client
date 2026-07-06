@@ -35,6 +35,7 @@
         {% endwith %}
 
         <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
                 <label for="airline" class="form-label">Select Airline</label>
                 <select id="airline" name="airline" class="form-select" required>

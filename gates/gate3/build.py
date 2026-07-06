@@ -65,6 +65,7 @@ run([
     '--hidden-import', 'extensions',
     '--collect-submodules', 'utils',
     '--collect-submodules', 'security',
+    '--collect-submodules', 'config',
     '--collect-submodules', 'routes',
     '--collect-submodules', 'woodland',
     '--collect-all', 'jaraco',
