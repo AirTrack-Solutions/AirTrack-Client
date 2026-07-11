@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import os
 import uuid
+import urllib.error as _urlerr
 import urllib.request as _req
 from pathlib import Path
 from typing import Any, Dict
@@ -78,7 +79,19 @@ def _get_license_id() -> str:
 
 
 def _post(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    """POST a JSON payload to Wombat. Never raises."""
+    """
+    POST a JSON payload to Wombat. Never raises.
+
+    Distinguishes two different failure shapes, since they mean very
+    different things to whoever reads the flash message:
+      - Wombat was reached and responded with an error (HTTPError, e.g. a
+        404 "unknown customer_id" or a 403 licence mismatch) - Wombat's own
+        error message is surfaced as-is. Retrying won't help; something
+        about the request itself is wrong (usually provisioning).
+      - Wombat genuinely couldn't be reached at all (timeout, connection
+        refused, DNS failure, etc.) - reported as "Could not reach Wombat".
+        Retrying once Wombat is back up may well help.
+    """
     wombat_url = _get_wombat_url()
     if not wombat_url:
         return {"ok": False, "message": "WOMBAT_URL not configured — cannot reach Wombat."}
@@ -93,6 +106,16 @@ def _post(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         with _req.urlopen(r, timeout=10) as resp:
             body = json.loads(resp.read().decode("utf-8") or "{}")
         return body if isinstance(body, dict) else {"ok": True}
+    except _urlerr.HTTPError as exc:
+        # Wombat responded - just not with success. Surface its own message
+        # if it sent one (our endpoints return {"ok": false, "error": "..."}),
+        # otherwise fall back to the raw HTTP status.
+        try:
+            body = json.loads(exc.read().decode("utf-8") or "{}")
+        except Exception:
+            body = {}
+        message = body.get("error") or body.get("message") or f"HTTP {exc.code}: {exc.reason}"
+        return {"ok": False, "message": f"Wombat rejected the request: {message}"}
     except Exception as exc:
         return {"ok": False, "message": f"Could not reach Wombat: {exc}"}
 
