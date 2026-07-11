@@ -800,6 +800,7 @@
     }
 
     function dismissRestartBanner() {
+      fetch('/admin/dismiss-restart-banner', {method: 'POST'}).catch(() => {});
       const b = document.getElementById('restart-pending-banner');
       if (b) b.remove();
     }

@@ -328,6 +328,18 @@ def dismiss_support_report():
         return jsonify({'ok': False, 'error': 'Internal server error'}), 500
 
 
+@admin_bp.route('/dismiss-restart-banner', methods=['POST'])
+def dismiss_restart_banner():
+    """Clear restart_pending.txt so the banner doesn't reappear on next load."""
+    try:
+        from core.app_updater import clear_restart_pending
+        clear_restart_pending()
+        return jsonify({'ok': True})
+    except Exception as e:
+        current_app.logger.exception('operation failed')
+        return jsonify({'ok': False, 'error': 'Internal server error'}), 500
+
+
 @admin_bp.route('/save_settings', methods=['POST'])
 
 def save_settings():
