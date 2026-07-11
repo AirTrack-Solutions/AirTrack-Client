@@ -6,7 +6,7 @@ echo " ================================================"
 echo ""
 echo " Please wait while AirTrack starts up..."
 echo ""
-docker compose -f docker-compose.client.yml up -d
+docker compose --env-file .env.client -f docker-compose.client.yml up -d --build
 if [ $? -ne 0 ]; then
     echo ""
     echo " ERROR: AirTrack failed to start."
