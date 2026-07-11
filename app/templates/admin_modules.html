@@ -191,6 +191,8 @@
                 <input type="hidden" name="enabled" value="0">
                 <button type="submit" class="btn-toggle btn-disable">Disable</button>
               </form>
+            {% elif m.consent_required %}
+              <a href="{{ url_for('admin.modules_consent', folder=m.folder) }}" class="btn-toggle btn-enable" style="text-decoration:none; display:inline-block;">Learn more &amp; enable</a>
             {% else %}
               <form method="POST" action="{{ url_for('admin.modules_toggle') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -200,11 +202,15 @@
               </form>
             {% endif %}
           </div>
+
+          {% if m.requires_blueprint == false %}
+            <div style="font-size:0.72rem; color:#555; font-style:italic; margin-top:4px;">Takes effect immediately — no restart needed.</div>
+          {% endif %}
         </div>
       {% endfor %}
     </div>
 
-    <p class="restart-note">Changes take effect after container restart.</p>
+    <p class="restart-note">Changes take effect after container restart, unless noted otherwise above.</p>
 
   {% else %}
     <p style="color:#555;">No optional modules found.</p>

@@ -1,0 +1,13 @@
+{
+  "name": "Meerkat",
+  "title": "Meerkat — Installation Check-in",
+  "description": "Optional installation tracking. Lets AirTrack support know this install exists and is active — nothing more. Opt-in only, and you can switch it off again at any time.",
+  "version": "1.0.0",
+  "enabled": false,
+  "provider": "AirTrack",
+  "requires_blueprint": false,
+  "consent_required": true,
+  "consent_text": "Meerkat is a small, optional check-in. When you enable it, this AirTrack install registers itself with Wombat (AirTrack's licensing and delivery service) so support knows it exists and is active.\n\nWhat gets sent:\n- An installation ID (a random identifier generated for this install, not tied to any aircraft or flight data)\n- Your licence ID (the same one already used to activate AirTrack)\n\nWhat does NOT get sent:\n- No aircraft records, flight logs, or any Logbook data\n- No usage statistics or telemetry beyond \"this installation exists\"\n\nWhy it exists: if you're running AirTrack across several machines or offices, this is the only way support can tell how many installs are actually out there for your licence. It is informational only — it does not enforce or cap how many installs you can run.\n\nYou can opt out at any time from this Modules page. Opting out tells Wombat this installation is no longer active; it does not delete AirTrack or affect your licence.",
+  "menu": null,
+  "outputs": {}
+}

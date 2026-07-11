@@ -550,12 +550,101 @@ def modules_toggle():
 
     try:
         meta = json.loads(meta_path.read_text(encoding='utf-8'))
+    except Exception as e:
+        flash(f'Could not read module: {e}', 'danger')
+        return redirect(url_for('admin.modules_page'))
+
+    # Consent-gated modules can only be *enabled* via the dedicated consent
+    # page - that's where "read what it's about, then ok it" actually
+    # happens. Disabling never needs consent, so it still goes through
+    # this generic toggle.
+    if enabled and meta.get('consent_required'):
+        return redirect(url_for('admin.modules_consent', folder=folder))
+
+    no_blueprint = meta.get('requires_blueprint', True) is False
+    wombat_note = ''
+
+    if not enabled and no_blueprint and folder == 'meerkat':
+        from modules.meerkat import meerkat_client
+        result = meerkat_client.deregister()
+        if result.get('ok'):
+            wombat_note = ' Wombat notified.'
+        else:
+            wombat_note = (
+                f" Wombat could not be notified ({result.get('message', 'unknown error')}) "
+                f"- disabled locally anyway."
+            )
+            logging.warning(
+                "Meerkat opt-out: Wombat deregister failed - %s",
+                result.get('message', 'unknown error'),
+            )
+
+    try:
         meta['enabled'] = enabled
         tmp = meta_path.with_suffix('.tmp')
         tmp.write_text(json.dumps(meta, indent=2), encoding='utf-8')
         tmp.replace(meta_path)
         action = 'enabled' if enabled else 'disabled'
-        flash(f"{meta.get('title', folder)} {action}. Restart required to take effect.", 'success')
+        restart_note = '' if no_blueprint else ' Restart required to take effect.'
+        flash(f"{meta.get('title', folder)} {action}.{restart_note}{wombat_note}", 'success')
+    except Exception as e:
+        flash(f'Could not update module: {e}', 'danger')
+
+    return redirect(url_for('admin.modules_page'))
+
+
+@admin_bp.route('/modules/<folder>/consent', methods=['GET', 'POST'])
+def modules_consent(folder):
+    """
+    Consent step for opt-in modules (currently just Meerkat). GET shows the
+    full explanation; POST is the "I understand, enable <Module>" action
+    that actually flips it on (and, for Meerkat, registers with Wombat).
+    """
+    if not folder or '/' in folder or folder.startswith('.'):
+        flash('Invalid module name.', 'danger')
+        return redirect(url_for('admin.modules_page'))
+
+    meta_path = Path(current_app.root_path) / 'modules' / folder / 'module.json'
+    if not meta_path.exists():
+        flash(f'Module {folder} not found.', 'danger')
+        return redirect(url_for('admin.modules_page'))
+
+    try:
+        meta = json.loads(meta_path.read_text(encoding='utf-8'))
+    except Exception as e:
+        flash(f'Could not read module: {e}', 'danger')
+        return redirect(url_for('admin.modules_page'))
+
+    if not meta.get('consent_required'):
+        # Nothing to consent to for this module - just go back.
+        return redirect(url_for('admin.modules_page'))
+
+    if request.method == 'GET':
+        meta['folder'] = folder
+        return render_template('module_consent.html', module=meta)
+
+    # POST: user clicked "I understand, enable <Module>"
+    wombat_note = ''
+    if folder == 'meerkat':
+        from modules.meerkat import meerkat_client
+        result = meerkat_client.register()
+        if result.get('ok'):
+            wombat_note = ' Registered with Wombat.'
+        else:
+            flash(
+                f"Could not register {meta.get('title', folder)} with Wombat "
+                f"({result.get('message', 'unknown error')}). Not enabled - try again once "
+                f"Wombat is reachable.",
+                'danger',
+            )
+            return redirect(url_for('admin.modules_page'))
+
+    try:
+        meta['enabled'] = True
+        tmp = meta_path.with_suffix('.tmp')
+        tmp.write_text(json.dumps(meta, indent=2), encoding='utf-8')
+        tmp.replace(meta_path)
+        flash(f"{meta.get('title', folder)} enabled.{wombat_note}", 'success')
     except Exception as e:
         flash(f'Could not update module: {e}', 'danger')
 

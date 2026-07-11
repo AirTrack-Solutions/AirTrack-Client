@@ -212,6 +212,22 @@ def register_optional_modules(app: Any, modules_dir: Path | None = None) -> Dict
             )
             continue
 
+        if metadata.get("requires_blueprint", True) is False:
+            # Info-only module by design (e.g. Meerkat) - no routes.py, no
+            # Blueprint, nothing to register with Flask. It's "loaded" in
+            # the sense that it's enabled and available; any actual
+            # behaviour it has (API calls, background jobs) lives outside
+            # the module_loader / Blueprint system entirely.
+            LOGGER.info("Optional module has no blueprint by design: %s", module_dir.name)
+            summary["loaded"].append(
+                _module_record(
+                    module_dir,
+                    metadata,
+                    reason="info-only module (requires_blueprint: false)",
+                )
+            )
+            continue
+
         routes_filename = str(metadata.get("routes") or "routes.py").strip()
         blueprint_name = str(metadata.get("blueprint") or "").strip()
         url_prefix = str(metadata.get("url_prefix") or f"/modules/{module_dir.name}").strip()
