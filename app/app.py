@@ -104,6 +104,24 @@ except Exception as e:
     print(f"⚠ License system not available: {e}")
 
 
+# ---------------------------------------------------------
+# Clear restart-pending flag (Linux/Docker startup)
+# ---------------------------------------------------------
+# On Windows, gate3/service.py already calls this on service startup.
+# The Linux/Docker path (wsgi.py -> app.py under gunicorn) had no
+# equivalent startup hook, so the flag written by app_updater.py after
+# an app update was never cleared here -- the restart-pending banner
+# stayed on forever even after a genuine restart.
+try:
+    from core.app_updater import clear_restart_pending
+
+    _cleared_version = clear_restart_pending()
+    if _cleared_version:
+        print(f"✔ App update v{_cleared_version}: restart confirmed on startup")
+except Exception as e:
+    print(f"⚠ Could not clear restart-pending flag: {e}")
+
+
 # (Your config stays where it already is, example shown)
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
 # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
