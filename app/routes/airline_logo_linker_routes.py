@@ -90,7 +90,9 @@ def unlink_logo():
 
     if not airline_id:
         flash("No airline specified to unlink.", "warning")
-        return redirect(url_for("airline_logo_linker.link_airline_logos"))
+        return redirect(
+            request.referrer or url_for("airline_logo_linker.link_airline_logos")
+        )
 
     try:
         db.session.execute(
@@ -103,4 +105,6 @@ def unlink_logo():
         db.session.rollback()
         flash(f"❌ Failed to unlink logo: {e}", "danger")
 
-    return redirect(url_for("airline_logo_linker.link_airline_logos"))
+    return redirect(
+        request.referrer or url_for("airline_logo_linker.link_airline_logos")
+    )
