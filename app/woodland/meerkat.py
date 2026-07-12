@@ -285,6 +285,23 @@ def check_last_scheduled_job() -> Dict[str, Any]:
     states Marmot reports honestly, not evidence the job itself failed.
     Only Marmot's "error" status (patch application failed) maps to
     "failure".
+
+    Scope, recorded explicitly rather than left implicit: this reads
+    Marmot's own status only (its two once-daily jobs — code update and
+    registry sync). It is not a system-wide aggregate across every
+    Woodland critter. github_gorilla.py documents a client cron line in
+    its own header, but nothing in scheduler.py, the Dockerfile, or
+    docker-compose.client.yml actually wires it up on this client — only
+    Marmot runs on a schedule here (scheduler.py's BlockingScheduler has
+    exactly one add_job(), Marmot's main(), on the 5-minute interval).
+    sneaky_squirrel.py isn't independently scheduled either — it's
+    invoked synchronously from within Marmot's own patch-application
+    path. So "Marmot only" and "every scheduled job on this install"
+    happen to be the same set today, but that's a fact about the current
+    deployment, not something this function assumes. If a second,
+    independently-scheduled critter is ever added, this function will
+    need to become a real aggregate — deliberately left as a separate
+    decision rather than pre-built here.
     """
     if not MARMOT_STATUS_FILE.exists():
         return {"last_scheduled_job_status": "unknown", "last_scheduled_job_at": None}
@@ -470,6 +487,25 @@ def is_meerkat_enabled() -> bool:
         return False
 
 
+class SequenceNumberPersistError(Exception):
+    """
+    Raised by _next_sequence_number() when the incremented counter could
+    not be durably written to state.json.
+
+    This must never be swallowed into a fallback return value. Sending a
+    sequence_number that wasn't actually persisted risks the exact same
+    number being reused on the next heartbeat (e.g. after a crash, or a
+    transient read-only filesystem) — Wombat's monotonic-sequence
+    assumption would then see a repeat, not a gap. A gap (this tick's
+    heartbeat simply never arriving) is the safe failure; a repeat is
+    not. assemble_heartbeat_payload() lets this propagate rather than
+    catching it, and mangy_marmot.py's _send_meerkat_heartbeat() already
+    wraps payload assembly in a try/except that logs and skips sending
+    for this tick on any exception — so this fails closed for free,
+    using a contract that already existed for a different reason.
+    """
+
+
 def _next_sequence_number() -> int:
     """
     Monotonically increasing per-install counter for section 5.1's
@@ -478,18 +514,20 @@ def _next_sequence_number() -> int:
     meerkat_id are both properties of "this registered install", so tying
     their storage together means they naturally reset together too.
 
-    Honest caveat on "resets only on reinstall/re-register" (5.1's own
-    words): in today's codebase, re-registering via the admin toggle
-    (meerkat_client.register()) does NOT regenerate meerkat_id — it's
-    read from state.json if already present. So in practice this only
-    resets on a genuine reinstall (state.json wiped, e.g. a fresh data
-    volume), matching meerkat_id's own actual reset behaviour rather than
-    the spec's slightly broader phrase. Flagged here rather than silently
-    assumed.
+    Resets on reinstall (state.json wiped) and on re-register: 5.1 says
+    "resets only on reinstall/re-register", and meerkat_client.register()
+    now resets sequence_number to 0 in state.json on every successful
+    registration (both a first-time opt-in and any later opt-out/opt-in
+    cycle), matching that wording literally rather than only the narrower
+    genuine-reinstall case. See register()'s own docstring.
 
     Side-effecting: increments and persists on every call. Callers should
     only call this once per real heartbeat assembly (assemble_heartbeat_payload()
     below), never from a health-check probe that isn't actually being sent.
+
+    Fails closed: raises SequenceNumberPersistError instead of returning
+    an un-persisted value if the write to state.json fails for any
+    reason. See that exception's docstring for why.
     """
     from modules.meerkat.meerkat_client import STATE_FILE
 
@@ -506,12 +544,10 @@ def _next_sequence_number() -> int:
         tmp = STATE_FILE.with_suffix(".tmp")
         tmp.write_text(json.dumps(state, indent=2), encoding="utf-8")
         tmp.replace(STATE_FILE)
-    except Exception:
-        # Persisting the counter failed (e.g. read-only filesystem) — still
-        # return the computed value for this one payload rather than
-        # blocking heartbeat assembly over it. The next call will simply
-        # recompute from the same last-persisted (or absent) value.
-        pass
+    except Exception as exc:
+        raise SequenceNumberPersistError(
+            f"Could not durably persist sequence_number={next_seq} to {STATE_FILE}: {exc}"
+        ) from exc
 
     return next_seq
 
