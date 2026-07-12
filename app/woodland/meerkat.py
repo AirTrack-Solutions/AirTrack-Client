@@ -9,15 +9,15 @@
 # never receives instructions from anywhere — see meerkat-local-agent-spec.md
 # sections 3.4/4.3/4.8 for why. This file only observes; it does not repair.
 #
-# Scope of this pass (spec section 4.1 — "watching the health of local
-# AirTrack services"):
-#   - Flask/gunicorn responsive
-#   - MariaDB reachable
-#   - Disk free space
-#   - Container uptime
+# Scope covered so far (spec sections 4.1 and 4.2):
+#   4.1 — Flask/gunicorn responsive, MariaDB reachable, disk free space,
+#         container uptime.
+#   4.2 — last scheduled-job outcome, read from Marmot's own status file
+#         rather than re-implemented here (see check_last_scheduled_job()
+#         for why that's mangy_marmot.json, not daily_schedule.json as the
+#         spec text originally named).
 #
 # NOT yet in this file (deliberately — separate build-order steps):
-#   - 4.2 scheduled-job monitoring (reads Marmot's own daily_schedule.json)
 #   - 5.1/5.2 heartbeat payload assembly + four-state health model
 #   - 4.3 wiring this into Marmot's tick
 # Those add to this module rather than replace it; check_* functions below
@@ -37,7 +37,7 @@ import pymysql
 import requests
 from dotenv import load_dotenv
 
-from woodland.status_writer import write_status
+from woodland.status_writer import DEFAULT_STATUS_DIR, write_status
 
 # ---------------------------------------------------------------------------
 # Config
@@ -82,6 +82,10 @@ _DISK_CHECK_FALLBACK = "/airtrack_data"
 # Lets uptime degrade gracefully instead of failing outright.
 _UPTIME_MARKER_FILE = Path(__file__).resolve().parent / "marmot" / "meerkat_first_seen.txt"
 
+# Marmot's own status file — see check_last_scheduled_job()'s docstring for
+# why this is the right source for section 4.2, not marmot/daily_schedule.json.
+MARMOT_STATUS_FILE = DEFAULT_STATUS_DIR / "mangy_marmot.json"
+
 
 def _disk_check_path() -> Path:
     airtrack_home = os.getenv("AIRTRACK_HOME", "").strip()
@@ -91,7 +95,7 @@ def _disk_check_path() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Individual checks (section 4.1)
+# Individual checks (sections 4.1 and 4.2)
 # ---------------------------------------------------------------------------
 
 def check_flask_responsive(
@@ -215,27 +219,93 @@ def _uptime_from_marker() -> int:
         return 0
 
 
+def check_last_scheduled_job() -> Dict[str, Any]:
+    """
+    Reads Marmot's own last-run outcome for section 4.2 ("monitoring whether
+    scheduled jobs run correctly ... Meerkat observes, it doesn't
+    re-implement").
+
+    Deliberate deviation from the spec's literal file reference: section 4.2
+    names marmot/daily_schedule.json as the source. That file only tracks
+    *scheduling* state for Marmot's two once-daily windows (code_time,
+    registry_time, and the date each was last checked) — it has no
+    success/failure verdict in it at all. What Marmot actually writes on
+    every 5-minute tick (the real "scheduled job" a heartbeat cares about)
+    is its own status file, app/woodland/status/mangy_marmot.json, via the
+    same status_writer.write_status() convention Meerkat itself uses. That
+    file is Marmot's own state in every meaningful sense the spec intends —
+    reading it observes Marmot's last outcome without duplicating any of
+    Marmot's logic, and without inventing a success/failure signal
+    daily_schedule.json was never designed to hold. (This mismatch is a
+    case of the spec text predating status_writer.py's generalisation
+    across woodland critters, same as 4.1's own status-file note.)
+
+    Returns section 5.1's two job fields directly:
+      - last_scheduled_job_status: "success" | "failure" | "unknown"
+        ("unknown" only when Marmot has never ticked on this install yet —
+        no status file written at all)
+      - last_scheduled_job_at: ISO 8601 UTC string, or None when unknown
+
+    Marmot's own "warning" status (e.g. SQL Embargo active, WOMBAT_URL not
+    configured) maps to "success" here — those are expected operating
+    states Marmot reports honestly, not evidence the job itself failed.
+    Only Marmot's "error" status (patch application failed) maps to
+    "failure".
+    """
+    if not MARMOT_STATUS_FILE.exists():
+        return {"last_scheduled_job_status": "unknown", "last_scheduled_job_at": None}
+
+    try:
+        import json
+
+        data = json.loads(MARMOT_STATUS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        # File exists but couldn't be read/parsed — treat as unknown rather
+        # than guessing a verdict from a status file Meerkat can't trust.
+        return {"last_scheduled_job_status": "unknown", "last_scheduled_job_at": None}
+
+    marmot_status = str(data.get("status", "")).lower()
+    job_status = "failure" if marmot_status == "error" else "success" if marmot_status else "unknown"
+
+    last_run = data.get("last_run")
+    job_at: Optional[str] = None
+    if last_run:
+        try:
+            # status_writer writes local-tz-aware isoformat (e.g.
+            # "...+10:00"); the heartbeat schema wants UTC.
+            parsed = datetime.fromisoformat(last_run)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            job_at = parsed.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+        except Exception:
+            job_at = None
+
+    if job_status == "unknown":
+        job_at = None
+
+    return {"last_scheduled_job_status": job_status, "last_scheduled_job_at": job_at}
+
+
 # ---------------------------------------------------------------------------
 # Aggregation
 # ---------------------------------------------------------------------------
 
 def run_health_checks() -> Dict[str, Any]:
     """
-    Runs all four section-4.1 checks and returns them under the same field
-    names section 5.1's heartbeat schema uses (checks.flask_responsive,
-    checks.db_reachable, checks.disk_free_pct, checks.container_uptime_seconds).
-
-    Does NOT include checks.last_scheduled_job_status /
-    checks.last_scheduled_job_at — those are section 4.2 (task: read
-    Marmot's scheduled-job state), added to this dict by a later pass, not
-    invented here as placeholders.
+    Runs the section-4.1 checks plus 4.2's job-status read and returns them
+    under the same field names section 5.1's heartbeat schema uses:
+    checks.flask_responsive, checks.db_reachable, checks.disk_free_pct,
+    checks.container_uptime_seconds, checks.last_scheduled_job_status,
+    checks.last_scheduled_job_at.
     """
-    return {
+    checks: Dict[str, Any] = {
         "flask_responsive": check_flask_responsive(),
         "db_reachable": check_db_reachable(),
         "disk_free_pct": check_disk_free_pct(),
         "container_uptime_seconds": check_container_uptime_seconds(),
     }
+    checks.update(check_last_scheduled_job())
+    return checks
 
 
 def write_local_status(checks: Optional[Dict[str, Any]] = None) -> Path:
@@ -265,7 +335,9 @@ def write_local_status(checks: Optional[Dict[str, Any]] = None) -> Path:
         f"flask={'up' if checks['flask_responsive'] else 'DOWN'}, "
         f"db={'up' if checks['db_reachable'] else 'DOWN'}, "
         f"disk_free={checks['disk_free_pct']}%, "
-        f"uptime={checks['container_uptime_seconds']}s"
+        f"uptime={checks['container_uptime_seconds']}s, "
+        f"last_job={checks['last_scheduled_job_status']}"
+        + (f"@{checks['last_scheduled_job_at']}" if checks["last_scheduled_job_at"] else "")
     )
 
     return write_status(
