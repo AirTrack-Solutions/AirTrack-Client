@@ -124,6 +124,18 @@ def register() -> Dict[str, Any]:
     """
     Register (or re-register) this installation with Wombat.
     Returns {"ok": bool, "message": str, "meerkat_id": str}.
+
+    On success, also resets this install's heartbeat sequence_number to 0
+    in state.json. Section 5.1's schema documents sequence_number as
+    "monotonically increasing per install, resets only on reinstall/
+    re-register" — this is the one place a genuine re-register happens
+    (modules_consent() in admin_routes.py calls register() on every
+    opt-in, including toggling back on after an earlier opt-out, not
+    just a first-time install), so this is where the reset belongs. Only
+    resets on success — a rejected or unreachable registration attempt
+    hasn't actually re-registered anything, so the counter is left alone.
+    See woodland/meerkat.py's _next_sequence_number() for the counter
+    itself; both read/write the same state.json.
     """
     customer_id = _get_customer_id()
     license_id = _get_license_id()
@@ -141,6 +153,9 @@ def register() -> Dict[str, Any]:
     result.setdefault("meerkat_id", meerkat_id)
     if result.get("ok"):
         result.setdefault("message", "Registered with Wombat.")
+        state = _read_state()
+        state["sequence_number"] = 0
+        _write_state(state)
     return result
 
 
