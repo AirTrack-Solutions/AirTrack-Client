@@ -675,6 +675,73 @@ def _notify_wombat(outcome: dict) -> None:
         log(f"Wombat notification failed: {exc}")
 
 
+def _send_meerkat_heartbeat() -> None:
+    """
+    Section 4.3: hands Meerkat's latest health snapshot to Wombat as part
+    of Marmot's own 5-minute tick round-trip -- the spec's "local handoff
+    point... Marmot already reads on its own 5-minute tick", implemented
+    as a direct in-process import rather than a status-file re-read,
+    since Meerkat and Marmot run in the same interpreter on the same
+    tick. Meerkat itself never talks to Wombat; only Marmot does, here.
+
+    Consent gate: section 7 promises nothing leaves an opted-out install.
+    The only durable record of opt-in is modules/meerkat/module.json's
+    own "enabled" field (see woodland.meerkat.is_meerkat_enabled()) --
+    checked first, before anything is assembled, let alone sent. Any
+    failure to confirm "enabled" is treated as not-enabled: for a consent
+    boundary, silence is the safe default, never "send anyway".
+
+    Sent unconditionally on every tick this runs on, regardless of the
+    computed health state (5.1: the heartbeat "always rides the normal
+    ...cycle...regardless of its own state value" -- state transitions
+    driving health_warning/recovery_notice events are a separate 3.4/4.4
+    concern, not this function's).
+
+    Never raises -- mirrors _notify_wombat()'s degrade-gracefully
+    contract. A heartbeat failure must never interrupt or delay Marmot's
+    own patch-scan/update responsibilities; this is called after Marmot's
+    own work for the tick is already decided, at each of the three real
+    tick-completion points in main().
+    """
+    if not WOMBAT_URL:
+        return
+
+    try:
+        from woodland.meerkat import (
+            assemble_heartbeat_payload,
+            is_meerkat_enabled,
+            run_health_checks,
+            write_local_status,
+        )
+
+        if not is_meerkat_enabled():
+            return
+
+        checks = run_health_checks()
+        write_local_status(checks)
+        payload = assemble_heartbeat_payload(checks)
+    except Exception as exc:
+        log(f"Meerkat heartbeat assembly failed: {exc}")
+        return
+
+    url = f"{WOMBAT_URL}/api/meerkat/heartbeat"
+    body = json.dumps(payload).encode("utf-8")
+    req = Request(
+        url,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "AirTrack-MangyMarmot/1.0",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=15) as resp:
+            log(f"Meerkat heartbeat sent -- HTTP {resp.getcode()} (state={payload.get('state')})")
+    except Exception as exc:
+        log(f"Meerkat heartbeat send failed: {exc}")
+
+
 def _apply_patch(patch_path: Path) -> tuple[bool, str]:
     """
     Apply a single patch file. Returns (success, message).
@@ -926,6 +993,7 @@ def main() -> None:
                 status="ok",
             )
             log("Mangy Marmot finished (update applied, restart triggered).")
+            _send_meerkat_heartbeat()
             return
 
     # ── Registry sync (daily at registry_time = code_time + 12h) ────────────
@@ -944,6 +1012,7 @@ def main() -> None:
             status="warning",
         )
         log("Mangy Marmot finished.")
+        _send_meerkat_heartbeat()
         return
 
     # ── Patch scan (every 5-minute tick) ────────────────────────────────────
@@ -975,6 +1044,7 @@ def main() -> None:
     )
 
     log("Mangy Marmot finished.")
+    _send_meerkat_heartbeat()
 
 
 if __name__ == "__main__":

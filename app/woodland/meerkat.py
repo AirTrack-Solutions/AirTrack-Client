@@ -26,10 +26,13 @@
 #         from the 4.1/4.2 checks per the locked thresholds (disk warning
 #         15% free, disk critical 5% free, job-failure repetition 3
 #         consecutive failures).
+#   4.3 — is_meerkat_enabled() is the consent gate mangy_marmot.py's
+#         _send_meerkat_heartbeat() reads before calling anything else in
+#         this file. This module still only assembles and observes; the
+#         actual send/wiring lives in mangy_marmot.py, which imports this
+#         module, never the other way around.
 #
 # NOT yet in this file (deliberately — separate build-order steps):
-#   - 4.3 wiring this into Marmot's tick (this file is imported and called
-#     from there, not the other way around)
 #   - 3.4/4.4 local event bus (health_warning/recovery_notice on state
 #     transitions) — a separate concern from the heartbeat itself (5.2)
 # Those add to this module rather than replace it; check_*/assemble_*
@@ -439,6 +442,32 @@ def _get_meerkat_version() -> str:
         return str(data.get("version", "0.0.0"))
     except Exception:
         return "0.0.0"
+
+
+def is_meerkat_enabled() -> bool:
+    """
+    Whether this install has actually opted in to Meerkat. The sole,
+    authoritative record is modules/meerkat/module.json's own "enabled"
+    field -- the same field routes/admin_routes.py's modules_toggle() and
+    modules_consent() routes read and atomically rewrite (tempfile +
+    .replace()). There is no separate DB-backed toggle; module.json *is*
+    the opt-in state.
+
+    Read fresh on every call rather than cached: enabling/disabling
+    happens via the admin UI, in a different process (gunicorn) from
+    wherever Marmot's scheduler tick calls this, so a cached value could
+    go stale for up to 5 minutes after an opt-out.
+
+    Fails closed. Any error (missing file, unreadable/malformed JSON,
+    missing key) returns False. This is a consent boundary (section 7's
+    promise that nothing leaves an opted-out install) -- "can't confirm
+    enabled" must mean "don't send", never "send anyway".
+    """
+    try:
+        data = json.loads(MEERKAT_MODULE_JSON.read_text(encoding="utf-8"))
+        return bool(data.get("enabled", False))
+    except Exception:
+        return False
 
 
 def _next_sequence_number() -> int:
