@@ -101,6 +101,7 @@ Thumbs.db
 
 MASTER.txt
 *.bak
+*.bak-pre-*
 *.patch
 *.csv
 *audit*
