@@ -612,11 +612,15 @@ def modules_consent(folder):
     full explanation; POST is the "I understand, enable <Module>" action
     that actually flips it on (and, for Meerkat, registers with Wombat).
     """
-    if not folder or '/' in folder or folder.startswith('.'):
-        flash('Invalid module name.', 'danger')
+    # Validate folder against filesystem allowlist — use FS-sourced name, not request value
+    modules_dir = Path(current_app.root_path) / 'modules'
+    valid_modules = {p.name: p for p in modules_dir.iterdir()
+                     if p.is_dir() and not p.name.startswith('.')}
+    if not folder or folder not in valid_modules:
+        flash('Module not found.', 'danger')
         return redirect(url_for('admin.modules_page'))
 
-    meta_path = Path(current_app.root_path) / 'modules' / folder / 'module.json'
+    meta_path = valid_modules[folder] / 'module.json'  # filesystem-sourced Path
     if not meta_path.exists():
         flash(f'Module {folder} not found.', 'danger')
         return redirect(url_for('admin.modules_page'))
