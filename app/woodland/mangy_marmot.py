@@ -480,6 +480,7 @@ def check_code_update(schedule: dict) -> bool:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     schedule["installed_sha"] = latest_sha
+    _save_schedule(schedule)
     log(f"Code updated successfully to {latest_sha[:12]}")
     _restart_containers()
     return True
