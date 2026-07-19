@@ -1,708 +1,593 @@
-#!/usr/bin/env python3
-# AirTrack Client Utility
-# mangy_marmot.py
-#
-# Client-side Registry Manager and Code Update Agent.
-# Connects to Waddling Wombat for registry patches and Mrs Wombat
-# for application code updates.
-#
-# Registry patches: applied via two-stage validation (MariaDB success
-# + row-count delta check), rolls back cleanly on failure.
-# Code updates: tarball delivery from Mrs Wombat, backup before apply,
-# container restart via Docker SDK.
-#
-# Both operations run once daily at randomly chosen fixed times,
-# selected on first run and persisted in marmot/daily_schedule.json.
-# Registry time = code time + 12 hours, ensuring they never bunch up.
-#
-# Phase 1: Manifest sync + patch application + rollback + code updates.
-# Phase 2: License-gated authentication, SQL Embargo compliance.
-#
-# Ships with AirTrack client installs. Also runs on the server in server mode
-# when WOMBAT_URL is not set (manifest syncs from localhost Wombat).
-#
-# Runs every 5 minutes via the Woodland Scheduler.
-# SAFE FOR CLIENT DISTRIBUTION.
+"""
+AirTrack - Mangy Marmot
+app/woodland/mangy_marmot.py  v0.3 (Client port)
+
+Client-side capability delivery agent. Runs on a schedule inside the
+AirTrack client (via the Woodland Scheduler, every 5 minutes).
+
+Ported from the old patch-scan/tarball-code-update architecture to the
+capability-delivery model already live on AirTrack-Windows, so that
+app/routes/registry_routes.py's client-mode branch (which already
+targets this API) actually works instead of raising ImportError.
+
+Responsibilities:
+  1. Fetch warehouse manifest from Wombat (required_core_packages).
+  2. Scan installed capabilities from $AIRTRACK_HOME/capabilities/.
+  3. Report installed_capabilities to Wombat.
+  4. For each missing required core package - run the full HTTP delivery
+     cycle: request pickup -> retrieve package -> verify signature +
+     SHA-256 -> install -> confirm.
+  5. Scan/deliver registries the same way (request-registry variant).
+  6. Poll for a newer app code update (separate, simpler Wombat endpoint)
+     and hand a verified package to app/core/app_updater.py.
+  7. Hand Meerkat's latest health snapshot to Wombat on every tick.
+
+What changed vs the old (pre-v0.3) file, and why:
+  - Direct pymysql DB patching (DB_CONFIG, sed-based SQL patches, drop-to-
+    Squirrel-inbox two-stage validation) is gone. Registries are now
+    delivered as complete signed packages via the same request/pickup/
+    confirm cycle as capabilities, verified with SHA-256 + Ed25519, and
+    installed with a plain DELETE + re-INSERT (see _install_registry) -
+    matching AirTrack-Windows and what registry_routes.py already expects.
+  - The tarball-download + Docker-SDK container restart code-update
+    system is gone. Code updates now flow through app/core/app_updater.py
+    (git-bootstrap docker workflow, already wired into app.py /
+    admin_routes.py / setup_routes.py) - that module's own docstring says
+    it is "Called by Mangy Marmot after a verified update package is
+    downloaded from Wombat", so this file now owns exactly that: poll,
+    download, verify, hand off (see _check_app_update).
+  - daily_schedule.json / randomized daily run times are gone. The new
+    model runs a full pass every tick (5 minutes, via Woodland Scheduler)
+    the same way Windows' Marmot does - there's no "12-hours-apart"
+    concept to preserve since there's no longer a heavyweight nightly
+    operation to space out.
+  - _send_meerkat_heartbeat() is carried over essentially unchanged - it
+    already delegated entirely to woodland.meerkat and was already
+    correct for this architecture. It's now called from a finally block
+    around the whole tick, so it fires exactly once regardless of which
+    early-return path the tick takes (mirrors the old file's three
+    separate call sites, without duplicating the call).
+  - BILLING_URL and the pending-registry-preference helpers
+    (_read_pending_registries, _get_registry_pref, _read_entitlements_cache,
+    _remove_from_pending) that registry_routes.py also imports are
+    intentionally NOT added here yet - AirTrack-Windows' mangy_marmot.py
+    has the same gap. Deferred so both platforms get that fix together.
+
+Environment:
+  WOMBAT_URL              URL of Wombat API server (e.g. http://192.168.0.201:5200)
+  AIRTRACK_HOME           Root data directory (capabilities, downloads, staging, etc.)
+                           Defaults to /airtrack_data (matches app/core/app_updater.py).
+  AIRTRACK_CUSTOMER_ID    Customer identifier registered in the Wombat warehouse
+  AIRTRACK_LICENSE_KEY    License key (sent in reports; optional for core delivery)
+  WOMBAT_TIMEOUT          HTTP timeout in seconds (default 30)
+
+SAFE FOR CLIENT DISTRIBUTION.
+"""
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import io
+import importlib.util
 import json
+import logging
 import os
-import random
 import shutil
-import subprocess
-import tarfile
-import tempfile
+import sys
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.error import URLError
 from urllib.request import Request, urlopen
-from zoneinfo import ZoneInfo
 
-import pymysql
-from dotenv import load_dotenv
+# ---------------------------------------------------------------------------
+# Environment
+# ---------------------------------------------------------------------------
 
-from woodland.status_writer import write_status
-
-
-# =============================================================================
-# CONFIG
-# =============================================================================
-
-TIMEZONE = ZoneInfo("Australia/Sydney")
-
-ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
-load_dotenv(dotenv_path=ENV_PATH)
-
-DB_CONFIG = {
-    "host":     os.getenv("DB_HOST", "127.0.0.1"),
-    "port":     int(os.getenv("DB_PORT", "3306")),
-    "user":     os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD", os.getenv("DB_PASS", "")),
-    "database": os.getenv("DB_NAME", "airtrack"),
-}
-
-# URL of the Waddling Wombat manifest endpoint on the distribution server.
-# If not set, Marmot runs in standalone/local mode — no remote sync.
 WOMBAT_URL = os.getenv("WOMBAT_URL", "").rstrip("/")
-
-# URL of Mrs Wombat on the distribution server (.201) for code updates.
-# Separate from WOMBAT_URL which points to the local registry Wombat.
-WOMBAT_CODE_URL = os.getenv("WOMBAT_CODE_URL", "").rstrip("/")
-
-# AirTrack license key — sent to Wombat for authentication (Phase 2).
-AIRTRACK_LICENSE = os.getenv("AIRTRACK_LICENSE_KEY", "")
-
+_default_home = (
+    Path(os.environ.get("ProgramData", "C:/ProgramData")) / "AirTrack"
+    if sys.platform == "win32"
+    else Path("/airtrack_data")
+)
+AIRTRACK_HOME  = Path(os.getenv("AIRTRACK_HOME", str(_default_home)))
+CUSTOMER_ID    = os.getenv("AIRTRACK_CUSTOMER_ID", "")
+LICENSE_KEY    = os.getenv("AIRTRACK_LICENSE_KEY", "")
 WOMBAT_TIMEOUT = int(os.getenv("WOMBAT_TIMEOUT", "30"))
 
-# Which GitHub repo to pull code updates from
-CODE_REPO = os.getenv("AIRTRACK_CODE_REPO", "AirTrack-Client")
+CAPABILITIES_DIR = AIRTRACK_HOME / "capabilities"
+DOWNLOADS_DIR    = AIRTRACK_HOME / "downloads"
+STAGING_DIR      = AIRTRACK_HOME / "staging"
+STATUS_DIR       = AIRTRACK_HOME / "status" / "capabilities"
+CORE_DIR         = AIRTRACK_HOME / "core"
+PUBLIC_KEY_PATH  = CORE_DIR / "airtrack_solutions.pub"
+LOG_DIR              = AIRTRACK_HOME / "logs"
+REGISTRIES_INCOMING  = AIRTRACK_HOME / "registries" / "incoming"
+REGISTRIES_INSTALLED = AIRTRACK_HOME / "registries" / "installed"
+REGISTRIES_MANIFESTS = AIRTRACK_HOME / "registries" / "manifests"
 
-# Docker container names — used to restart after a code update
-WEB_CONTAINER       = os.getenv("AIRTRACK_WEB_CONTAINER", "airtrack-logbook-airtrack-1")
-SCHEDULER_CONTAINER = os.getenv("AIRTRACK_SCHEDULER_CONTAINER", "airtrack-logbook-airtrack-scheduler-1")
+# Public key + installer source from git repo (copied to AIRTRACK_HOME on first run)
+_REPO_PUBLIC_KEY = Path(__file__).resolve().parent.parent / "core" / "airtrack_solutions.pub"
+_REPO_INSTALLER  = Path(__file__).resolve().parent.parent / "core" / "package_installer.py"
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-LOG_DIR      = PROJECT_ROOT / "app" / "logs"
-LOG_FILE     = LOG_DIR / "mangy_marmot.log"
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
 
-APP_DIR       = Path(__file__).resolve().parents[1]
-REGISTRIES    = APP_DIR / "registries"
-
-INBOX_DIR     = REGISTRIES / "inbox"        # Squirrel's inbox
-PATCHES_DIR   = REGISTRIES / "patches"
-INCOMING_DIR  = PATCHES_DIR / "incoming"    # Marmot watches this
-APPLIED_DIR   = PATCHES_DIR / "applied"
-FAILED_DIR    = PATCHES_DIR / "failed"
-
-MARMOT_DIR      = Path(__file__).resolve().parent / "marmot"
-LOCAL_MANIFEST  = MARMOT_DIR / "manifest_cache.json"
-SCHEDULE_FILE   = MARMOT_DIR / "daily_schedule.json"
-
-# Code backup directory — one previous version kept here
-CODE_BACKUP_DIR = APP_DIR / "runtime" / "woodland" / "code_backups"
-
-# Direct path to the Wombat manifest file (shared volume fallback)
-_WOMBAT_MANIFEST_FILE = Path(__file__).resolve().parent / "wombat" / "manifest.json"
+log = logging.getLogger("mangy_marmot")
 
 
-# =============================================================================
-# LOGGING
-# =============================================================================
+def _log(msg: str) -> None:
+    log.info(msg)
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        with (LOG_DIR / "mangy_marmot.log").open("a", encoding="utf-8") as fh:
+            fh.write(f"{_now_iso()} {msg}\n")
+    except Exception:
+        pass
 
-def now_local() -> datetime:
-    return datetime.now(TIMEZONE)
 
-
-def now_utc_iso() -> str:
+def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def timestamp() -> str:
-    return now_local().strftime("%Y-%m-%d %H:%M:%S %Z")
+# ---------------------------------------------------------------------------
+# Bootstrap: seed AIRTRACK_HOME/core/ from repo on first run
+# ---------------------------------------------------------------------------
+
+def _bootstrap_core() -> None:
+    CORE_DIR.mkdir(parents=True, exist_ok=True)
+    if not PUBLIC_KEY_PATH.exists() and _REPO_PUBLIC_KEY.exists():
+        shutil.copy2(_REPO_PUBLIC_KEY, PUBLIC_KEY_PATH)
+        _log(f"Bootstrapped public key -> {PUBLIC_KEY_PATH}")
+    installer_path = CORE_DIR / "package_installer.py"
+    if not installer_path.exists() and _REPO_INSTALLER.exists():
+        shutil.copy2(_REPO_INSTALLER, installer_path)
+        _log(f"Bootstrapped package_installer -> {installer_path}")
 
 
-def log(message: str) -> None:
-    line = f"[{timestamp()}] {message}"
-    print(line)
-    try:
-        LOG_DIR.mkdir(parents=True, exist_ok=True)
-        with LOG_FILE.open("a", encoding="utf-8") as fh:
-            fh.write(line + "\n")
-    except Exception:
-        pass
+# ---------------------------------------------------------------------------
+# HTTP helpers
+# ---------------------------------------------------------------------------
+
+def _get(path: str) -> dict:
+    req = Request(f"{WOMBAT_URL}{path}", headers={"User-Agent": "AirTrack-MangyMarmot/0.3"})
+    with urlopen(req, timeout=WOMBAT_TIMEOUT) as resp:
+        return json.loads(resp.read().decode("utf-8"))
 
 
-# =============================================================================
-# DATABASE
-# =============================================================================
-
-def _get_connection():
-    return pymysql.connect(
-        host=DB_CONFIG["host"],
-        port=DB_CONFIG["port"],
-        user=DB_CONFIG["user"],
-        password=DB_CONFIG["password"],
-        database=DB_CONFIG["database"],
-        cursorclass=pymysql.cursors.DictCursor,
-        autocommit=True,
-        connect_timeout=10,
+def _post(path: str, payload: dict) -> dict:
+    data = json.dumps(payload).encode("utf-8")
+    req  = Request(
+        f"{WOMBAT_URL}{path}", data=data,
+        headers={"Content-Type": "application/json", "User-Agent": "AirTrack-MangyMarmot/0.3"},
+        method="POST",
     )
+    with urlopen(req, timeout=WOMBAT_TIMEOUT) as resp:
+        return json.loads(resp.read().decode("utf-8"))
 
 
-def _count_table(cursor, table_name: str) -> int | None:
-    """Return row count for a table, or None if table doesn't exist."""
-    try:
-        cursor.execute(f"SELECT COUNT(*) AS n FROM `{table_name}`")
-        row = cursor.fetchone()
-        return row["n"] if row else 0
-    except Exception:
-        return None
+def _download(path: str) -> bytes:
+    req = Request(f"{WOMBAT_URL}{path}", headers={"User-Agent": "AirTrack-MangyMarmot/0.3"})
+    with urlopen(req, timeout=WOMBAT_TIMEOUT) as resp:
+        return resp.read()
 
 
-# =============================================================================
-# DAILY SCHEDULE
-# =============================================================================
+# ---------------------------------------------------------------------------
+# Capability inventory
+# ---------------------------------------------------------------------------
 
-def _get_schedule() -> dict:
-    """
-    Load or create the daily schedule.
-
-    On first run, picks a random code_time (HH:MM) and sets
-    registry_time = code_time + 12 hours. Both are persisted and
-    never changed. Also tracks last_code_check and last_registry_check
-    (date strings YYYY-MM-DD) and the installed_sha for code updates.
-    """
-    if SCHEDULE_FILE.exists():
+def _scan_installed() -> list[dict]:
+    if not CAPABILITIES_DIR.exists():
+        return []
+    installed = []
+    for cap_dir in sorted(CAPABILITIES_DIR.iterdir()):
+        if not cap_dir.is_dir():
+            continue
+        manifest_path = cap_dir / "manifest.json"
         try:
-            return json.loads(SCHEDULE_FILE.read_text(encoding="utf-8"))
+            m = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+            installed.append({"name": cap_dir.name, "version": m.get("version", "unknown")})
         except Exception:
-            pass
-
-    hour   = random.randint(0, 23)
-    minute = random.randint(0, 59)
-    code_time     = f"{hour:02d}:{minute:02d}"
-    registry_time = f"{(hour + 12) % 24:02d}:{minute:02d}"
-
-    schedule = {
-        "code_time":           code_time,
-        "registry_time":       registry_time,
-        "last_code_check":     "",
-        "last_registry_check": "",
-        "installed_sha":       "",
-    }
-    MARMOT_DIR.mkdir(parents=True, exist_ok=True)
-    SCHEDULE_FILE.write_text(json.dumps(schedule, indent=2), encoding="utf-8")
-    log(f"Daily schedule created — code updates: {code_time}, registry sync: {registry_time}")
-    return schedule
+            installed.append({"name": cap_dir.name, "version": "unknown"})
+    return installed
 
 
-def _save_schedule(schedule: dict) -> None:
-    MARMOT_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = SCHEDULE_FILE.with_suffix(".tmp")
-    tmp.write_text(json.dumps(schedule, indent=2), encoding="utf-8")
-    tmp.replace(SCHEDULE_FILE)
+# ---------------------------------------------------------------------------
+# Package verification (SHA-256 + Ed25519)
+# ---------------------------------------------------------------------------
 
+def _verify_package(zip_bytes: bytes, expected_sha256: str) -> str | None:
+    actual_sha = hashlib.sha256(zip_bytes).hexdigest()
+    if actual_sha != expected_sha256:
+        return f"SHA-256 mismatch: expected {expected_sha256[:16]}..., got {actual_sha[:16]}..."
 
-def _is_time_to_run(target_hhmm: str, last_run_date: str) -> bool:
-    """
-    Return True if:
-      - current local time is at or past target_hhmm today, AND
-      - we haven't already run today (last_run_date != today).
-    """
-    now       = datetime.now(TIMEZONE)
-    today_str = now.strftime("%Y-%m-%d")
-    if last_run_date == today_str:
-        return False
     try:
-        t_hour, t_min = map(int, target_hhmm.split(":"))
-    except Exception:
-        return False
-    target_today = now.replace(hour=t_hour, minute=t_min, second=0, microsecond=0)
-    return now >= target_today
-
-
-# =============================================================================
-# MANIFEST SYNC (REGISTRY)
-# =============================================================================
-
-def _fetch_manifest() -> dict | None:
-    """
-    Fetch the Wombat manifest from the distribution server.
-    Falls back to reading the manifest file directly (shared volume)
-    when the HTTP endpoint is unreachable.
-    """
-    url = f"{WOMBAT_URL}/api/wombat/manifest"
-    headers = {"User-Agent": "AirTrack-MangyMarmot/1.0"}
-    if AIRTRACK_LICENSE:
-        headers["X-AirTrack-License"] = AIRTRACK_LICENSE
-
-    req = Request(url, headers=headers)
-    try:
-        with urlopen(req, timeout=WOMBAT_TIMEOUT) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except URLError as exc:
-        log(f"Manifest fetch failed: {exc.reason}")
-    except json.JSONDecodeError as exc:
-        log(f"Manifest JSON decode error: {exc}")
-        return None
-    except Exception as exc:
-        log(f"Manifest fetch error: {exc}")
-
-    # HTTP failed — fall back to reading the manifest file directly
-    if _WOMBAT_MANIFEST_FILE.exists():
-        try:
-            data = json.loads(_WOMBAT_MANIFEST_FILE.read_text(encoding="utf-8"))
-            log("Manifest loaded from local file (HTTP endpoint unreachable).")
-            return data
-        except Exception as exc:
-            log(f"Manifest direct-file read failed: {exc}")
-    return None
-
-
-def _save_manifest(manifest: dict) -> None:
-    MARMOT_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = LOCAL_MANIFEST.with_suffix(".tmp")
-    tmp.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
-    tmp.replace(LOCAL_MANIFEST)
-
-
-def _check_embargo() -> str | None:
-    """Check the Wombat embargo endpoint. Returns reason string if active."""
-    if not WOMBAT_URL:
-        return None
-    url = f"{WOMBAT_URL}/api/wombat/embargo"
-    try:
-        with urlopen(Request(url), timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            if data.get("embargo_active"):
-                return data.get("reason", "No reason given")
-    except Exception:
-        pass
-    return None
-
-
-def sync_manifest(force: bool = False) -> dict | None:
-    """
-    Sync manifest from Wombat if force=True. Otherwise return cached copy.
-    Returns loaded manifest or None.
-    """
-    if not WOMBAT_URL:
-        log("WOMBAT_URL not configured — using local manifest only.")
-        if LOCAL_MANIFEST.exists():
-            try:
-                return json.loads(LOCAL_MANIFEST.read_text(encoding="utf-8"))
-            except Exception:
-                pass
-        return None
-
-    if not force:
-        log("Registry sync not due yet — using cached manifest.")
-        if LOCAL_MANIFEST.exists():
-            try:
-                return json.loads(LOCAL_MANIFEST.read_text(encoding="utf-8"))
-            except Exception:
-                pass
-        return None
-
-    log(f"Syncing registry manifest from Wombat at {WOMBAT_URL}...")
-
-    embargo = _check_embargo()
-    if embargo:
-        log(f"SQL Embargo active — {embargo}. All patch activity suspended.")
-        if LOCAL_MANIFEST.exists():
-            try:
-                return json.loads(LOCAL_MANIFEST.read_text(encoding="utf-8"))
-            except Exception:
-                pass
-        return None
-
-    manifest = _fetch_manifest()
-    if not manifest:
-        log("Manifest fetch failed — will retry next scheduled cycle.")
-        return None
-
-    if manifest.get("embargo_active"):
-        log("Embargo flag set in manifest — all patch activity suspended.")
-        _save_manifest(manifest)
-        return manifest
-
-    _save_manifest(manifest)
-    log(
-        f"Manifest synced: {manifest.get('total_registries', 0)} registries, "
-        f"{manifest.get('total_records', 0):,} records."
-    )
-    return manifest
-
-
-# =============================================================================
-# CODE UPDATE
-# =============================================================================
-
-def _fetch_code_manifest() -> dict | None:
-    """Fetch the code manifest from Mrs Wombat on .201."""
-    if not WOMBAT_CODE_URL:
-        return None
-    url = f"{WOMBAT_CODE_URL}/api/wombat/code/manifest"
-    try:
-        with urlopen(
-            Request(url, headers={"User-Agent": "AirTrack-MangyMarmot/1.0"}),
-            timeout=30,
-        ) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except Exception as exc:
-        log(f"Code manifest fetch failed: {exc}")
-        return None
-
-
-def _restart_containers() -> None:
-    """Restart the web app and scheduler containers via Docker SDK."""
-    try:
-        import docker as _docker  # type: ignore
+        from cryptography.hazmat.primitives.serialization import load_pem_public_key
+        from cryptography.exceptions import InvalidSignature
     except ImportError:
-        log("docker SDK not available — cannot restart containers.")
-        log("Install with: pip install docker (or add to scheduler startup pip command)")
-        return
+        return "cryptography library not installed"
+
+    if not PUBLIC_KEY_PATH.exists():
+        return f"Public key not found: {PUBLIC_KEY_PATH}"
 
     try:
-        client = _docker.DockerClient(base_url="unix:///var/run/docker.sock")
-        for name in [WEB_CONTAINER, SCHEDULER_CONTAINER]:
-            try:
-                container = client.containers.get(name)
-                log(f"Restarting {name}...")
-                container.restart(timeout=10)
-                log(f"  {name} restarted OK")
-            except _docker.errors.NotFound:
-                log(f"  Container not found: {name}")
-            except Exception as exc:
-                log(f"  Failed to restart {name}: {exc}")
+        pub = load_pem_public_key(PUBLIC_KEY_PATH.read_bytes())
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+            checksums_data = zf.read("checksums.sha256")
+            signature      = zf.read("signature.sig")
+            pub.verify(signature, checksums_data)
+    except InvalidSignature:
+        return "Ed25519 signature verification failed"
     except Exception as exc:
-        log(f"Docker client error: {exc}")
+        return f"Package verification error: {exc}"
+
+    return None
 
 
-def check_code_update(schedule: dict) -> bool:
-    """
-    Check for a new code version from Mrs Wombat.
-    Downloads tarball if available, backs up current app/, extracts update,
-    restarts containers.
-    Returns True if an update was applied.
-    """
-    if not WOMBAT_CODE_URL:
-        log("WOMBAT_CODE_URL not set — code update check skipped.")
-        return False
+# ---------------------------------------------------------------------------
+# Install via package_installer (generic capabilities)
+# ---------------------------------------------------------------------------
 
-    log(f"Checking code updates from {WOMBAT_CODE_URL}...")
-    manifest = _fetch_code_manifest()
-    if not manifest:
-        log("Code manifest unavailable — skipping.")
-        return False
+def _install_package(package_path: Path) -> None:
+    installer_path = CORE_DIR / "package_installer.py"
+    if not installer_path.exists():
+        raise FileNotFoundError(f"package_installer.py not found at {installer_path}")
 
-    repo_entry = manifest.get("repos", {}).get(CODE_REPO)
-    if not repo_entry:
-        log(f"No manifest entry for {CODE_REPO} — skipping.")
-        return False
+    os.environ["AIRTRACK_HOME"] = str(AIRTRACK_HOME)
+    os.environ.setdefault("AIRTRACK_VERSION", "1.0.0")
 
-    latest_sha    = repo_entry.get("sha", "")
-    installed_sha = schedule.get("installed_sha", "")
+    spec   = importlib.util.spec_from_file_location("package_installer", installer_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["package_installer"] = module
+    spec.loader.exec_module(module)
 
-    if not latest_sha:
-        log("No SHA in code manifest — skipping.")
-        return False
+    result = module.validate_package(package_path)
+    if not result.valid:
+        parts = list(result.errors or [])
+        if getattr(result, "healthcheck_error", None):
+            parts.append(f"Healthcheck: {result.healthcheck_error}")
+        errs = "; ".join(parts)
+        raise RuntimeError(f"Install failed: {errs}")
+    _log(f"Install: '{result.package_name}' v{result.package_version} installed")
 
-    if not installed_sha:
-        # First run — record current SHA without downloading (bootstrapping)
-        schedule["installed_sha"] = latest_sha
-        log(f"Code update bootstrapped: installed SHA set to {latest_sha[:12]} (no download)")
-        return False
 
-    if latest_sha == installed_sha:
-        log(f"Code is current ({latest_sha[:12]}) — no update needed.")
-        return False
+# ---------------------------------------------------------------------------
+# Delivery cycle (capabilities)
+# ---------------------------------------------------------------------------
 
-    if not repo_entry.get("package_available"):
-        log(f"New SHA {latest_sha[:12]} detected but no package available yet — skipping.")
-        return False
-
-    log(f"Code update available: {latest_sha[:12]} (installed: {installed_sha[:12]})")
-
-    # Download the tarball
-    pkg_filename = repo_entry.get("package_filename", "update.tar.gz")
-    dl_url = f"{WOMBAT_CODE_URL}/api/wombat/code/package/{CODE_REPO}"
-    tmp_dir = Path(tempfile.mkdtemp())
-    tarball = tmp_dir / pkg_filename
+def _deliver(capability: str) -> bool:
+    _log(f"Delivery: starting for '{capability}'")
 
     try:
-        log(f"Downloading {pkg_filename}...")
-        with urlopen(
-            Request(dl_url, headers={"User-Agent": "AirTrack-MangyMarmot/1.0"}),
-            timeout=120,
-        ) as resp:
-            tarball.write_bytes(resp.read())
-        log(f"Downloaded {tarball.stat().st_size // 1024:,} KB")
+        manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
     except Exception as exc:
-        log(f"Download failed: {exc}")
-        shutil.rmtree(tmp_dir, ignore_errors=True)
-        return False
+        _log(f"Delivery: manifest fetch failed - {exc}"); return False
 
-    # Backup current app/ (keep one previous version)
-    CODE_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    backup_path = CODE_BACKUP_DIR / f"app_backup_{installed_sha[:12]}.tar.gz"
-    try:
-        log(f"Backing up current app/ → {backup_path.name}")
-        with tarfile.open(backup_path, "w:gz") as tf:
-            tf.add(APP_DIR, arcname="app")
-        # Prune old backups — keep only the one we just made
-        for old in CODE_BACKUP_DIR.glob("*.tar.gz"):
-            if old != backup_path:
-                old.unlink(missing_ok=True)
-    except Exception as exc:
-        log(f"Backup failed: {exc} — aborting update (safe).")
-        shutil.rmtree(tmp_dir, ignore_errors=True)
-        return False
+    if manifest.get("error"):
+        _log(f"Delivery: manifest error - {manifest['error']}"); return False
 
-    # Extract new app/ over existing
-    try:
-        log("Extracting update...")
-        with tarfile.open(tarball, "r:gz") as tf:
-            tf.extractall(APP_DIR.parent)
-        log("Extraction complete.")
-    except Exception as exc:
-        log(f"Extraction failed: {exc} — restoring backup.")
+    matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == capability]
+    if not matching:
+        _log(f"Delivery: no dispatched delivery for '{capability}' - requesting from warehouse")
         try:
-            with tarfile.open(backup_path, "r:gz") as tf:
-                tf.extractall(APP_DIR.parent)
-            log("Backup restored successfully.")
-        except Exception as rex:
-            log(f"Restore also failed: {rex} — manual intervention required.")
-        shutil.rmtree(tmp_dir, ignore_errors=True)
-        return False
-    finally:
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+            cap_req = _post("/api/wombat/request-capability", {
+                "customer_id": CUSTOMER_ID,
+                "capability":  capability,
+            })
+        except Exception as exc:
+            _log(f"Delivery: request-capability failed - {exc}"); return False
+        if cap_req.get("status") != "dispatched":
+            _log(f"Delivery: request-capability returned '{cap_req.get('status')}' - {cap_req.get('note', cap_req.get('error', ''))}"); return False
+        try:
+            manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
+        except Exception as exc:
+            _log(f"Delivery: manifest re-fetch failed - {exc}"); return False
+        matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == capability]
+        if not matching:
+            _log("Delivery: warehouse dispatched but manifest not yet updated - will retry"); return False
 
-    schedule["installed_sha"] = latest_sha
-    _save_schedule(schedule)
-    log(f"Code updated successfully to {latest_sha[:12]}")
-    _restart_containers()
+    delivery   = matching[0]
+    request_id = delivery["request_id"]
+    pkg_sha    = delivery["package_sha256"]
+    _log(f"Delivery: request_id={request_id}")
+
+    try:
+        pickup = _post("/api/wombat/request-pickup", {"customer_id": CUSTOMER_ID, "request_id": request_id})
+    except Exception as exc:
+        _log(f"Delivery: request-pickup failed - {exc}"); return False
+    if not pickup.get("allowed"):
+        _log(f"Delivery: pickup not allowed - {pickup.get('error')}"); return False
+
+    token = pickup["pickup_token"]
+
+    try:
+        retrieval = _post("/api/wombat/retrieve-package", {"customer_id": CUSTOMER_ID, "token": token})
+    except Exception as exc:
+        _log(f"Delivery: retrieve failed - {exc}"); return False
+    if not retrieval.get("ok"):
+        _log(f"Delivery: retrieve error - {retrieval.get('error')}"); return False
+
+    zip_bytes = base64.b64decode(retrieval["package_bytes"])
+
+    dl_dir = DOWNLOADS_DIR / request_id
+    dl_dir.mkdir(parents=True, exist_ok=True)
+    package_path = dl_dir / "package.zip"
+    package_path.write_bytes(zip_bytes)
+    _log(f"Delivery: saved {len(zip_bytes)} bytes")
+
+    err = _verify_package(zip_bytes, pkg_sha)
+    if err:
+        _log(f"Delivery: verification failed - {err}")
+        package_path.unlink(missing_ok=True)
+        return False
+    _log("Delivery: signature + SHA-256 verified")
+
+    try:
+        _install_package(package_path)
+    except Exception as exc:
+        _log(f"Delivery: install error - {exc}"); return False
+
+    try:
+        confirm = _post("/api/wombat/confirm-pickup", {
+            "customer_id":     CUSTOMER_ID,
+            "token":           token,
+            "received_sha256": hashlib.sha256(zip_bytes).hexdigest(),
+        })
+        _log(f"Delivery: confirmed - {confirm.get('status', confirm.get('error'))}")
+    except Exception as exc:
+        _log(f"Delivery: confirm failed (non-fatal) - {exc}")
+
     return True
 
 
-# =============================================================================
-# PATCH PARSING
-# =============================================================================
+# ---------------------------------------------------------------------------
+# Registry inventory
+# ---------------------------------------------------------------------------
 
-def _parse_patch_header(patch_path: Path) -> dict | None:
-    """
-    Parse the structured header from a patch file.
-    Expected format:
-        REGISTRY: spain
-        VERSION: 2026-05-14
-        EXPECTED_DELTA: +12 -3
-        ---
-        <sed commands>
-
-    Returns a dict with registry, version, expected_adds, expected_removes, body.
-    """
-    try:
-        content = patch_path.read_text(encoding="utf-8")
-    except Exception as exc:
-        log(f"Cannot read patch file {patch_path.name}: {exc}")
-        return None
-
-    lines = content.splitlines()
-    header = {}
-    body_start = None
-
-    for i, line in enumerate(lines):
-        if line.strip() == "---":
-            body_start = i + 1
-            break
-        if ":" in line:
-            key, _, val = line.partition(":")
-            header[key.strip().upper()] = val.strip()
-
-    if body_start is None:
-        log(f"Patch {patch_path.name}: missing '---' separator.")
-        return None
-
-    required = ("REGISTRY", "VERSION", "EXPECTED_DELTA")
-    for k in required:
-        if k not in header:
-            log(f"Patch {patch_path.name}: missing required header field '{k}'.")
-            return None
-
-    delta_raw = header["EXPECTED_DELTA"]
-    try:
-        parts   = delta_raw.split()
-        adds    = int(parts[0].lstrip("+")) if len(parts) > 0 else 0
-        removes = abs(int(parts[1])) if len(parts) > 1 else 0
-    except (ValueError, IndexError):
-        log(f"Patch {patch_path.name}: cannot parse EXPECTED_DELTA '{delta_raw}'.")
-        return None
-
-    return {
-        "registry":         header["REGISTRY"].lower().replace(" ", "_"),
-        "version":          header["VERSION"],
-        "expected_adds":    adds,
-        "expected_removes": removes,
-        "net_delta":        adds - removes,
-        "body":             "\n".join(lines[body_start:]),
-    }
-
-
-# =============================================================================
-# PATCH APPLICATION
-# =============================================================================
-
-def _find_registry_sql(registry: str) -> Path | None:
-    """Find the canonical SQL file for a registry."""
-    candidates = [
-        REGISTRIES / registry / f"{registry}.sql",
-        REGISTRIES / f"{registry}.sql",
-    ]
-    for path in candidates:
-        if path.exists():
-            return path
-    return None
-
-
-def _backup_sql(sql_path: Path, holding_dir: Path) -> Path | None:
-    """Back up the current SQL file to holding/ before patching."""
-    try:
-        holding_dir.mkdir(parents=True, exist_ok=True)
-        backup_name = f"{sql_path.stem}_pre_patch.sql"
-        backup_path = holding_dir / backup_name
-        shutil.copy2(sql_path, backup_path)
-        return backup_path
-    except Exception as exc:
-        log(f"Backup failed: {exc}")
-        return None
-
-
-def _apply_sed(sed_commands: str, target_path: Path) -> tuple[bool, str]:
-    """
-    Apply sed commands to the target SQL file in-place.
-    Returns (success, error_message).
-    """
-    if not sed_commands.strip():
-        return True, ""
-
-    script = target_path.with_suffix(".sed_script")
-    try:
-        script.write_text(sed_commands, encoding="utf-8")
-        result = subprocess.run(
-            ["sed", "-f", str(script), "-i", str(target_path)],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        if result.returncode != 0:
-            return False, f"sed exited {result.returncode}: {result.stderr.strip()}"
-        return True, ""
-    except subprocess.TimeoutExpired:
-        return False, "sed timed out after 60s"
-    except FileNotFoundError:
-        return False, "sed not available on this system"
-    except Exception as exc:
-        return False, str(exc)
-    finally:
+def _scan_installed_registries() -> list[dict]:
+    """Return list of installed registries from REGISTRIES_INSTALLED/."""
+    if not REGISTRIES_INSTALLED.exists():
+        return []
+    installed = []
+    for reg_dir in sorted(REGISTRIES_INSTALLED.iterdir()):
+        if not reg_dir.is_dir():
+            continue
+        manifest_path = reg_dir / "installed.json"
         try:
-            script.unlink(missing_ok=True)
+            m = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+            installed.append({"name": reg_dir.name, "version": m.get("version", "unknown")})
         except Exception:
-            pass
+            installed.append({"name": reg_dir.name, "version": "unknown"})
+    return installed
 
 
-def _drop_to_squirrel(sql_path: Path, registry: str) -> None:
-    """Copy the patched SQL file into Squirrel's inbox for import."""
-    INBOX_DIR.mkdir(parents=True, exist_ok=True)
-    dest = INBOX_DIR / f"{registry}.sql"
-    shutil.copy2(sql_path, dest)
-    log(f"Dropped {sql_path.name} → Squirrel inbox ({dest.name})")
+# ---------------------------------------------------------------------------
+# Registry installation
+# ---------------------------------------------------------------------------
 
+def _install_registry(package_path: Path, registry_name: str) -> None:
+    """Extract SQL from registry package and import into MariaDB."""
+    import re
+    import zipfile as _zf
 
-def _wait_for_squirrel_import(registry: str, timeout_seconds: int = 180) -> tuple[bool, str]:
-    """
-    Wait for Squirrel to remove the SQL from its inbox (meaning it processed it).
-    Returns (success, message).
-    """
-    import time
-    inbox_file = INBOX_DIR / f"{registry}.sql"
-    waited = 0
-    interval = 5
+    with _zf.ZipFile(package_path, "r") as zf:
+        manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
+        sql_file = manifest.get("sql_file", "registry.sql")
+        sql_content = zf.read(sql_file).decode("utf-8")
 
-    while waited < timeout_seconds:
-        if not inbox_file.exists():
-            return True, f"Squirrel imported {registry} in {waited}s"
-        time.sleep(interval)
-        waited += interval
+    table_name = manifest.get("table_name", registry_name)
 
-    return False, f"Squirrel did not process {registry}.sql within {timeout_seconds}s"
+    # Extract INSERT statements only - safer than executing the full dump
+    inserts = re.findall(r"INSERT INTO.*?;", sql_content, re.DOTALL)
+    if not inserts:
+        raise RuntimeError(f"No INSERT statements found in {sql_file}")
 
-
-def _archive_patch(patch_path: Path, dest_dir: Path, extra_info: str = "") -> None:
-    """Move a patch file to applied/ or failed/ directory."""
+    # Parse DB connection the same way app/app.py builds SQLALCHEMY_DATABASE_URI:
+    # DATABASE_URI if set, else DB_USER/DB_PASSWORD/DB_HOST/DB_NAME.
     try:
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        dest_name = patch_path.name
-        if extra_info:
-            stem = patch_path.stem
-            suffix = patch_path.suffix
-            safe_info = extra_info[:30].replace(" ", "_").replace("/", "_")
-            dest_name = f"{stem}_{safe_info}{suffix}"
-        shutil.move(str(patch_path), str(dest_dir / dest_name))
-        log(f"Patch archived to {dest_dir.name}/{dest_name}")
+        import pymysql
+        from urllib.parse import urlparse
+        db_uri = os.environ.get("DATABASE_URI", "")
+        if db_uri:
+            parsed = urlparse(db_uri.replace("mysql+pymysql://", "mysql://"))
+            host     = parsed.hostname or "127.0.0.1"
+            port     = parsed.port or 3306
+            user     = parsed.username or "airtrack"
+            password = parsed.password or ""
+            database = (parsed.path or "/airtrack").lstrip("/")
+        else:
+            host     = os.environ.get("DB_HOST", "airtrack-db")
+            port     = int(os.environ.get("DB_PORT", "3306"))
+            user     = os.environ.get("DB_USER", "airtrack")
+            password = os.environ.get("DB_PASSWORD", "")
+            database = os.environ.get("DB_NAME", "airtrack")
+
+        conn = pymysql.connect(
+            host=host, port=int(port), user=user, password=password,
+            database=database, charset="utf8mb4",
+            connect_timeout=10,
+        )
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(f"DELETE FROM `{table_name}`")
+                for stmt in inserts:
+                    cursor.execute(stmt)
+            conn.commit()
+            _log(f"Registry '{registry_name}': imported {len(inserts)} INSERT block(s) into `{table_name}`")
+        finally:
+            conn.close()
     except Exception as exc:
-        log(f"Could not archive patch {patch_path.name}: {exc}")
+        raise RuntimeError(f"DB import failed: {exc}")
 
-
-def _notify_wombat(outcome: dict) -> None:
-    """Report patch outcome back to Wombat (success or failure)."""
-    if not WOMBAT_URL:
-        return
-    url = f"{WOMBAT_URL}/api/wombat/report"
-    payload = json.dumps(outcome).encode("utf-8")
-    req = Request(
-        url,
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "User-Agent": "AirTrack-MangyMarmot/1.0",
-        },
-        method="POST",
+    installed_dir = REGISTRIES_INSTALLED / registry_name
+    installed_dir.mkdir(parents=True, exist_ok=True)
+    installed_manifest = {
+        "name":         registry_name,
+        "version":      manifest.get("version", "1.0.0"),
+        "table_name":   table_name,
+        "installed_at": _now_iso(),
+    }
+    (installed_dir / "installed.json").write_text(
+        json.dumps(installed_manifest, indent=2), encoding="utf-8"
     )
-    try:
-        with urlopen(req, timeout=15) as resp:
-            log(f"Wombat notified — HTTP {resp.getcode()}")
-    except Exception as exc:
-        log(f"Wombat notification failed: {exc}")
 
+
+# ---------------------------------------------------------------------------
+# Registry delivery cycle
+# ---------------------------------------------------------------------------
+
+def _deliver_registry(registry: str) -> bool:
+    _log(f"Registry delivery: starting for '{registry}'")
+
+    try:
+        manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
+    except Exception as exc:
+        _log(f"Registry delivery: manifest fetch failed - {exc}"); return False
+
+    if manifest.get("error"):
+        _log(f"Registry delivery: manifest error - {manifest['error']}"); return False
+
+    matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == registry]
+    if not matching:
+        _log(f"Registry delivery: no dispatched delivery for '{registry}' - requesting")
+        try:
+            reg_req = _post("/api/wombat/request-registry", {
+                "customer_id": CUSTOMER_ID,
+                "registry":    registry,
+            })
+        except Exception as exc:
+            _log(f"Registry delivery: request-registry failed - {exc}"); return False
+        if reg_req.get("status") != "dispatched":
+            _log(f"Registry delivery: request returned '{reg_req.get('status')}' - {reg_req.get('note', reg_req.get('error', ''))}"); return False
+        try:
+            manifest = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
+        except Exception as exc:
+            _log(f"Registry delivery: manifest re-fetch failed - {exc}"); return False
+        matching = [d for d in manifest.get("deliveries", []) if d.get("capability") == registry]
+        if not matching:
+            _log("Registry delivery: dispatched but manifest not yet updated - will retry"); return False
+
+    delivery   = matching[0]
+    request_id = delivery["request_id"]
+    pkg_sha    = delivery["package_sha256"]
+    _log(f"Registry delivery: request_id={request_id}")
+
+    try:
+        pickup = _post("/api/wombat/request-pickup", {"customer_id": CUSTOMER_ID, "request_id": request_id})
+    except Exception as exc:
+        _log(f"Registry delivery: request-pickup failed - {exc}"); return False
+    if not pickup.get("allowed"):
+        _log(f"Registry delivery: pickup not allowed - {pickup.get('error')}"); return False
+
+    token = pickup["pickup_token"]
+
+    try:
+        retrieval = _post("/api/wombat/retrieve-package", {"customer_id": CUSTOMER_ID, "token": token})
+    except Exception as exc:
+        _log(f"Registry delivery: retrieve failed - {exc}"); return False
+    if not retrieval.get("ok"):
+        _log(f"Registry delivery: retrieve error - {retrieval.get('error')}"); return False
+
+    zip_bytes = base64.b64decode(retrieval["package_bytes"])
+
+    dl_dir = DOWNLOADS_DIR / request_id
+    dl_dir.mkdir(parents=True, exist_ok=True)
+    package_path = dl_dir / "package.zip"
+    package_path.write_bytes(zip_bytes)
+    _log(f"Registry delivery: saved {len(zip_bytes)} bytes")
+
+    err = _verify_package(zip_bytes, pkg_sha)
+    if err:
+        _log(f"Registry delivery: verification failed - {err}")
+        package_path.unlink(missing_ok=True)
+        return False
+    _log("Registry delivery: signature + SHA-256 verified")
+
+    try:
+        _install_registry(package_path, registry)
+    except Exception as exc:
+        _log(f"Registry delivery: install error - {exc}"); return False
+
+    try:
+        confirm = _post("/api/wombat/confirm-pickup", {
+            "customer_id":     CUSTOMER_ID,
+            "token":           token,
+            "received_sha256": hashlib.sha256(zip_bytes).hexdigest(),
+        })
+        _log(f"Registry delivery: confirmed - {confirm.get('status', confirm.get('error'))}")
+    except Exception as exc:
+        _log(f"Registry delivery: confirm failed (non-fatal) - {exc}")
+
+    return True
+
+
+# ---------------------------------------------------------------------------
+# App code updates - separate, simpler Wombat endpoint (poll + download),
+# handed off to app/core/app_updater.py once a newer version is found.
+# ---------------------------------------------------------------------------
+
+def _check_app_update() -> bool:
+    """
+    Poll Wombat for a newer app code version; if one exists, download it
+    and hand it to app_updater.apply_app_update(), which verifies
+    (SHA-256 + Ed25519), extracts, backs up the previous version, and
+    writes its own restart-pending flag.
+
+    Returns True if an update was applied - callers should treat that as
+    a terminal action for the tick, since a restart is now pending.
+    """
+    try:
+        from core.app_updater import apply_app_update, get_applied_version
+    except Exception as exc:
+        _log(f"App update: app_updater unavailable - {exc}")
+        return False
+
+    try:
+        info = _get("/api/wombat/app-update")
+    except Exception as exc:
+        _log(f"App update: check failed - {exc}")
+        return False
+
+    version = info.get("version")
+    pkg_sha = info.get("zip_sha256")
+    if not version or not pkg_sha:
+        return False
+
+    current = get_applied_version(home=AIRTRACK_HOME)
+    if version == current:
+        return False
+
+    _log(f"App update: {version} available (current: {current or 'none'})")
+
+    try:
+        zip_bytes = _download(f"/api/wombat/app-update/{version}/download")
+    except Exception as exc:
+        _log(f"App update: download failed - {exc}")
+        return False
+
+    try:
+        apply_app_update(zip_bytes, version, pkg_sha, home=AIRTRACK_HOME, log_fn=_log)
+    except Exception as exc:
+        _log(f"App update: install error - {exc}")
+        return False
+
+    _log(f"App update: {version} applied.")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Meerkat heartbeat handoff
+# ---------------------------------------------------------------------------
 
 def _send_meerkat_heartbeat() -> None:
     """
-    Section 4.3: hands Meerkat's latest health snapshot to Wombat as part
-    of Marmot's own 5-minute tick round-trip -- the spec's "local handoff
-    point... Marmot already reads on its own 5-minute tick", implemented
-    as a direct in-process import rather than a status-file re-read,
-    since Meerkat and Marmot run in the same interpreter on the same
-    tick. Meerkat itself never talks to Wombat; only Marmot does, here.
-
-    Consent gate: section 7 promises nothing leaves an opted-out install.
-    The only durable record of opt-in is modules/meerkat/module.json's
-    own "enabled" field (see woodland.meerkat.is_meerkat_enabled()) --
-    checked first, before anything is assembled, let alone sent. Any
-    failure to confirm "enabled" is treated as not-enabled: for a consent
-    boundary, silence is the safe default, never "send anyway".
-
-    Sent unconditionally on every tick this runs on, regardless of the
-    computed health state (5.1: the heartbeat "always rides the normal
-    ...cycle...regardless of its own state value" -- state transitions
-    driving health_warning/recovery_notice events are a separate 3.4/4.4
-    concern, not this function's).
-
-    Never raises -- mirrors _notify_wombat()'s degrade-gracefully
-    contract. A heartbeat failure must never interrupt or delay Marmot's
-    own patch-scan/update responsibilities; this is called after Marmot's
-    own work for the tick is already decided, at each of the three real
-    tick-completion points in main().
+    Hands Meerkat's latest health snapshot to Wombat as part of Marmot's
+    own tick round-trip. Meerkat itself never talks to Wombat; only
+    Marmot does, here. Consent gate: is_meerkat_enabled() is checked
+    first, before anything is assembled or sent - silence is the safe
+    default for an opted-out install. Never raises - a heartbeat failure
+    must never interrupt or delay Marmot's own delivery responsibilities.
     """
     if not WOMBAT_URL:
         return
@@ -722,7 +607,7 @@ def _send_meerkat_heartbeat() -> None:
         write_local_status(checks)
         payload = assemble_heartbeat_payload(checks)
     except Exception as exc:
-        log(f"Meerkat heartbeat assembly failed: {exc}")
+        _log(f"Meerkat heartbeat assembly failed: {exc}")
         return
 
     url = f"{WOMBAT_URL}/api/meerkat/heartbeat"
@@ -732,321 +617,132 @@ def _send_meerkat_heartbeat() -> None:
         data=body,
         headers={
             "Content-Type": "application/json",
-            "User-Agent": "AirTrack-MangyMarmot/1.0",
+            "User-Agent": "AirTrack-MangyMarmot/0.3",
         },
         method="POST",
     )
     try:
         with urlopen(req, timeout=15) as resp:
-            log(f"Meerkat heartbeat sent -- HTTP {resp.getcode()} (state={payload.get('state')})")
+            _log(f"Meerkat heartbeat sent - HTTP {resp.getcode()} (state={payload.get('state')})")
     except Exception as exc:
-        log(f"Meerkat heartbeat send failed: {exc}")
+        _log(f"Meerkat heartbeat send failed: {exc}")
 
 
-def _apply_patch(patch_path: Path) -> tuple[bool, str]:
-    """
-    Apply a single patch file. Returns (success, message).
+# ---------------------------------------------------------------------------
+# Report
+# ---------------------------------------------------------------------------
 
-    Full flow:
-    1. Parse header
-    2. Record PRE_COUNT
-    3. Backup current SQL
-    4. Apply sed commands to SQL
-    5. Drop patched SQL into Squirrel's inbox
-    6. Wait for Squirrel to import
-    7. Validation Stage 1: MariaDB (check Squirrel imported cleanly)
-    8. Validation Stage 2: Row count delta
-    9. Success → archive, notify Wombat
-    10. Failure → rollback, archive to failed/, notify Wombat
-    """
-    log(f"Processing patch: {patch_path.name}")
-
-    header = _parse_patch_header(patch_path)
-    if not header:
-        return False, f"Could not parse patch header: {patch_path.name}"
-
-    registry     = header["registry"]
-    version      = header["version"]
-    net_delta    = header["net_delta"]
-    sed_commands = header["body"]
-
-    log(f"  Registry : {registry}")
-    log(f"  Version  : {version}")
-    log(f"  Delta    : {net_delta:+d} (adds={header['expected_adds']}, removes={header['expected_removes']})")
-
-    sql_path = _find_registry_sql(registry)
-    if not sql_path:
-        msg = f"No SQL file found for registry '{registry}'"
-        log(f"  Error: {msg}")
-        _archive_patch(patch_path, FAILED_DIR, "no_sql_file")
-        return False, msg
-
-    holding_dir = sql_path.parent / "holding"
-
-    # Step 2: PRE_COUNT
-    conn   = None
-    cursor = None
+def _report(installed: list[dict], missing: list[str], delivered: list[str]) -> None:
+    if not WOMBAT_URL:
+        return
     try:
-        conn   = _get_connection()
-        cursor = conn.cursor()
-        pre_count = _count_table(cursor, registry)
-        if pre_count is None:
-            log(f"  Warning: table '{registry}' does not exist — treating as fresh install (pre_count=0)")
-            pre_count = 0
-        else:
-            log(f"  PRE_COUNT: {pre_count:,}")
-    except Exception as exc:
-        msg = f"DB error getting PRE_COUNT: {exc}"
-        log(f"  Error: {msg}")
-        _archive_patch(patch_path, FAILED_DIR, "db_error")
-        return False, msg
-    finally:
-        if cursor:
-            try: cursor.close()
-            except Exception: pass
-        if conn:
-            try: conn.close()
-            except Exception: pass
-
-    # Step 3: Backup current SQL
-    backup_path = _backup_sql(sql_path, holding_dir)
-    if not backup_path:
-        msg = "Could not backup SQL file before patching"
-        log(f"  Error: {msg}")
-        _archive_patch(patch_path, FAILED_DIR, "backup_failed")
-        return False, msg
-    log(f"  Backup: {backup_path.name}")
-
-    # Step 4: Apply sed commands
-    if sed_commands.strip():
-        ok, sed_error = _apply_sed(sed_commands, sql_path)
-        if not ok:
-            log(f"  sed failed: {sed_error}")
-            shutil.copy2(backup_path, sql_path)
-            log(f"  SQL restored from backup.")
-            _archive_patch(patch_path, FAILED_DIR, "sed_failed")
-            _notify_wombat({
-                "registry":  registry,
-                "version":   version,
-                "outcome":   "failure",
-                "stage":     "sed",
-                "error":     sed_error,
-                "timestamp": now_utc_iso(),
-            })
-            return False, f"sed failed: {sed_error}"
-        log(f"  sed applied successfully.")
-    else:
-        log(f"  No sed commands — using SQL as-is (full replace).")
-
-    # Steps 5+6: Drop to Squirrel and wait
-    _drop_to_squirrel(sql_path, registry)
-    squirrel_ok, squirrel_msg = _wait_for_squirrel_import(registry)
-
-    if not squirrel_ok:
-        log(f"  Stage 1 FAIL: {squirrel_msg}")
-        shutil.copy2(backup_path, sql_path)
-        _drop_to_squirrel(sql_path, registry)
-        log(f"  Rollback initiated — original SQL dropped to Squirrel inbox.")
-        _archive_patch(patch_path, FAILED_DIR, "squirrel_timeout")
-        _notify_wombat({
-            "registry":  registry,
-            "version":   version,
-            "outcome":   "failure",
-            "stage":     "squirrel_import",
-            "error":     squirrel_msg,
-            "timestamp": now_utc_iso(),
+        _post("/api/wombat/report", {
+            "customer_id":            CUSTOMER_ID,
+            "license_key":            LICENSE_KEY,
+            "reported_at":            _now_iso(),
+            "installed_capabilities": installed,
+            "missing_capabilities":   missing,
+            "delivered_this_cycle":   delivered,
         })
-        return False, f"Squirrel import failed: {squirrel_msg}"
+    except Exception as exc:
+        _log(f"Report: failed - {exc}")
 
-    log(f"  Stage 1 PASS: {squirrel_msg}")
 
-    # Validation Stage 2: Row count delta
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def _run() -> None:
+    _log("Mangy Marmot starting.")
+
+    for d in (CAPABILITIES_DIR, DOWNLOADS_DIR, STAGING_DIR, STATUS_DIR, CORE_DIR, LOG_DIR,
+              REGISTRIES_INCOMING, REGISTRIES_INSTALLED, REGISTRIES_MANIFESTS):
+        d.mkdir(parents=True, exist_ok=True)
+
+    _bootstrap_core()
+
     try:
-        conn   = _get_connection()
-        cursor = conn.cursor()
-        post_count = _count_table(cursor, registry)
-        if post_count is None:
-            raise ValueError(f"Table '{registry}' vanished after import")
-        actual_delta = post_count - pre_count
-        log(f"  POST_COUNT: {post_count:,} (actual delta: {actual_delta:+d}, expected: {net_delta:+d})")
-    except Exception as exc:
-        msg = f"DB error getting POST_COUNT: {exc}"
-        log(f"  Error: {msg}")
-        _archive_patch(patch_path, FAILED_DIR, "post_count_error")
-        return False, msg
-    finally:
-        if cursor:
-            try: cursor.close()
-            except Exception: pass
-        if conn:
-            try: conn.close()
-            except Exception: pass
+        from woodland.status_writer import write_status
+    except Exception:
+        write_status = None
 
-    if actual_delta != net_delta:
-        msg = f"Delta mismatch — expected {net_delta:+d}, got {actual_delta:+d}"
-        log(f"  Stage 2 FAIL: {msg}")
-        shutil.copy2(backup_path, sql_path)
-        _drop_to_squirrel(sql_path, registry)
-        log(f"  Rollback initiated — original SQL re-queued.")
-        _archive_patch(patch_path, FAILED_DIR, "delta_mismatch")
-        _notify_wombat({
-            "registry":       registry,
-            "version":        version,
-            "outcome":        "failure",
-            "stage":          "row_count",
-            "error":          msg,
-            "pre_count":      pre_count,
-            "post_count":     post_count,
-            "expected_delta": net_delta,
-            "actual_delta":   actual_delta,
-            "timestamp":      now_utc_iso(),
-        })
-        return False, msg
-
-    # SUCCESS
-    log(f"  Stage 2 PASS: delta matches ({actual_delta:+d}).")
-    _archive_patch(patch_path, APPLIED_DIR)
-    _notify_wombat({
-        "registry":   registry,
-        "version":    version,
-        "outcome":    "success",
-        "pre_count":  pre_count,
-        "post_count": post_count,
-        "delta":      actual_delta,
-        "timestamp":  now_utc_iso(),
-    })
-
-    success_msg = (
-        f"Patch applied: {registry} v{version} — "
-        f"{actual_delta:+d} records ({post_count:,} total)"
-    )
-    log(f"  {success_msg}")
-    return True, success_msg
-
-
-# =============================================================================
-# PATCH FOLDER SCAN
-# =============================================================================
-
-def scan_incoming_patches() -> tuple[int, int, list[str]]:
-    """
-    Scan patches/incoming/ for new patch files and process them.
-    Returns (applied, failed, messages).
-    """
-    if not INCOMING_DIR.exists():
-        INCOMING_DIR.mkdir(parents=True, exist_ok=True)
-        return 0, 0, []
-
-    patches = sorted(
-        p for p in INCOMING_DIR.iterdir()
-        if p.is_file() and p.suffix in (".patch", ".txt", ".sql_patch")
-    )
-
-    if not patches:
-        log("No incoming patches.")
-        return 0, 0, []
-
-    log(f"Found {len(patches)} incoming patch(es).")
-
-    applied  = 0
-    failed   = 0
-    messages = []
-
-    for patch_path in patches:
-        ok, msg = _apply_patch(patch_path)
-        if ok:
-            applied += 1
-            messages.append(f"✓ {msg}")
-        else:
-            failed += 1
-            messages.append(f"✗ {msg}")
-
-    return applied, failed, messages
-
-
-# =============================================================================
-# MAIN
-# =============================================================================
-
-def main() -> None:
-    log("Mangy Marmot starting.")
-
-    for d in (REGISTRIES, INBOX_DIR, INCOMING_DIR, APPLIED_DIR, FAILED_DIR, MARMOT_DIR):
-        try:
-            d.mkdir(parents=True, exist_ok=True)
-        except Exception:
-            pass
-
-    schedule = _get_schedule()
-    today    = datetime.now(TIMEZONE).strftime("%Y-%m-%d")
-
-    # ── Code update check (daily at code_time) ──────────────────────────────
-    if _is_time_to_run(schedule["code_time"], schedule.get("last_code_check", "")):
-        log(f"Code update window reached ({schedule['code_time']}) — checking...")
-        updated = check_code_update(schedule)
-        schedule["last_code_check"] = today
-        _save_schedule(schedule)
-        if updated:
-            # Containers are restarting — write status and exit cleanly
-            write_status(
-                "mangy_marmot",
-                f"Code updated to {schedule['installed_sha'][:12]} — containers restarting",
-                status="ok",
-            )
-            log("Mangy Marmot finished (update applied, restart triggered).")
-            _send_meerkat_heartbeat()
-            return
-
-    # ── Registry sync (daily at registry_time = code_time + 12h) ────────────
-    run_registry = _is_time_to_run(schedule["registry_time"], schedule.get("last_registry_check", ""))
-    manifest = sync_manifest(force=run_registry)
-
-    if run_registry:
-        schedule["last_registry_check"] = today
-        _save_schedule(schedule)
-
-    if manifest and manifest.get("embargo_active"):
-        log("SQL Embargo active — patch activity suspended. Marmot standing by.")
-        write_status(
-            "mangy_marmot",
-            "SQL Embargo active — patch delivery suspended",
-            status="warning",
-        )
-        log("Mangy Marmot finished.")
-        _send_meerkat_heartbeat()
+    if not WOMBAT_URL:
+        _log("WOMBAT_URL not set - standing by.")
+        if write_status:
+            write_status("mangy_marmot", "Standing by - WOMBAT_URL not configured", status="warning")
+        return
+    if not CUSTOMER_ID:
+        _log("AIRTRACK_CUSTOMER_ID not set - standing by.")
+        if write_status:
+            write_status("mangy_marmot", "Standing by - AIRTRACK_CUSTOMER_ID not configured", status="warning")
         return
 
-    # ── Patch scan (every 5-minute tick) ────────────────────────────────────
-    applied, failed, messages = scan_incoming_patches()
+    try:
+        wh_manifest = _get("/api/wombat/manifest")
+    except Exception as exc:
+        _log(f"Warehouse manifest unavailable - {exc}")
+        if write_status:
+            write_status("mangy_marmot", "Warehouse manifest unavailable", status="error", last_error=str(exc)[:120])
+        return
 
-    if applied == 0 and failed == 0:
-        if not WOMBAT_URL:
-            last_action = "Standing by — WOMBAT_URL not configured"
-            status = "warning"
+    if wh_manifest.get("embargo_active"):
+        _log("Embargo active - standing by.")
+        if write_status:
+            write_status("mangy_marmot", "Embargo active - delivery suspended", status="warning")
+        return
+
+    # App code update - checked first; if one applies, it's a terminal
+    # action for this tick (a restart is now pending).
+    if _check_app_update():
+        if write_status:
+            write_status("mangy_marmot", "App update applied - restart pending", status="ok")
+        _log("Mangy Marmot finished (app update applied).")
+        return
+
+    required        = wh_manifest.get("required_core_packages", [])
+    installed       = _scan_installed()
+    installed_names = {c["name"] for c in installed}
+    missing         = [p for p in required if p not in installed_names]
+    delivered       = []
+
+    _log(f"Required: {required} | Installed: {sorted(installed_names) or 'none'} | Missing: {missing}")
+
+    for pkg in missing:
+        if _deliver(pkg):
+            delivered.append(pkg)
+
+    installed = _scan_installed()
+    _report(installed, missing, delivered)
+
+    required_registries      = wh_manifest.get("required_registries", [])
+    installed_registries     = _scan_installed_registries()
+    installed_registry_names = {r["name"] for r in installed_registries}
+    missing_registries       = [r for r in required_registries if r not in installed_registry_names]
+    delivered_registries     = []
+
+    if required_registries:
+        _log(f"Registries - Required: {required_registries} | Installed: {sorted(installed_registry_names) or 'none'} | Missing: {missing_registries}")
+        for reg in missing_registries:
+            if _deliver_registry(reg):
+                delivered_registries.append(reg)
+
+    all_delivered = delivered + delivered_registries
+    _log(f"Finished. Delivered: {all_delivered or 'none'}")
+
+    if write_status:
+        if all_delivered:
+            write_status("mangy_marmot", f"Delivered: {', '.join(all_delivered)}", status="ok")
         else:
-            last_action = "Patch inbox clear — all registries current"
-            status = "ok"
-    elif failed > 0:
-        last_action = (
-            f"{applied} patch(es) applied, {failed} failed — "
-            + (messages[-1][:60] if messages else "see log")
-        )
-        status = "error"
-    else:
-        last_action = f"{applied} patch(es) applied successfully"
-        status = "ok"
+            write_status("mangy_marmot", "All capabilities and registries current", status="ok")
 
-    log(f"Summary: {last_action}")
-    write_status(
-        "mangy_marmot",
-        last_action[:120],
-        status=status,
-        last_error=messages[-1][:120] if failed > 0 and messages else None,
-    )
 
-    log("Mangy Marmot finished.")
-    _send_meerkat_heartbeat()
+def main() -> None:
+    try:
+        _run()
+    finally:
+        _send_meerkat_heartbeat()
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     main()
