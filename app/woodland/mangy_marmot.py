@@ -350,8 +350,61 @@ def _deliver(capability: str) -> bool:
 # Registry inventory
 # ---------------------------------------------------------------------------
 
+def _table_row_count(table_name: str) -> int | None:
+    """Return row count for a table in the app DB, or None if unreachable.
+
+    None (not 0) signals "couldn't check" so callers can fall back to
+    trusting the on-disk marker rather than wrongly treating a registry
+    as uninstalled during a transient DB outage.
+    """
+    try:
+        import pymysql as _pym
+        from urllib.parse import urlparse as _up
+        db_uri = os.environ.get("DATABASE_URI", "")
+        if db_uri:
+            parsed = _up(db_uri.replace("mysql+pymysql://", "mysql://"))
+            host = parsed.hostname or "127.0.0.1"
+            port = parsed.port or 3306
+            user = parsed.username or "airtrack"
+            password = parsed.password or ""
+            database = (parsed.path or "/airtrack").lstrip("/")
+        else:
+            host = os.environ.get("DB_HOST", "127.0.0.1")
+            port = int(os.environ.get("DB_PORT", "3306"))
+            user = os.environ.get("DB_USER", "airtrack")
+            password = os.environ.get("DB_PASSWORD", "")
+            database = os.environ.get("DB_NAME", "airtrack")
+        conn = _pym.connect(host=host, port=int(port), user=user, password=password,
+                             database=database, charset="utf8mb4", connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT TABLE_NAME FROM information_schema.TABLES "
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s",
+                    (table_name,),
+                )
+                if not cur.fetchone():
+                    return 0  # table doesn't exist at all - definitely 0 rows
+                cur.execute(f"SELECT COUNT(*) FROM `{table_name}`")
+                return cur.fetchone()[0]
+        finally:
+            conn.close()
+    except Exception as exc:
+        _log(f"Row-count check for '{table_name}' failed (treating as unknown): {exc}")
+        return None
+
+
 def _scan_installed_registries() -> list[dict]:
-    """Return list of installed registries from REGISTRIES_INSTALLED/."""
+    """Return list of installed registries from REGISTRIES_INSTALLED/.
+
+    A registry only counts as installed if its on-disk marker exists AND
+    its DB table actually has rows. This catches the case where the DB was
+    reset/restored (dropping the imported rows) without also clearing
+    AIRTRACK_HOME - otherwise the stale marker would make Marmot believe
+    the registry is fine forever and never re-deliver it. If the DB can't
+    be reached at all, we trust the marker rather than risk a redelivery
+    storm during a transient outage.
+    """
     if not REGISTRIES_INSTALLED.exists():
         return []
     installed = []
@@ -361,9 +414,18 @@ def _scan_installed_registries() -> list[dict]:
         manifest_path = reg_dir / "installed.json"
         try:
             m = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
-            installed.append({"name": reg_dir.name, "version": m.get("version", "unknown")})
         except Exception:
-            installed.append({"name": reg_dir.name, "version": "unknown"})
+            m = {}
+        table_name = m.get("table_name", reg_dir.name)
+        row_count = _table_row_count(table_name)
+        if row_count == 0:
+            _log(f"Registry '{reg_dir.name}': marker present but table '{table_name}' has 0 rows - treating as not installed")
+            continue
+        installed.append({
+            "name": reg_dir.name,
+            "version": m.get("version", "unknown"),
+            "table_name": table_name,
+        })
     return installed
 
 
