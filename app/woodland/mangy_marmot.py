@@ -47,11 +47,14 @@ What changed vs the old (pre-v0.3) file, and why:
     around the whole tick, so it fires exactly once regardless of which
     early-return path the tick takes (mirrors the old file's three
     separate call sites, without duplicating the call).
-  - BILLING_URL and the pending-registry-preference helpers
-    (_read_pending_registries, _get_registry_pref, _read_entitlements_cache,
-    _remove_from_pending) that registry_routes.py also imports are
-    intentionally NOT added here yet - AirTrack-Windows' mangy_marmot.py
-    has the same gap. Deferred so both platforms get that fix together.
+  - BILLING_URL, the entitlement cache (_write/_read_entitlements_cache),
+    and the pending-registry-preference helpers (_get_registry_pref,
+    _read/_write_pending_registries, _remove_from_pending) that
+    registry_routes.py imports are now implemented here too, ported from
+    the pre-v0.3 file (commits a0f1ab2, 56609f9, 02abd3e) and adapted to
+    the capability-delivery naming/tick model. This closes the ImportError
+    that was breaking the client-mode Registries page (AIRTRACK_ROLE=client)
+    since the v0.3 rewrite.
 
 Environment:
   WOMBAT_URL              URL of Wombat API server (e.g. http://192.168.0.201:5200)
@@ -85,6 +88,7 @@ from urllib.request import Request, urlopen
 # ---------------------------------------------------------------------------
 
 WOMBAT_URL = os.getenv("WOMBAT_URL", "").rstrip("/")
+BILLING_URL = os.getenv("AIRTRACK_BILLING_URL", "http://192.168.0.201:8000").rstrip("/")
 _default_home = (
     Path(os.environ.get("ProgramData", "C:/ProgramData")) / "AirTrack"
     if sys.platform == "win32"
@@ -105,6 +109,7 @@ LOG_DIR              = AIRTRACK_HOME / "logs"
 REGISTRIES_INCOMING  = AIRTRACK_HOME / "registries" / "incoming"
 REGISTRIES_INSTALLED = AIRTRACK_HOME / "registries" / "installed"
 REGISTRIES_MANIFESTS = AIRTRACK_HOME / "registries" / "manifests"
+ENTITLEMENTS_CACHE_PATH = AIRTRACK_HOME / "registries" / "entitlements_cache.json"
 
 # Public key + installer source from git repo (copied to AIRTRACK_HOME on first run)
 _REPO_PUBLIC_KEY = Path(__file__).resolve().parent.parent / "core" / "airtrack_solutions.pub"
@@ -434,6 +439,40 @@ def _install_registry(package_path: Path, registry_name: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Entitlement cache - persists entitled list so Registries page survives
+# a Wombat outage (registry_routes.py falls back to this when offline).
+# ---------------------------------------------------------------------------
+
+def _write_entitlements_cache(entitled: list, available_registries: list) -> None:
+    """Write entitled list + available registry metadata to local cache file."""
+    try:
+        ENTITLEMENTS_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        cache = {
+            "cached_at":             _now_iso(),
+            "customer_id":           CUSTOMER_ID,
+            "entitled":              entitled,
+            "available_registries":  available_registries,
+        }
+        tmp = ENTITLEMENTS_CACHE_PATH.with_suffix(".tmp")
+        tmp.write_text(json.dumps(cache, indent=2), encoding="utf-8")
+        tmp.replace(ENTITLEMENTS_CACHE_PATH)
+        _log(f"Entitlement cache written: {len(entitled)} entitled, {len(available_registries)} available")
+    except Exception as exc:
+        _log(f"Entitlement cache write failed (non-fatal): {exc}")
+
+
+def _read_entitlements_cache() -> dict | None:
+    """Read local entitlement cache. Returns None if absent or unreadable."""
+    try:
+        if not ENTITLEMENTS_CACHE_PATH.exists():
+            return None
+        return json.loads(ENTITLEMENTS_CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        _log(f"Entitlement cache read failed: {exc}")
+        return None
+
+
+# ---------------------------------------------------------------------------
 # Registry delivery cycle
 # ---------------------------------------------------------------------------
 
@@ -520,6 +559,76 @@ def _deliver_registry(registry: str) -> bool:
         _log(f"Registry delivery: confirm failed (non-fatal) - {exc}")
 
     return True
+
+
+# ---------------------------------------------------------------------------
+# Registry delivery preferences
+# ---------------------------------------------------------------------------
+
+def _get_registry_pref() -> str:
+    """Read registry_updates preference from app_settings DB. Returns 'automatic', 'ask', or 'never'."""
+    try:
+        import pymysql as _pym
+        from urllib.parse import urlparse as _up
+        db_uri = os.environ.get("DATABASE_URI", "")
+        if db_uri:
+            parsed = _up(db_uri.replace("mysql+pymysql://", "mysql://"))
+            host = parsed.hostname or "127.0.0.1"
+            port = parsed.port or 3306
+            user = parsed.username or "airtrack"
+            password = parsed.password or ""
+            database = (parsed.path or "/airtrack").lstrip("/")
+        else:
+            host = os.environ.get("DB_HOST", "127.0.0.1")
+            port = int(os.environ.get("DB_PORT", "3306"))
+            user = os.environ.get("DB_USER", "airtrack")
+            password = os.environ.get("DB_PASSWORD", "")
+            database = os.environ.get("DB_NAME", "airtrack")
+        conn = _pym.connect(host=host, port=int(port), user=user, password=password,
+                             database=database, charset="utf8mb4", connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT SettingValue FROM app_settings WHERE SettingKey='registry_updates' LIMIT 1")
+                row = cur.fetchone()
+                return row[0] if row else "automatic"
+        finally:
+            conn.close()
+    except Exception as exc:
+        _log(f"Registry pref read failed (defaulting to automatic): {exc}")
+        return "automatic"
+
+
+def _read_pending_registries() -> list:
+    pending_path = REGISTRIES_MANIFESTS / "pending.json"
+    try:
+        if pending_path.exists():
+            return json.loads(pending_path.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return []
+
+
+def _write_pending_registries(names: list) -> None:
+    REGISTRIES_MANIFESTS.mkdir(parents=True, exist_ok=True)
+    pending_path = REGISTRIES_MANIFESTS / "pending.json"
+    try:
+        existing = _read_pending_registries()
+        merged = list(dict.fromkeys(existing + names))  # dedup, preserve order
+        pending_path.write_text(json.dumps(merged, indent=2), encoding="utf-8")
+        _log(f"Pending registries queued for approval: {merged}")
+    except Exception as exc:
+        _log(f"Failed to write pending registries: {exc}")
+
+
+def _remove_from_pending(registry: str) -> None:
+    pending_path = REGISTRIES_MANIFESTS / "pending.json"
+    try:
+        if pending_path.exists():
+            existing = _read_pending_registries()
+            updated = [r for r in existing if r != registry]
+            pending_path.write_text(json.dumps(updated, indent=2), encoding="utf-8")
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -720,11 +829,28 @@ def _run() -> None:
     missing_registries       = [r for r in required_registries if r not in installed_registry_names]
     delivered_registries     = []
 
+    # Cache the entitled/available registry lists so the Registries page can
+    # still render something sensible if Wombat goes offline between ticks.
+    if CUSTOMER_ID and required_registries:
+        _write_entitlements_cache(
+            entitled=required_registries,
+            available_registries=[{"slug": r} for r in required_registries],
+        )
+
     if required_registries:
         _log(f"Registries - Required: {required_registries} | Installed: {sorted(installed_registry_names) or 'none'} | Missing: {missing_registries}")
-        for reg in missing_registries:
-            if _deliver_registry(reg):
-                delivered_registries.append(reg)
+        registry_pref = _get_registry_pref()
+        if registry_pref == "never":
+            _log("Registries: registry_updates=never - skipping all delivery")
+        elif registry_pref == "ask":
+            if missing_registries:
+                _write_pending_registries(missing_registries)
+                _log(f"Registries: registry_updates=ask - {len(missing_registries)} queued for user approval")
+        else:  # automatic
+            for reg in missing_registries:
+                if _deliver_registry(reg):
+                    delivered_registries.append(reg)
+                    _remove_from_pending(reg)
 
     all_delivered = delivered + delivered_registries
     _log(f"Finished. Delivered: {all_delivered or 'none'}")
