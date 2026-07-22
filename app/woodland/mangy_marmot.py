@@ -820,6 +820,50 @@ def _report(installed: list[dict], missing: list[str], delivered: list[str]) -> 
 
 
 # ---------------------------------------------------------------------------
+# Entitled registries
+# ---------------------------------------------------------------------------
+
+def _get_entitled_registries(free_registries: list) -> list:
+    """Return every registry this customer should have: the global free/
+    required set, plus customer-specific paid entitlements from Wombat.
+
+    _run()'s registry delivery loop used to only ever look at
+    required_registries (the global free list from /api/wombat/manifest),
+    so a customer-specific paid entitlement like 'australia' would never
+    be attempted for delivery no matter how many ticks ran - it just isn't
+    in that list. registry_routes.py already merges these same two sources
+    for display; this mirrors that so what's *shown* as entitled and what
+    Marmot actually tries to *deliver* stay in sync.
+    """
+    entitled = list(free_registries)
+    entitled_set = set(entitled)
+
+    if not CUSTOMER_ID:
+        return entitled
+
+    try:
+        wh = _get(f"/api/wombat/manifest/{CUSTOMER_ID}")
+        for d in wh.get("deliveries", []):
+            cap = d.get("capability")
+            if cap and cap not in entitled_set:
+                entitled.append(cap)
+                entitled_set.add(cap)
+    except Exception as exc:
+        _log(f"Entitled registries: per-customer manifest fetch failed (non-fatal) - {exc}")
+
+    try:
+        ent_resp = _get(f"/api/wombat/entitled-registries/{CUSTOMER_ID}")
+        for reg in ent_resp.get("registries", []):
+            if reg and reg not in entitled_set:
+                entitled.append(reg)
+                entitled_set.add(reg)
+    except Exception as exc:
+        _log(f"Entitled registries: entitled-registries fetch failed (non-fatal) - {exc}")
+
+    return entitled
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -885,7 +929,9 @@ def _run() -> None:
     installed = _scan_installed()
     _report(installed, missing, delivered)
 
-    required_registries      = wh_manifest.get("required_registries", [])
+    required_registries      = _get_entitled_registries(
+        wh_manifest.get("required_registries", [])
+    )
     installed_registries     = _scan_installed_registries()
     installed_registry_names = {r["name"] for r in installed_registries}
     missing_registries       = [r for r in required_registries if r not in installed_registry_names]
