@@ -268,6 +268,56 @@ def _health_watchdog(version: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Mangy Marmot scheduler
+# ---------------------------------------------------------------------------
+# The Linux/Docker client runs Marmot on a 5-minute tick via a separate
+# app/scheduler.py process (BlockingScheduler in its own container). The
+# Windows service has never had an equivalent — Marmot only ran when a route
+# called into it directly (e.g. the Registries page's "Install Now" button
+# for a queued/pending registry). That meant required-registry auto-delivery,
+# the ask/never preference check, and the entitlement cache never fired on
+# Windows at all. This starts the same 5-minute tick in-process via
+# BackgroundScheduler (non-blocking, consistent with app.py's own Auto-Backup
+# scheduler further down the import chain).
+
+def _start_marmot_scheduler():
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler as _MBSched
+        from woodland.mangy_marmot import main as _marmot_main
+    except Exception as exc:
+        import logging as _lg
+        _lg.error(f'Marmot scheduler: could not import dependencies - {exc}')
+        return
+
+    def _run_marmot():
+        try:
+            _marmot_main()
+        except Exception as exc:
+            import logging as _lg
+            _lg.error(f'Marmot scheduler: tick failed - {exc}', exc_info=True)
+
+    try:
+        _marmot_scheduler = _MBSched(timezone='UTC')
+        _marmot_scheduler.add_job(
+            _run_marmot,
+            'interval',
+            minutes=5,
+            id='mangy_marmot',
+            name='Mangy Marmot',
+            max_instances=1,
+            coalesce=True,
+        )
+        _marmot_scheduler.start()
+        import logging as _lg
+        _lg.info('Marmot Scheduler started - every 5 minutes.')
+        # Run immediately on startup, don't wait for the first 5-minute tick
+        _run_marmot()
+    except Exception as exc:
+        import logging as _lg
+        _lg.error(f'Marmot scheduler: failed to start - {exc}', exc_info=True)
+
+
+# ---------------------------------------------------------------------------
 # Windows service
 # ---------------------------------------------------------------------------
 
@@ -322,6 +372,11 @@ class AirTrackService(win32serviceutil.ServiceFramework):
             daemon=True,
         )
         t.start()
+
+        # Marmot: 5-minute background tick (see _start_marmot_scheduler above).
+        # Runs in its own thread so a slow/hung Wombat call never blocks Flask.
+        _marmot_thread = threading.Thread(target=_start_marmot_scheduler, daemon=True)
+        _marmot_thread.start()
 
         # If this is a post-update restart, launch a health watchdog that
         # verifies Flask is responding and rolls back if it isn't.
