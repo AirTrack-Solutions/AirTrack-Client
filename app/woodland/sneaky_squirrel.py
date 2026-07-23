@@ -15,6 +15,8 @@ Rules:
 - incoming real values overwrite live values
 - incoming NULL/blank values do not overwrite existing live values
 - bananas are rejected
+- implausible batches (too few rows, too many missing registrations, or a
+  big drop vs the live table) are rejected before they touch the live table
 """
 
 from __future__ import annotations
@@ -37,6 +39,10 @@ except ImportError:
     print("Install with:")
     print("  pip install pymysql python-dotenv")
     sys.exit(1)
+
+
+class SanityCheckFailed(Exception):
+    """Raised when an incoming batch fails the pre-merge sanity gate."""
 
 
 # ----------------------------------------------------------------------
@@ -354,6 +360,55 @@ def update_row(cursor, table_name: str, existing: dict, incoming: dict) -> bool:
     return True
 
 
+# ----------------------------------------------------------------------
+# SANITY GATE
+# ----------------------------------------------------------------------
+#
+# bless_file() (above) only screens for a couple of literal strings — it
+# says nothing about whether the incoming data is plausible. inbox/ files
+# can arrive from more than one upstream source and not all of those have
+# their own upstream validation, so this is Squirrel's own last-line-of-
+# defense check, applied to the staging table before anything is merged
+# into the live table. (Ported from the AirTrack-Logbook copy of this
+# file — see that repo's commit 540d996.)
+
+_MIN_INCOMING_ROWS = 5
+_MAX_MISSING_REG_RATIO = 0.5      # rows with no registration, as a fraction of incoming
+_MIN_INCOMING_VS_LIVE_RATIO = 0.2  # incoming rows vs current live table size
+
+
+def sanity_check_incoming(cursor, table_name: str, staging_table: str, live_row_count: int) -> Optional[str]:
+    """
+    Coarse pre-merge sanity gate. Returns an error string if the incoming
+    batch looks implausible, else None. Runs against the staging table only
+    — nothing has been written to the live table yet at this point.
+    """
+    cursor.execute(f"SELECT COUNT(*) AS c FROM `{staging_table}`;")
+    incoming = cursor.fetchone()["c"]
+
+    if incoming < _MIN_INCOMING_ROWS and live_row_count >= _MIN_INCOMING_ROWS:
+        return (f"only {incoming} incoming row(s) for a table that already has "
+                f"{live_row_count} live row(s)")
+
+    cursor.execute(
+        f"SELECT COUNT(*) AS c FROM `{staging_table}` "
+        f"WHERE `registration` IS NULL OR TRIM(`registration`) = '';"
+    )
+    missing_reg = cursor.fetchone()["c"]
+
+    if incoming and (missing_reg / incoming) > _MAX_MISSING_REG_RATIO:
+        return (f"{missing_reg}/{incoming} incoming row(s) missing a registration "
+                f"— over {int(_MAX_MISSING_REG_RATIO * 100)}% threshold")
+
+    if (live_row_count >= _MIN_INCOMING_ROWS
+            and incoming < live_row_count * _MIN_INCOMING_VS_LIVE_RATIO):
+        return (f"incoming batch ({incoming} rows) is under "
+                f"{int(_MIN_INCOMING_VS_LIVE_RATIO * 100)}% of current live table size "
+                f"({live_row_count} rows) — possible truncated/broken source file")
+
+    return None
+
+
 def merge_staging_into_live(cursor, table_name: str, staging_table: str) -> dict:
     cursor.execute(f"SELECT * FROM `{staging_table}`;")
     incoming_rows = cursor.fetchall()
@@ -560,6 +615,10 @@ def import_sql_file(destination_file: Path, table_name: str) -> None:
         with conn.cursor() as cursor:
             create_registry_table(cursor, table_name)
             ensure_columns(cursor, table_name)
+
+            cursor.execute(f"SELECT COUNT(*) AS c FROM `{table_name}`;")
+            live_row_count = cursor.fetchone()["c"]
+
             create_staging_table(cursor, staging_table)
 
             executed = load_sql_into_staging(cursor, destination_file, staging_table)
@@ -569,6 +628,12 @@ def import_sql_file(destination_file: Path, table_name: str) -> None:
                 executed,
                 staging_table,
             )
+
+            sanity_error = sanity_check_incoming(cursor, table_name, staging_table, live_row_count)
+            if sanity_error:
+                cursor.execute(f"DROP TABLE IF EXISTS `{staging_table}`;")
+                conn.rollback()
+                raise SanityCheckFailed(sanity_error)
 
             stats = merge_staging_into_live(cursor, table_name, staging_table)
 
@@ -585,6 +650,15 @@ def import_sql_file(destination_file: Path, table_name: str) -> None:
             stats["unchanged"],
             stats["skipped"],
         )
+
+    except SanityCheckFailed as exc:
+        conn.rollback()
+        logging.error(
+            "Import REJECTED for %s — sanity check failed: %s. "
+            "Nothing was written to the live table.",
+            destination_file.name, exc,
+        )
+        raise
 
     except Exception:
         conn.rollback()
@@ -620,7 +694,17 @@ def process_sql_file(sql_file: Path) -> None:
     logging.info("Moved %s into %s", sql_file.name, destination_dir)
     logging.info("Importing into table: %s", table_name)
 
-    import_sql_file(destination_file, table_name)
+    try:
+        import_sql_file(destination_file, table_name)
+    except SanityCheckFailed:
+        REJECTED_DIR.mkdir(parents=True, exist_ok=True)
+        rejected_path = REJECTED_DIR / destination_file.name
+        shutil.move(str(destination_file), str(rejected_path))
+        logging.warning(
+            "Moved sanity-check-rejected file to: %s (live table `%s` untouched)",
+            rejected_path, table_name,
+        )
+        raise
 
 
 def main() -> int:
