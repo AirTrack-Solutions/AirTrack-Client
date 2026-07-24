@@ -45,6 +45,7 @@ DISCLAIMER_EXPIRY_DAYS = 183  # ~6 months
 _EXEMPT_PREFIXES = (
     "/disclaimer",
     "/setup",
+    "/license-revoked",
     "/static",
     "/api/",
     "/billing/webhook",

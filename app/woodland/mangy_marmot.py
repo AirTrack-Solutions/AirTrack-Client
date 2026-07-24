@@ -81,6 +81,7 @@ import sys
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 # ---------------------------------------------------------------------------
@@ -660,6 +661,50 @@ def _get_registry_pref() -> str:
         return "automatic"
 
 
+def _write_app_setting(key: str, value: str) -> None:
+    """
+    Write a key/value pair into the app_settings DB table. Mirrors
+    _get_registry_pref()'s connection handling above (this file runs in
+    the scheduler container, outside Flask app context, so raw pymysql is
+    used rather than Flask-SQLAlchemy) - same table the Flask side reads
+    via SQLAlchemy (see routes/setup_routes.py's _upsert()), so a value
+    written here is visible to the web container on its very next
+    request. Never raises - a write failure here must never interrupt
+    Marmot's own tick.
+    """
+    try:
+        import pymysql as _pym
+        from urllib.parse import urlparse as _up
+        db_uri = os.environ.get("DATABASE_URI", "")
+        if db_uri:
+            parsed = _up(db_uri.replace("mysql+pymysql://", "mysql://"))
+            host = parsed.hostname or "127.0.0.1"
+            port = parsed.port or 3306
+            user = parsed.username or "airtrack"
+            password = parsed.password or ""
+            database = (parsed.path or "/airtrack").lstrip("/")
+        else:
+            host = os.environ.get("DB_HOST", "127.0.0.1")
+            port = int(os.environ.get("DB_PORT", "3306"))
+            user = os.environ.get("DB_USER", "airtrack")
+            password = os.environ.get("DB_PASSWORD", "")
+            database = os.environ.get("DB_NAME", "airtrack")
+        conn = _pym.connect(host=host, port=int(port), user=user, password=password,
+                             database=database, charset="utf8mb4", connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO app_settings (SettingKey, SettingValue) VALUES (%s, %s) "
+                    "ON DUPLICATE KEY UPDATE SettingValue=VALUES(SettingValue)",
+                    (key, value),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as exc:
+        _log(f"App setting write failed for {key}={value}: {exc}")
+
+
 def _read_pending_registries() -> list:
     pending_path = REGISTRIES_MANIFESTS / "pending.json"
     try:
@@ -759,6 +804,20 @@ def _send_meerkat_heartbeat() -> None:
     first, before anything is assembled or sent - silence is the safe
     default for an opted-out install. Never raises - a heartbeat failure
     must never interrupt or delay Marmot's own delivery responsibilities.
+
+    License kill switch: Wombat's /api/meerkat/heartbeat responds with a
+    distinct {"ok": false, "revoked": true, ...} body (HTTP 403) once a
+    customer's license has been administratively revoked (see
+    AirTrack-Wombat's api_customer_revoke()). This is currently the only
+    channel that reliably learns about a revocation after first install,
+    since it runs on every tick regardless of anything the customer does
+    (register() only runs on a manual admin opt-in/re-opt-in). On seeing
+    revoked:true, write license_revoked=true to app_settings so the Flask
+    side's before_request gate (routes/license_gate.py) can lock the app
+    on its very next request - independent of whether Wombat is reachable
+    at that moment, since it's a local DB read, not a live call. On any
+    ok:true response, clear the flag again, so a /restore on Wombat's
+    side un-locks the app automatically on the next successful tick.
     """
     if not WOMBAT_URL:
         return
@@ -795,6 +854,22 @@ def _send_meerkat_heartbeat() -> None:
     try:
         with urlopen(req, timeout=15) as resp:
             _log(f"Meerkat heartbeat sent - HTTP {resp.getcode()} (state={payload.get('state')})")
+            try:
+                resp_body = json.loads(resp.read().decode("utf-8") or "{}")
+            except Exception:
+                resp_body = {}
+            if isinstance(resp_body, dict) and resp_body.get("ok"):
+                _write_app_setting("license_revoked", "false")
+    except HTTPError as exc:
+        try:
+            resp_body = json.loads(exc.read().decode("utf-8") or "{}")
+        except Exception:
+            resp_body = {}
+        if isinstance(resp_body, dict) and resp_body.get("revoked"):
+            _log("Meerkat heartbeat: license revoked by Wombat - locking app")
+            _write_app_setting("license_revoked", "true")
+        else:
+            _log(f"Meerkat heartbeat send failed: HTTP {exc.code}: {exc.reason}")
     except Exception as exc:
         _log(f"Meerkat heartbeat send failed: {exc}")
 

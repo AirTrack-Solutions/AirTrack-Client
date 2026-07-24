@@ -115,7 +115,14 @@ def _post(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         except Exception:
             body = {}
         message = body.get("error") or body.get("message") or f"HTTP {exc.code}: {exc.reason}"
-        return {"ok": False, "message": f"Wombat rejected the request: {message}"}
+        result = {"ok": False, "message": f"Wombat rejected the request: {message}"}
+        if body.get("revoked"):
+            # License kill switch (see AirTrack-Wombat's api_customer_revoke()):
+            # carry this through distinctly from a generic rejection so callers
+            # can act on it specifically (register() below locks the app),
+            # rather than just showing the same text a 404/other 403 would.
+            result["revoked"] = True
+        return result
     except Exception as exc:
         return {"ok": False, "message": f"Could not reach Wombat: {exc}"}
 
@@ -136,6 +143,14 @@ def register() -> Dict[str, Any]:
     hasn't actually re-registered anything, so the counter is left alone.
     See woodland/meerkat.py's _next_sequence_number() for the counter
     itself; both read/write the same state.json.
+
+    License kill switch: if Wombat's response carries revoked=True (see
+    _post() above), this is called from a Flask request context (the
+    admin opt-in route), so license_revoked is written straight into
+    app_settings via SQLAlchemy rather than mangy_marmot.py's raw-pymysql
+    helper — same table either way, so routes/license_gate.py's
+    before_request check picks it up on the very next request regardless
+    of which of the two writers set it.
     """
     customer_id = _get_customer_id()
     license_id = _get_license_id()
@@ -156,6 +171,19 @@ def register() -> Dict[str, Any]:
         state = _read_state()
         state["sequence_number"] = 0
         _write_state(state)
+    elif result.get("revoked"):
+        try:
+            from sqlalchemy import text
+            from extensions import db
+            with db.engine.begin() as conn:
+                conn.execute(
+                    text(
+                        "INSERT INTO app_settings (SettingKey, SettingValue) VALUES ('license_revoked', 'true') "
+                        "ON DUPLICATE KEY UPDATE SettingValue = 'true'"
+                    )
+                )
+        except Exception:
+            pass  # heartbeat (mangy_marmot.py) will set this too on its next tick
     return result
 
 
