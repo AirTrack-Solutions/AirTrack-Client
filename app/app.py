@@ -260,8 +260,12 @@ app.secret_key = os.getenv("SECRET_KEY", "fallback-hardcoded-key")
 
 
 # ---------------------------------------------------------------------------
-# Request gates — disclaimer first, setup second
+# Request gates — license kill switch first, disclaimer second, setup third
 # ---------------------------------------------------------------------------
+@app.before_request
+def _license_gate():
+    return check_license_gate()
+
 @app.before_request
 def _disclaimer_gate():
     return check_disclaimer()
@@ -1246,6 +1250,7 @@ def test_direct():
 # ---------------------------------------------------------------------------
 from routes.disclaimer_routes import disclaimer_bp, check_disclaimer
 from routes.setup_routes import setup_bp, check_setup
+from routes.license_gate import license_bp, check_license_gate
 
 from routes.search_routes import search_unified_bp
 
@@ -1289,6 +1294,7 @@ except ImportError:
     billing_bp = None
     billing_webhook_bp = None
 
+app.register_blueprint(license_bp)
 app.register_blueprint(disclaimer_bp)
 app.register_blueprint(setup_bp)
 app.register_blueprint(search_unified_bp)
