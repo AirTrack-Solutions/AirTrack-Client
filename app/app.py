@@ -252,8 +252,9 @@ app.register_blueprint(server_webauthn)
 # NOTE: SQLALCHEMY_DATABASE_URI is already set above from DATABASE_URI (or fallback).
 # Do NOT overwrite it here with individual DB_* vars — that ignores the cfg-supplied
 # DATABASE_URI and breaks port/password when the system env has stale DB_HOST values.
-app.config["DEBUG"] = True
+app.config["DEBUG"] = False
 app.config["TESTING"] = False
+app.config["PROPAGATE_EXCEPTIONS"] = False  # belt-and-braces: keep Flask catching/logging exceptions under Waitress regardless of DEBUG
 
 # Fallback secret key
 app.secret_key = os.getenv("SECRET_KEY", "fallback-hardcoded-key")
