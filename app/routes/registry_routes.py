@@ -927,6 +927,16 @@ def registry_tracker():
     reg_dir = _registries_dir()
     packs_names = _packs_countries()
 
+    # Set of normalised ICAO country dir names, used below to recognise a
+    # folder as a real country registry regardless of its on-disk
+    # capitalization. (Note: scan_registries()/registry_sql() above
+    # deliberately keep the isupper() check — that governs which duplicate
+    # copy gets served to clients when both a raw lowercase drop-in and a
+    # reviewed Title_Case folder exist. This tracker is display-only and
+    # should count a country as soon as *any* matching folder has SQL ready,
+    # so it doesn't silently hide countries that only exist in lowercase form.)
+    _icao_dir_keys = {_norm(d) for _, _, d in ICAO_COUNTRIES}
+
     # Build a map of dir_name (normalised) → (has_sql, is_imported, row_count, table_name)
     sql_ready: dict[str, tuple[bool, int, str]] = {}
     try:
@@ -935,7 +945,7 @@ def registry_tracker():
                 continue
             if item.name.lower() in _SKIP_DIRS:
                 continue
-            if not item.name[0].isupper():
+            if _norm(item.name) not in _icao_dir_keys:
                 continue
             sql_file = _find_sql_file(item)
             if not sql_file:
