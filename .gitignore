@@ -177,3 +177,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.lic
+
+# backup file convention (matches other AirTrack repos)
+*.bak
+*.bak-*
+*.bak_*
