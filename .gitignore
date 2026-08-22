@@ -182,3 +182,15 @@ __pycache__/
 *.bak
 *.bak-*
 *.bak_*
+
+# ---------------------------
+# Windows build artifacts (PyInstaller / Inno Setup, gate3)
+# ---------------------------
+build/
+dist/
+Output/
+_internal/
+*.spec
+AirTrack.exe
+*_build.zip
+*.msi
