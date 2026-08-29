@@ -127,6 +127,17 @@ app/app_data/
 *.lic
 app_data/
 
+# Per-install module runtime state (e.g. Meerkat's real opt-in flag and
+# heartbeat sequence_number, app/modules/meerkat/state.json). Must never
+# be tracked: routes/admin_tools_routes.py's self-update routes run
+# `git reset --hard origin/main` followed by `git clean -fd` on every
+# "check for updates" pull. `git clean -fd` deletes any untracked file
+# NOT covered by .gitignore -- without this entry, a routine update
+# would wipe an install's real consent state on every single pull, not
+# just on the rare branch reset that originally surfaced this bug (see
+# CLAUDE_MEMORY / DEFERRED_IDEAS item #12).
+app/modules/*/state.json
+
 # ---------------------------
 
 # Update system cache
