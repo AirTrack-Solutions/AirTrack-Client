@@ -579,6 +579,12 @@ def modules_toggle():
     if not enabled and no_blueprint and folder == 'meerkat':
         from modules.meerkat import meerkat_client
         result = meerkat_client.deregister()
+        # Fail-open, same as deregister() itself: this install is opted
+        # out locally regardless of whether Wombat could be told about it.
+        # This is the record woodland/meerkat.py's is_meerkat_enabled()
+        # actually checks -- the module.json write further down is kept
+        # only for the admin UI's own display.
+        meerkat_client.set_enabled(False)
         if result.get('ok'):
             wombat_note = ' Wombat notified.'
         else:
@@ -646,6 +652,10 @@ def modules_consent(folder):
         result = meerkat_client.register()
         if result.get('ok'):
             wombat_note = ' Registered with Wombat.'
+            # This -- not the module.json write below, which is kept only
+            # for the admin UI's own display -- is the record
+            # woodland/meerkat.py's is_meerkat_enabled() actually checks.
+            meerkat_client.set_enabled(True)
         else:
             flash(
                 f"Could not register {meta.get('title', folder)} with Wombat "

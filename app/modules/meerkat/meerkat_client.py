@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 STATE_FILE = Path(__file__).resolve().parent / "state.json"
+MODULE_JSON = Path(__file__).resolve().parent / "module.json"
 
 
 def _read_state() -> Dict[str, Any]:
@@ -42,6 +43,71 @@ def _write_state(state: Dict[str, Any]) -> None:
     tmp = STATE_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(state, indent=2), encoding="utf-8")
     tmp.replace(STATE_FILE)
+
+
+def is_enabled() -> bool:
+    """
+    Whether this install has actually opted in to Meerkat.
+
+    The authoritative record is state.json's "enabled" key. state.json is
+    git-ignored, unlike modules/meerkat/module.json, whose own "enabled"
+    field used to be the sole record: because module.json is tracked in
+    git, a routine `git reset`/pull/redeploy touching it could silently
+    revert a live install's opt-in back to the tracked default (false),
+    with no error, no Wombat deregister call, and no visible signal
+    locally. That is exactly what happened to the .162 reference client
+    (six weeks silently opted back out by an unrelated branch reset) --
+    see CLAUDE_MEMORY / DEFERRED_IDEAS item #12 for the incident this
+    fixes. module.json is still written by admin_routes.py alongside
+    set_enabled() below, purely so the admin UI keeps displaying the
+    right state; it is no longer consulted by anything that decides
+    whether a heartbeat actually gets sent, except for the one-time
+    migration below.
+
+    One-time migration: if state.json has no "enabled" key yet (true for
+    every install upgrading from before this fix), read module.json's
+    *current* value once and persist it into state.json, so an install
+    that is genuinely already opted in doesn't get silently flipped off
+    by this upgrade. After that first call, state.json has the key and
+    module.json is never consulted again by this function.
+
+    Fails closed, same contract as before: any error (missing/malformed
+    state.json, or -- during migration only -- missing/malformed
+    module.json) returns False. This is a consent boundary (section 7's
+    promise that nothing leaves an opted-out install) -- "can't confirm
+    enabled" must mean "don't send", never "send anyway".
+    """
+    state = _read_state()
+    if "enabled" in state:
+        return bool(state["enabled"])
+
+    try:
+        legacy = json.loads(MODULE_JSON.read_text(encoding="utf-8"))
+        migrated = bool(legacy.get("enabled", False))
+    except Exception:
+        migrated = False
+
+    state["enabled"] = migrated
+    try:
+        _write_state(state)
+    except Exception:
+        pass  # best-effort persist -- failing closed on the *read* is what matters
+    return migrated
+
+
+def set_enabled(value: bool) -> None:
+    """
+    Records this install's real opt-in state in state.json -- the
+    git-ignored file is_enabled() above (and, via it,
+    woodland/meerkat.py's is_meerkat_enabled()) actually checks.
+
+    Called by admin_routes.py alongside -- never instead of -- its
+    existing module.json "enabled" write, which stays purely for the
+    admin UI's own display purposes.
+    """
+    state = _read_state()
+    state["enabled"] = bool(value)
+    _write_state(state)
 
 
 def get_or_create_meerkat_id() -> str:

@@ -463,26 +463,34 @@ def _get_meerkat_version() -> str:
 
 def is_meerkat_enabled() -> bool:
     """
-    Whether this install has actually opted in to Meerkat. The sole,
-    authoritative record is modules/meerkat/module.json's own "enabled"
-    field -- the same field routes/admin_routes.py's modules_toggle() and
-    modules_consent() routes read and atomically rewrite (tempfile +
-    .replace()). There is no separate DB-backed toggle; module.json *is*
-    the opt-in state.
+    Whether this install has actually opted in to Meerkat.
+
+    Delegates to modules/meerkat/meerkat_client.is_enabled(), which reads
+    the git-ignored state.json rather than modules/meerkat/module.json's
+    "enabled" field. module.json is tracked in git, and a routine
+    `git reset`/pull/redeploy touching it used to be able to silently
+    revert a live install's opt-in back to the tracked default (false),
+    with no error, no Wombat deregister call, and no visible signal
+    locally -- confirmed as the exact cause of a 6-week silent opt-out on
+    the .162 reference client (see CLAUDE_MEMORY / DEFERRED_IDEAS item
+    #12). state.json is untracked, so it is untouched by resets, pulls,
+    and redeploys. module.json's "enabled" field is still written by the
+    admin routes (see meerkat_client.set_enabled()'s docstring) purely so
+    the admin UI keeps displaying the right state; it no longer gates
+    whether a heartbeat is actually sent.
 
     Read fresh on every call rather than cached: enabling/disabling
     happens via the admin UI, in a different process (gunicorn) from
     wherever Marmot's scheduler tick calls this, so a cached value could
     go stale for up to 5 minutes after an opt-out.
 
-    Fails closed. Any error (missing file, unreadable/malformed JSON,
-    missing key) returns False. This is a consent boundary (section 7's
-    promise that nothing leaves an opted-out install) -- "can't confirm
-    enabled" must mean "don't send", never "send anyway".
+    Fails closed. Any error returns False. This is a consent boundary
+    (section 7's promise that nothing leaves an opted-out install) --
+    "can't confirm enabled" must mean "don't send", never "send anyway".
     """
     try:
-        data = json.loads(MEERKAT_MODULE_JSON.read_text(encoding="utf-8"))
-        return bool(data.get("enabled", False))
+        from modules.meerkat import meerkat_client
+        return bool(meerkat_client.is_enabled())
     except Exception:
         return False
 
