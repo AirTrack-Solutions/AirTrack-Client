@@ -57,7 +57,7 @@ What changed vs the old (pre-v0.3) file, and why:
     since the v0.3 rewrite.
 
 Environment:
-  WOMBAT_URL              URL of Wombat API server (e.g. http://192.168.0.201:5200)
+  WOMBAT_URL              URL of Wombat API server (e.g. http://192.168.0.153:5200)
   AIRTRACK_HOME           Root data directory (capabilities, downloads, staging, etc.)
                            Defaults to /airtrack_data (matches app/core/app_updater.py).
   AIRTRACK_CUSTOMER_ID    Customer identifier registered in the Wombat warehouse
@@ -89,7 +89,7 @@ from urllib.request import Request, urlopen
 # ---------------------------------------------------------------------------
 
 WOMBAT_URL = os.getenv("WOMBAT_URL", "").rstrip("/")
-BILLING_URL = os.getenv("AIRTRACK_BILLING_URL", "http://192.168.0.201:8000").rstrip("/")
+BILLING_URL = os.getenv("AIRTRACK_BILLING_URL", "http://192.168.0.153:8000").rstrip("/")
 _default_home = (
     Path(os.environ.get("ProgramData", "C:/ProgramData")) / "AirTrack"
     if sys.platform == "win32"

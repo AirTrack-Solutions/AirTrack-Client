@@ -71,7 +71,7 @@ services:
       DB_USER: "${DB_USER:-airtrack}"
       DB_PASSWORD: "${DB_PASSWORD:-airtrack}"
       DB_NAME: "${DB_NAME:-airtrack}"
-      WOMBAT_CODE_URL: "${WOMBAT_CODE_URL:-http://192.168.0.201:5200}"
+      WOMBAT_CODE_URL: "${WOMBAT_CODE_URL:-http://192.168.0.153:5200}"
       AIRTRACK_CODE_REPO: "AirTrack-Client"
       AIRTRACK_WEB_CONTAINER: "airtrack-client-airtrack-1"
       AIRTRACK_SCHEDULER_CONTAINER: "airtrack-client-airtrack-scheduler-1"
