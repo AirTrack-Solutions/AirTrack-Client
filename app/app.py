@@ -305,7 +305,7 @@ def get_backup_dir() -> Path:
 
 def _auto_backup() -> None:
     """
-    Automatic daily database backup.
+    Automatic daily database and incremental photo backup.
     Writes airtrack_auto_YYYYMMDD_HHMMSS.sql to the backup directory.
     Keeps the 7 most recent auto-backups; older ones are silently removed.
     Safe to call even if mysqldump is unavailable — logs and returns.
@@ -337,6 +337,8 @@ def _auto_backup() -> None:
             logging.error("Auto-backup: mysqldump failed — %s", _err_msg)
             return
 
+        from utils.photo_backup import backup_for_app
+        backup_for_app(filepath, app.static_folder)
         logging.info("Auto-backup: saved %s", filepath)
 
         # Retention: keep newest 7 auto-backups, delete the rest
@@ -1038,6 +1040,8 @@ def backup_database():
             filepath.unlink(missing_ok=True)
             raise RuntimeError("mysqldump failed")
 
+        from utils.photo_backup import backup_for_app
+        backup_for_app(filepath, app.static_folder)
         log_admin_action(f"Database backup saved to {filepath}")
 
     except Exception as e:
