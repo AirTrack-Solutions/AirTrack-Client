@@ -8,7 +8,7 @@ Images gauge now uses local existing linked primary/gallery files rather than no
 Client Cockpit and shared statistics now use the same Ground Station/Ground Vehicle exclusion rules as158. All ground records remain in record-management tables. Cockpit delegates to the shared statistics helper instead of duplicating raw SQL.
 
 ## Known Issues and Future Work
-Keep ground records in database and record management. Gauge counts image references, not verified files.
+Keep ground records in database and record management. Images now counts unique existing linked primary/gallery files using image_stats.py; missing filenames do not count.
 
 ## Entry Log
 - 2026-11-18 before edit: Trevor requests158/162in sync. Read shared-memory ground-label decision and clientjournals/currentserverstats. Client source/livehashmatch. Use existing158countingrules forsharedstatsandCockpit, preservingclientfeatures andallDBrecords. Verifytotals/renderedgauges andcopynewphotoswithoutoverwrites.
