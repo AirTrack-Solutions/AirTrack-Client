@@ -1,0 +1,16 @@
+# File History: tests/test_image_stats.py
+Journal Revision: 1
+Last Updated: 2026-11-18 Australia/Sydney
+
+## Current State
+Images gauge now counts unique linked primary/gallery photo files that actually exist on this machine, within the existing aircraft-only scope. Missing filenames, unlinked files and symlinks are excluded. Directory metadata only is read, never image contents. Refresh reflects new files without a sync.
+
+## Known Issues and Future Work
+Retain ground exclusions; count unique linked existing photos, including gallery slots. No sync or photo/data mutation.
+
+## Entry Log
+- 2026-11-18 before edit: Trevor expects five new unsynced photos to increase158Imagesgauge. Verified2038files158vs2033on162;five158-onlynames. ExistinggaugestillcountsDBfilenames. Readstats/testjournals andearlierimageavailability decisions. Replacegaugewithlocalexistinglinkedfilecount,usingdirectorymetadataonly/nophotocontentreads.
+
+- 2026-11-18 actual-image correction: Trevor correctly noted five newly entered unsynced photos should raise158counter. Read-only inventory confirmed1582038filesvs1622033;158-onlyVH-A5A,VH-UNV,VH-UYC,VH-VXC,VH-VZV. Existingfilename-basedgaugefailedtoincreasebecausepointersalreadyexisted. Addedavailable_photo_count:filteredprimary+gallerynames combinedbyexactfilenameinPython, intersectedwithsinglelocaldirectoryscan/regularnon-symlinkentries. No imagecontentsread, cache, DBwrite,photooverwrite/delete orsync. Currentappstaticfolderusedinappcontext;defaultsourcefolderforstandalonetests. Uniquephysicalfilescountonceevenwithduplicateassociations;ground/orphangallery/unlinkedfilesexcluded. Originalground/dashboardtestfixturesupdatedtoexpectzeroavailablephotoswhennoactualfilesexist;newdedicatedfixturesprove5previouslymissingfilesincrease0to5withunchangedDB,primary/gallerydeduplication,groundexclusions,unlinked/missing/symlinkexclusion,andnodatareads.
+  Verification:3imagecountertests passinbothinstalledPython3.11environments;8servergroundregressionsand2clientdashboardregressionspasswarningsaserrors. Initialstagegroundtestneededapp.pyforitsAST-onlyhomecheck;fixturecompletedwithoutproductchange. LiveMariaDBrevealedprimary/galleryfilenamecollationdifferenceinfirstUNIONquery,causingtemporaryfallbackzeroes;replacedUNIONwithtwoseparatequeriesandPythonsetmerge,withoutDBschema/collationchanges. Reloadedwebandverifiedactualadminrenderedhandlersbothpositive:1582030vs1622024atfirstread,thenTrevor's158screenshot2031afteranotherimport. Morephotosarrivedduringchecks(initial5differencebecame7onphysicalinventory),sofixed5deltaassertionwasdiscardedassnapshotstale,notforcedbysync. Sourcehadoneadditionalflight;differencesareexpectedwhileunsynced. No attempttomakemachinesmatchduringthiscorrection.
+  Deployment:backeduppriorstats_utils.pyateachhost /home/airtrack/image-gauge-before-20261118/stats_utils.py. Newhelperdeployedbeforestatsimport;only158/162webcontainersrefreshed,schedulers/DBunchanged. No installerrebuild. Gaugeisavailablelinkedfilesnotallfilesinfolder,soorphans/groundphotosmaymakefoldercountlarger. Journalpathsareauthoritative; recoveryrestorescopedstats_utils.pyfrombackupandrefreshweb,leavenewhelperuntilallimportsreverted. Existingphoto/database/sync/backupchangespreserved.

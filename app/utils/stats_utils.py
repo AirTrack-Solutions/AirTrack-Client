@@ -10,6 +10,7 @@ import logging
 from sqlalchemy import text
 # ABSOLUTE import (flat layout)
 from extensions import db
+from utils.image_stats import available_photo_count
 from utils.aircraft_scope import AIRCRAFT_FOR_STATS, FLIGHTS_FOR_STATS, AIRLINES_FOR_STATS
 
 
@@ -65,18 +66,7 @@ def get_airtrack_stats():
                 ).scalar()
                 or 0
             )
-            photos_logged = (
-                conn.execute(
-                    text(
-                        f"""
-                SELECT COUNT(*)
-                FROM {AIRCRAFT_FOR_STATS} AS aircraft
-                WHERE Aircraft_Image IS NOT NULL AND Aircraft_Image != ''
-            """
-                    )
-                ).scalar()
-                or 0
-            )
+            photos_logged = available_photo_count(conn)
             total_countries = (
                 conn.execute(
                     text(
