@@ -21,6 +21,7 @@ from sqlalchemy import text
 from utils.country_importer import import_aircraft_row
 
 from extensions import db
+from utils.stats_utils import get_airtrack_stats
 
 import json
 import os
@@ -53,106 +54,8 @@ def admin_dashboard():
     # Stats
     # -----------------------------
 
-    def _get_airtrack_stats():
-        try:
-            with db.engine.connect() as conn:
-                total_aircraft = conn.execute(
-                    text("SELECT COUNT(*) FROM aircraft")
-                ).scalar()
 
-                total_flights = conn.execute(
-                    text("SELECT COUNT(*) FROM flights")
-                ).scalar()
-
-                total_airlines = conn.execute(
-                    text("SELECT COUNT(*) FROM airlines")
-                ).scalar()
-
-                models_seen = conn.execute(
-                    text(
-                        """
-                        SELECT COUNT(DISTINCT Aircraft_Type)
-                        FROM aircraft
-                        WHERE Aircraft_Type IS NOT NULL
-                        AND Aircraft_Type != ''
-                        """
-                    )
-                ).scalar()
-
-                photos_logged = conn.execute(
-                    text(
-                        """
-                        SELECT COUNT(*)
-                        FROM aircraft
-                        WHERE Aircraft_Image IS NOT NULL
-                        AND Aircraft_Image != ''
-                        """
-                    )
-                ).scalar()
-
-                total_countries = conn.execute(
-                    text(
-                        """
-                        SELECT COUNT(DISTINCT Country_of_Reg)
-                        FROM aircraft
-                        WHERE Country_of_Reg IS NOT NULL
-                        AND Country_of_Reg != ''
-                        """
-                    )
-                ).scalar()
-
-                orphaned_aircraft = conn.execute(
-                    text(
-                        """
-                        SELECT COUNT(*)
-                        FROM aircraft
-                        WHERE AirlineID IS NULL OR AirlineID = ''
-                        """
-                    )
-                ).scalar()
-
-                airports_logged = conn.execute(
-                    text(
-                        """
-                        SELECT COUNT(*) FROM (
-                            SELECT DISTINCT ICAO
-                            FROM (
-                                SELECT Departure AS ICAO FROM aircraft
-                                UNION
-                                SELECT Arrival AS ICAO FROM aircraft
-                            ) AS all_icaos
-                            WHERE ICAO IS NOT NULL
-                            AND ICAO IN (SELECT ICAO FROM airports)
-                        ) AS valid_airports
-                        """
-                    )
-                ).scalar() or 0
-
-                return {
-                    "total_aircraft": total_aircraft,
-                    "total_flights": total_flights,
-                    "total_airlines": total_airlines,
-                    "models_seen": models_seen,
-                    "photos_logged": photos_logged,
-                    "total_countries": total_countries,
-                    "orphaned_aircraft": orphaned_aircraft,
-                    "airports_logged": airports_logged,
-                }
-
-        except Exception as e:
-            logging.error(f"❌ Error fetching admin stats: {e}")
-            return {
-                "total_aircraft": 0,
-                "total_flights": 0,
-                "total_airlines": 0,
-                "models_seen": 0,
-                "photos_logged": 0,
-                "total_countries": 0,
-                "orphaned_aircraft": 0,
-                "airports_logged": 0,
-            }
-
-    stats = _get_airtrack_stats()
+    stats = get_airtrack_stats()
 
     # -----------------------------
     # Backup file list

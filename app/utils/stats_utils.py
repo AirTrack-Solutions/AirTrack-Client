@@ -10,6 +10,7 @@ import logging
 from sqlalchemy import text
 # ABSOLUTE import (flat layout)
 from extensions import db
+from utils.aircraft_scope import AIRCRAFT_FOR_STATS, FLIGHTS_FOR_STATS, AIRLINES_FOR_STATS
 
 
 def get_all_airlines():
@@ -39,25 +40,25 @@ def get_airtrack_stats():
         with db.engine.connect() as conn:
             total_aircraft = (
                 conn.execute(
-                    text("SELECT COUNT(*) FROM aircraft")
+                    text(f"SELECT COUNT(*) FROM {AIRCRAFT_FOR_STATS} AS aircraft")
                 ).scalar()
             )
             total_flights = (
                 conn.execute(
-                    text("SELECT COUNT(*) FROM flights")
+                    text(f"SELECT COUNT(*) FROM {FLIGHTS_FOR_STATS} AS flights")
                 ).scalar()
             )
             total_airlines = (
                 conn.execute(
-                    text("SELECT COUNT(*) FROM airlines")
+                    text(f"SELECT COUNT(*) FROM {AIRLINES_FOR_STATS} AS airlines")
                 ).scalar()
             )
             models_seen = (
                 conn.execute(
                     text(
-                        """
+                        f"""
                 SELECT COUNT(DISTINCT Aircraft_Type)
-                FROM aircraft
+                FROM {AIRCRAFT_FOR_STATS} AS aircraft
                 WHERE Aircraft_Type IS NOT NULL AND Aircraft_Type != ''
             """
                     )
@@ -67,9 +68,9 @@ def get_airtrack_stats():
             photos_logged = (
                 conn.execute(
                     text(
-                        """
+                        f"""
                 SELECT COUNT(*)
-                FROM aircraft
+                FROM {AIRCRAFT_FOR_STATS} AS aircraft
                 WHERE Aircraft_Image IS NOT NULL AND Aircraft_Image != ''
             """
                     )
@@ -79,9 +80,9 @@ def get_airtrack_stats():
             total_countries = (
                 conn.execute(
                     text(
-                        """
+                        f"""
                 SELECT COUNT(DISTINCT Country_of_Reg)
-                FROM aircraft
+                FROM {AIRCRAFT_FOR_STATS} AS aircraft
                 WHERE Country_of_Reg IS NOT NULL AND Country_of_Reg != ''
             """
                     )
@@ -91,10 +92,10 @@ def get_airtrack_stats():
             orphaned_aircraft = (
                 conn.execute(
                     text(
-                        """
+                        f"""
                 SELECT COUNT(*)
-                FROM aircraft
-                WHERE AirlineID IS NULL OR AirlineID = ''
+                FROM {AIRCRAFT_FOR_STATS} AS aircraft
+                WHERE NOT EXISTS (SELECT 1 FROM airlines al WHERE al.AirlineID = aircraft.AirlineID)
             """
                     )
                 ).scalar()
@@ -105,13 +106,13 @@ def get_airtrack_stats():
             airports_logged = (
                 conn.execute(
                     text(
-                        """
+                        f"""
                 SELECT COUNT(*) FROM (
                     SELECT DISTINCT ICAO
                     FROM (
-                        SELECT Departure AS ICAO FROM aircraft
+                        SELECT Departure AS ICAO FROM {AIRCRAFT_FOR_STATS} AS aircraft
                         UNION
-                        SELECT Arrival AS ICAO FROM aircraft
+                        SELECT Arrival AS ICAO FROM {AIRCRAFT_FOR_STATS} AS aircraft
                     ) AS all_icaos
                     WHERE ICAO IS NOT NULL AND ICAO != ''
                     AND ICAO IN (SELECT ICAO FROM airports)
