@@ -843,6 +843,22 @@ def edit_aircraft(aircraft_id: int):
 
             db.session.commit()
 
+            from utils.aircraft_photo_metadata import identity, stamp_jpeg
+            new_identity = identity(registration, msn, icao_address)
+            old_identity = identity(aircraft.get('Registration'), aircraft.get('MSN'), aircraft.get('ICAO_Address'))
+            if new_identity != old_identity:
+                try:
+                    photo_rows = db.session.execute(text("SELECT Aircraft_Image FROM aircraft WHERE AircraftID=:id UNION SELECT Filename FROM aircraft_images WHERE AircraftID=:id"), {'id': aircraft_id}).fetchall()
+                    for photo_row in photo_rows:
+                        name = photo_row[0]
+                        if name and os.path.basename(name) == name:
+                            photo_path = os.path.join(str(current_app.static_folder), UPLOAD_SUBFOLDER, name)
+                            if os.path.isfile(photo_path):
+                                stamp_jpeg(photo_path, new_identity)
+                except Exception:
+                    logger.exception("Aircraft saved but linked photo metadata refresh failed")
+                    flash("Aircraft saved; some photo metadata could not be refreshed.", "warning")
+
             flash(
                 "Aircraft updated and new flight logged." if save_mode == "new"
                 else "Aircraft updated successfully.",
@@ -883,7 +899,7 @@ def upload_aircraft_image():
 
         # Look up the AircraftID
         ac_row = db.session.execute(
-            text("SELECT AircraftID, Aircraft_Image FROM aircraft WHERE UPPER(TRIM(Registration)) = :reg"),
+            text("SELECT AircraftID, Aircraft_Image, Registration, MSN, ICAO_Address FROM aircraft WHERE UPPER(TRIM(Registration)) = :reg"),
             {"reg": registration},
         ).fetchone()
 
@@ -918,7 +934,8 @@ def upload_aircraft_image():
         filepath = os.path.join(upload_dir, filename)
 
         try:
-            image.save(filepath)
+            from utils.aircraft_photo_metadata import identity, save_photo
+            save_photo(image.stream, filepath, identity(ac_row[2], ac_row[3], ac_row[4]))
 
             if next_number == 1:
                 # Save as primary image
