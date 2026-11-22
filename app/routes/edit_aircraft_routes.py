@@ -12,6 +12,7 @@ from typing import Optional
 
 from flask import (
     Blueprint,
+    current_app,
     flash,
     redirect,
     render_template,
@@ -179,6 +180,12 @@ def edit_aircraft(aircraft_id):
                         )
 
                 db.session.commit()
+                try:
+                    from utils.aircraft_photo_metadata import refresh_linked_photos
+                    refresh_linked_photos(db.session, aircraft_id, current_app.static_folder)
+                except Exception:
+                    logging.exception("Aircraft saved but photo metadata refresh failed")
+                    flash("Aircraft saved; some photo metadata could not be refreshed.", "warning")
                 flash("Aircraft updated successfully.", "success")
                 return redirect(url_for("aircraft.aircraft_table"))
 

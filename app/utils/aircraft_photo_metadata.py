@@ -179,3 +179,22 @@ def save_photo(source, destination, fields):
             payload = PREFIX+packet(fields, jpeg_xmp(raw))
             raw = b'\xff\xd8\xff\xe1'+(len(payload)+2).to_bytes(2,'big')+payload+b''.join(chunk for marker,chunk,p in segments(raw) if not(marker==0xE1 and p.startswith(PREFIX)))
     atomic_write(destination, raw)
+
+
+def refresh_linked_photos(session, aircraft_id, static_folder, subfolder='uploads/aircraft'):
+    """Use committed DB identity, never guessed filename/form values."""
+    from sqlalchemy import text
+    row = session.execute(text('SELECT Registration, MSN, ICAO_Address, Aircraft_Image FROM aircraft WHERE AircraftID=:id'), {'id':aircraft_id}).fetchone()
+    if row is None:
+        return 0
+    fields = identity(row[0], row[1], row[2])
+    names = [row[3]] + [x[0] for x in session.execute(text('SELECT Filename FROM aircraft_images WHERE AircraftID=:id'), {'id':aircraft_id}).fetchall()]
+    changed = 0
+    for name in set(names):
+        if not name or Path(name).name != name:
+            continue
+        path = Path(static_folder)/subfolder/name
+        if path.is_file() and read_metadata(path) != fields:
+            stamp_jpeg(path, fields)
+            changed += 1
+    return changed

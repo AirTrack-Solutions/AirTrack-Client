@@ -52,3 +52,33 @@ class MetadataTests(unittest.TestCase):
 
 
 
+class SeparateEditRouteTests(unittest.TestCase):
+    def test_actual_edit_handler_refreshes_photo_from_committed_record(self):
+        import ast,sqlite3,logging,warnings
+        from datetime import datetime
+        from types import SimpleNamespace
+        from typing import Optional
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory()as tmp:
+            root=Path(tmp);photos=root/'static/uploads/aircraft';photos.mkdir(parents=True)
+            image=io.BytesIO();Image.new('RGB',(64,64)).save(image,'JPEG');image.seek(0)
+            m.save_photo(image,photos/'VH-ABC.jpg',m.identity('VH-ABC',None,'7C1234'))
+            c=sqlite3.connect(':memory:')
+            try:
+                c.executescript('CREATE TABLE airlines(AirlineID INTEGER,AirlineName TEXT,Ceased_Operations INTEGER); CREATE TABLE aircraft(AircraftID INTEGER,AirlineID INTEGER,Registration TEXT,FlightNumber TEXT,Aircraft_Type TEXT,MSN TEXT,Category TEXT,Country_of_Reg TEXT,Times_Seen INTEGER,Manufacture_Year INTEGER,Manufacture_Month INTEGER,ICAO_Address TEXT,Spotted_At TEXT,Notes TEXT,Departure TEXT,Arrival TEXT,Aircraft_Updated TEXT,Aircraft_Image TEXT); CREATE TABLE aircraft_images(AircraftID INTEGER,Filename TEXT);')
+                c.execute("INSERT INTO aircraft(AircraftID,Registration,ICAO_Address,Aircraft_Image)VALUES(1,'VH-ABC','7C1234','VH-ABC.jpg')");c.commit()
+                source=Path(__file__).resolve().parents[1]/'app/routes/edit_aircraft_routes.py'
+                nodes=[n for n in ast.parse(source.read_text()).body if isinstance(n,ast.FunctionDef)]
+                for n in nodes:n.decorator_list=[]
+                class Session:
+                    def execute(self,sql,args=None):return c.execute(sql,{k:(v.isoformat() if isinstance(v,datetime) else v) for k,v in (args or{}).items()})
+                    def commit(self):c.commit()
+                    def rollback(self):c.rollback()
+                env=dict(Optional=Optional,datetime=datetime,logging=logging,text=lambda s:s,db=SimpleNamespace(session=Session()),request=SimpleNamespace(method='POST',form={'save_mode':'edit','Registration':'VH-ABC','MSN':'00123','ICAO_Address':'7C1234'}),current_app=SimpleNamespace(static_folder=str(root/'static')),flash=lambda *a:None,redirect=lambda x:x,url_for=lambda *a,**k:'/')
+                exec(compile(ast.Module(body=nodes,type_ignores=[]),str(source),'exec'),env)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings('ignore',message='.*utcnow.*deprecated.*',category=DeprecationWarning)
+                    with patch.dict(sys.modules,{'sqlalchemy':SimpleNamespace(text=lambda s:s)}):self.assertEqual(env['edit_aircraft'](1),'/')
+                self.assertEqual(c.execute('SELECT MSN FROM aircraft').fetchone()[0],'00123')
+                self.assertEqual(m.read_metadata(photos/'VH-ABC.jpg'),m.identity('VH-ABC','00123','7C1234'))
+            finally:c.close()
