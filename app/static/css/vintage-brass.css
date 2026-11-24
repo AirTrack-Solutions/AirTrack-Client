@@ -1,0 +1,168 @@
+/* Vintage Brass: CSS-only instrument-panel styling; no background imagery. */
+body.theme-vintage_brass {
+  --vb-charcoal: #252725;
+  --vb-panel: #30312d;
+  --vb-brass: #b9914d;
+  --vb-ivory: #f8ecd5;
+  --vb-ink: #30261b;
+  background: #252725 !important;
+  color: #f8ecd5;
+  font-family: Georgia, 'Times New Roman', serif;
+  min-height: 100vh;
+}
+body.theme-vintage_brass .background,
+body.theme-vintage_brass .admin-background,
+body.theme-vintage_brass .cockpit-hangar-plate,
+body.theme-vintage_brass .cockpit-secured-mask {
+  display: none !important;
+  background-image: none !important;
+}
+body.theme-vintage_brass .header-container {
+  background: #30312d;
+  color: #f8ecd5;
+  border: 1px solid #b9914d;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 3px #252725, inset 0 0 0 4px #76603e, 0 4px 12px #0005;
+}
+body.theme-vintage_brass .header-title,
+body.theme-vintage_brass .header-version,
+body.theme-vintage_brass .header-subline,
+body.theme-vintage_brass .admin-link { color: #f8ecd5; }
+body.theme-vintage_brass .header-title { text-shadow: 0 2px 2px #0008; }
+body.theme-vintage_brass .callsign-banner {
+  flex: 0 1 370px;
+  position: relative;
+  padding: 12px 27px;
+  margin: 0 16px;
+  border: 2px solid #c5a466;
+  border-radius: 6px;
+  background: linear-gradient(110deg, #96713c, #cfb277 45%, #a27a3e);
+  color: #2c2115;
+  font-size: clamp(1.5rem, 2.7vw, 3rem);
+  letter-spacing: .035em;
+  text-shadow: 0 1px #e5cc93;
+  box-shadow: inset 0 0 0 2px #73572e, 0 3px 5px #0008;
+}
+body.theme-vintage_brass .callsign-banner::before,
+body.theme-vintage_brass .callsign-banner::after {
+  content: '';
+  position: absolute;
+  width: 9px; height: 9px; top: 8px;
+  border-radius: 50%; border: 1px solid #332819;
+  background: linear-gradient(135deg, #b5a179 42%, #30271b 44% 57%, #8c7751 59%);
+  box-shadow: 0 33px 0 -1px #5a4930;
+}
+body.theme-vintage_brass .callsign-banner::before { left: 7px; }
+body.theme-vintage_brass .callsign-banner::after { right: 7px; }
+body.theme-vintage_brass .header-links {
+  border-top: 1px solid #8f754a;
+  padding-top: 8px;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+}
+body.theme-vintage_brass .header-links a {
+  color: #f8ecd5;
+  padding: 4px 7px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+body.theme-vintage_brass .header-links a:hover,
+body.theme-vintage_brass .header-links a[aria-current='page'] {
+  background: linear-gradient(#d4b675, #ad8037);
+  color: #241c12;
+  box-shadow: inset 0 0 0 1px #e5ca90;
+}
+body.theme-vintage_brass :is(.aircraft-container,.aircraft-wrapper,.index-container,.admin-wrapper) {
+  background: transparent;
+}
+body.theme-vintage_brass :is(.aircraft-title,.page-title) {
+  color: #f8ecd5; text-shadow: 0 2px 2px #0008;
+}
+body.theme-vintage_brass :is(.aircraft-table-wrapper,.airlines-table-wrapper) {
+  border: 2px solid #b9914d;
+  background: #f5e7cc;
+  border-radius: 9px;
+  box-shadow: 0 3px 9px #0005;
+}
+body.theme-vintage_brass table {
+  --bs-table-bg: #fbf2e1;
+  --bs-table-color: #30261b;
+  --bs-table-striped-bg: #f1e2c7;
+  --bs-table-striped-color: #30261b;
+  --bs-table-hover-bg: #e8d4ae;
+  --bs-table-hover-color: #30261b;
+  background: #fbf2e1;
+  color: #30261b;
+}
+body.theme-vintage_brass table th {
+  background: linear-gradient(#d5b778, #b78d47) !important;
+  color: #261d12 !important;
+  border-color: #aa8a52;
+  font-weight: 700;
+  font-size: 1rem;
+}
+body.theme-vintage_brass table td {
+  background: #fbf2e1;
+  color: #30261b !important;
+  border-color: #d5c3a0;
+  font-size: 1rem;
+}
+body.theme-vintage_brass table tbody tr:nth-child(even) td { background: #f1e2c7; }
+body.theme-vintage_brass table tbody tr:hover td { background: #e8d4ae; }
+body.theme-vintage_brass table td a:not(.btn) { color: #624213; }
+body.theme-vintage_brass :is(.card,.modal-content,.accordion-item,.detail-card,.section-card) {
+  background: #f8ecd5;
+  color: #30261b;
+  border-color: #b9914d;
+}
+body.theme-vintage_brass :is(.card,.modal-content,.accordion-item) :is(h1,h2,h3,h4,label,.form-label) { color: #30261b; }
+body.theme-vintage_brass .accordion-button { background: #ead5ac; color: #30261b; }
+body.theme-vintage_brass .accordion-button:not(.collapsed) { background: #d5b778; color: #241c12; }
+body.theme-vintage_brass .accordion-body { background: #fbf2e1 !important; color: #30261b; }
+body.theme-vintage_brass :is(.form-control,.form-select,input[type='search'],.aircraft-search) {
+  background-color: #fbf2e1;
+  color: #30261b;
+  border: 1px solid #ad8b50;
+}
+body.theme-vintage_brass :is(input,select,textarea,a,button):focus-visible {
+  outline: 3px solid #e1b757;
+  outline-offset: 2px;
+}
+body.theme-vintage_brass .btn {
+  border-radius: 5px;
+  font-family: inherit;
+  font-weight: 700;
+  box-shadow: inset 0 1px #ffffff35, 0 1px 2px #0003;
+}
+body.theme-vintage_brass :is(.btn-primary,.btn-info,.btn-secondary,.btn-teal) {
+  background: linear-gradient(#4c4b40, #30312d);
+  border-color: #8e7952;
+  color: #fff3db;
+}
+body.theme-vintage_brass :is(.btn-warning,.btn-success) {
+  background: linear-gradient(#d4b675, #ad8037);
+  border-color: #987136;
+  color: #241c12;
+}
+body.theme-vintage_brass .btn-danger {
+  background: linear-gradient(#87382e, #591e19);
+  border-color: #481812;
+  color: #fff3db;
+}
+body.theme-vintage_brass .page-link {
+  background: #f5e7cc;
+  color: #3e2e1a;
+  border-color: #ad8b50;
+}
+body.theme-vintage_brass .page-item.active .page-link {
+  background: #bc934d;
+  color: #241c12;
+  border-color: #d7b776;
+}
+body.theme-vintage_brass .index-footer,
+body.theme-vintage_brass .index-footer p { color: #e5d6b8; }
+body.theme-vintage_brass .index-footer a { color: #e7c47f; }
+body.theme-vintage_brass .theme-name { color: #30261b; }
+@media (max-width: 767px) {
+  body.theme-vintage_brass .callsign-banner { margin: 8px 0; font-size: 1.6rem; }
+}

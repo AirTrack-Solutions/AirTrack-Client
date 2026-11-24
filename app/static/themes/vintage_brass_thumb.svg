@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Vintage Brass theme preview">
+<rect width="320" height="180" rx="10" fill="#252725"/>
+<rect x="8" y="8" width="304" height="164" rx="8" fill="none" stroke="#b9914d" stroke-width="2"/>
+<rect x="58" y="20" width="204" height="44" rx="4" fill="#bd995c" stroke="#e1c38b"/>
+<text x="160" y="48" text-anchor="middle" font-family="Georgia,serif" font-size="22" font-weight="bold" fill="#30261b">Vintage Brass</text>
+<g fill="#504027"><circle cx="66" cy="28" r="3"/><circle cx="254" cy="28" r="3"/><circle cx="66" cy="56" r="3"/><circle cx="254" cy="56" r="3"/></g>
+<rect x="24" y="82" width="272" height="22" rx="3" fill="#b9914d"/>
+<path d="M24 104h272v23H24z" fill="#fbf2e1"/><path d="M24 127h272v23H24z" fill="#f1e2c7"/>
+<g stroke="#bda77f"><path d="M110 82v68M210 82v68"/><path d="M24 127h272"/></g>
+</svg>

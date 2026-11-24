@@ -27,7 +27,7 @@ except ImportError:
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # /app
 
-STATIC_DIR = Path(os.environ.get('AIRTRACK_STATIC_DIR', '/app/static')).resolve()
+STATIC_DIR = Path(os.environ.get('AIRTRACK_STATIC_DIR', str(BASE_DIR / 'static'))).resolve()
 
 THEMES_DIR = STATIC_DIR / 'themes'
 
@@ -46,7 +46,8 @@ IMG_EXTS = {'.png', '.jpg', '.jpeg', '.webp'}
 
 
 def _latest_theme_asset_mtime() -> int:
-    latest = 0
+    latest = max(int(Path(__file__).stat().st_mtime) if Path(__file__).is_file() else 0,
+                 int((CSS_DIR / 'vintage-brass.css').stat().st_mtime) if (CSS_DIR / 'vintage-brass.css').exists() else 0)
     if THEMES_DIR.exists():
         for p in THEMES_DIR.iterdir():
             try:
@@ -149,13 +150,19 @@ def scan_and_generate() -> list[dict]:
                 and THEMES_JSON.exists()
                 and THEMES_CSS.exists()
             ):
-                return []
+                return json.loads(THEMES_JSON.read_text(encoding="utf-8"))
 
         except Exception:
             pass
 
-        themes: list[dict] = []
-        css_rules: list[str] = []
+        version = _mtime_version(CSS_DIR / 'vintage-brass.css')
+        themes: list[dict] = [{
+            "key": "vintage_brass", "value": "vintage_brass",
+            "label": "Vintage Brass", "name": "Vintage Brass",
+            "thumb_url": f"/static/themes/vintage_brass_thumb.svg?v={version}",
+            "cockpit_url": None, "background_url": None,
+        }]
+        css_rules: list[str] = [f"@import url('/static/css/vintage-brass.css?v={version}');"]
 
         css_rules.append(
             """
