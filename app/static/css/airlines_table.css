@@ -241,3 +241,15 @@
     max-height: 30px;
     display: inline-block;
 }
+
+/* T3 (Bob 6766): the fixed 780px title margin pushed the search box off-screen and widened the page
+   below ~1170px; on narrower screens the title starts at the left and the search box may shrink.
+   Wider screens (>=1200px) keep the existing layout unchanged. */
+@media (max-width: 1199px) {
+    .page-title { margin-left: 0; }
+    .search-box { width: min(250px, 100%); }
+}
+
+/* A3 (Trevor 6859 / Bob 6862): keep airline logos inside the Logo column. The template sets height:30px inline;
+   max-width caps a wide logo at the cell width and object-fit keeps its aspect ratio (letterboxed, never stretched). */
+.airlines-table td:nth-child(1) img { max-width: 100%; object-fit: contain; vertical-align: middle; }

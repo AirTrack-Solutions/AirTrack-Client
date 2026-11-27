@@ -599,3 +599,100 @@ body.cockpit--secured  .cockpit-hud-column { opacity: 0; transition: opacity var
   color: rgba(255,255,255,0.3);
   letter-spacing: 0.1em;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Option A media query calibration
+   Baseline: 1536×1024 (3:2) — 55px gauges, top 44%, left 19.5%–76%.
+   Tune the top/bottom values visually at each target resolution.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Small/HD: ≤1440px wide (1366×768, 1280×800, 1440×900) ──────────────── */
+@media (max-width: 1440px) {
+  .gauge { width: 46px !important; height: 46px !important; }
+  .needle { height: 38%; }
+  .gauge-value { font-size: 0.72em; }
+  .gauge-label { font-size: 0.55em; bottom: -11px; }
+  .cockpit-hud-button { font-size: 0.72em; padding: 3px 8px; }
+}
+
+/* ── Small/HD + short viewport (16:9 like 1366×768): shift gauges down ───── */
+@media (max-width: 1440px) and (max-height: 820px) {
+  .gauge-airlines  { top: 46% !important; }
+  .gauge-aircraft  { top: 46% !important; }
+  .gauge-flights   { top: 46% !important; }
+  .gauge-models    { top: 46% !important; }
+  .gauge-photos    { top: 46% !important; }
+  .gauge-orphaned  { top: 46% !important; }
+  .gauge-countries { top: 46% !important; }
+  .gauge-airports  { top: 46% !important; }
+  #cockpit-center-display { top: 46.5%; }
+  .hud-left  { bottom: 61%; }
+  .hud-right { bottom: 60%; }
+}
+
+/* ── Standard 1080p: 1600px–2559px (1920×1080 Windows desktop/laptop) ────── */
+@media (min-width: 1600px) and (max-width: 2559px) {
+  .gauge-airlines  { top: 43.5% !important; }
+  .gauge-aircraft  { top: 43.5% !important; }
+  .gauge-flights   { top: 43.5% !important; }
+  .gauge-models    { top: 43.5% !important; }
+  .gauge-photos    { top: 43.5% !important; }
+  .gauge-orphaned  { top: 43.5% !important; }
+  .gauge-countries { top: 43.5% !important; }
+  .gauge-airports  { top: 43.5% !important; }
+  #cockpit-center-display { top: 44%; }
+}
+
+/* ── HiDPI / large: ≥2560px (1440p, 4K, Retina) ─────────────────────────── */
+@media (min-width: 2560px) {
+  .gauge { width: 88px !important; height: 88px !important; }
+  .needle { height: 42%; width: 3px; }
+  .gauge-value { font-size: 1.1em; }
+  .gauge-label { font-size: 0.75em; bottom: -18px; }
+  #cockpit-center-display { width: 300px; height: 38px; }
+  .cockpit-hud-button { font-size: 1.05em; padding: 6px 14px; }
+}
+
+/* Preserve the artwork; the existing horizontal button resets Morning Report. */
+#briefing-reset {
+  position: fixed;
+  z-index: 10;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+#briefing-reset:hover, #briefing-reset:focus-visible {
+  outline: 2px solid rgba(243,156,18,0.7);
+  outline-offset: 1px;
+}
+#briefing-reset:disabled { cursor: wait; }
+
+/* ── Responsive patch C4 (Bob 6704/6707) — isolated fixture only; every theme except Vintage Brass ──
+   Narrow screens: the HUD columns tilt less and keep a minimum edge margin, so their top corners stay
+   on screen and do not widen the page. The centre plaque scales with the viewport (200px at 1920)
+   so it no longer sits on the Models/Photos faces; on tablets it narrows further with 11px text, faces drop to 40px and labels may wrap. */
+body:not(.theme-vintage_brass) #cockpit-center-display {width:min(200px,10.4vw);}
+@media (max-width:1100px) {
+ body:not(.theme-vintage_brass) .hud-left  {transform:rotate(-6deg);left:max(3%,16px);}
+ body:not(.theme-vintage_brass) .hud-right {transform:rotate(6deg);right:max(3%,16px);}
+}
+@media (max-width:900px) {
+ body:not(.theme-vintage_brass) #cockpit-center-display {width:9vw;}
+ body:not(.theme-vintage_brass) #cockpit-center-display :is(#radar-content,#action-confirmation) {font-size:11px;letter-spacing:0;}
+ body:not(.theme-vintage_brass) .hud-left  {transform:rotate(-4deg);left:max(3%,24px);}
+ body:not(.theme-vintage_brass) .hud-right {transform:rotate(4deg);right:max(3%,24px);}
+ body:not(.theme-vintage_brass) .gauge {width:40px !important;height:40px !important;}
+ body:not(.theme-vintage_brass) .gauge-label {white-space:normal;line-height:1.05;}
+ body:not(.theme-vintage_brass) .cockpit-hud-button {min-height:24px;}
+}
+
+/* ── Switch patch 1 (Bob 6710) — isolated fixture only; every theme except Vintage Brass ──────────
+   The overhead switch zones are now real buttons: invisible over the artwork as before, round so
+   neighbours never overlap, with a visible focus ring for keyboard users. */
+body:not(.theme-vintage_brass) .cockpit-click-zone {
+ background:transparent;border:0;padding:0;margin:0;border-radius:50%;appearance:none;
+}
+body:not(.theme-vintage_brass) .cockpit-click-zone:focus-visible {outline:2px solid #0ff;outline-offset:2px;}

@@ -47,7 +47,7 @@ REGISTRIES_DIR = PROJECT_ROOT / "app" / "registries"
 DOCKER_CONTAINER = "airtrack-logbook-airtrack-db-1"
 DB_NAME = "airtrack"
 DB_USER = "SirBob"
-DB_PASS = "ofAirTrack"
+DB_PASS = os.getenv("DB_PASSWORD", "")
 
 SAFE_TABLE_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 

@@ -40,9 +40,23 @@
   // DOM refs
   let indicator = null;
 
+  function vintageSwitches() { return document.body.classList.contains('theme-vintage_brass'); }
+  function updateSwitchVisuals() {
+    // switch patch 1 (Bob 6710): pressed state and labels for every theme, not only Vintage Brass
+    SWITCHES.forEach(sw => {
+      const zone = document.getElementById('zone-' + sw.id);
+      if (!zone) return;
+      const off = sw.bank === bank && sw.step <= progress;
+      zone.classList.toggle('is-off', off);
+      zone.setAttribute('aria-pressed', String(off));
+      zone.setAttribute('aria-label', 'Cockpit ' + sw.bank + sw.step + (off ? ' off' : ' on'));
+    });
+  }
+
   // ── Storage ──────────────────────────────────────────────────────────────
 
   function saveState() {
+    updateSwitchVisuals();
     try {
       localStorage.setItem(STORAGE.SECURED, String(secured));
       if (bank !== null) {
@@ -169,6 +183,24 @@
   function positionZone(sw) {
     const zone = document.getElementById('zone-' + sw.id);
     if (!zone) return;
+    if (vintageSwitches()) {
+      const col = (sw.step - 1) % 2;
+      const row = Math.floor((sw.step - 1) / 2);
+      const outer = document.querySelector?.(sw.bank === 'L' ? '.gauge-airlines' : '.gauge-airports');
+      const bounds = outer?.getBoundingClientRect();
+      const edge = window.innerWidth * (sw.bank === 'L' ? .08 : .92);
+      const gaugeEdge = bounds ? (sw.bank === 'L' ? bounds.left : bounds.right) : window.innerWidth * (sw.bank === 'L' ? .212 : .792);
+      const centre = (edge + gaugeEdge) / 2 / window.innerWidth * 100;
+      const x = centre + (col ? 1.5 : -1.5);
+      const y = 48 + row * 8;
+      // switch patch 2a r2 (Bob 6737): at <=1199px keep the two columns at least 22px either side of centre
+      // so the 36px buttons never overlap; wider screens keep the original 1.5% offset exactly.
+      zone.style.left = window.innerWidth <= 1199
+        ? `calc(${centre}% ${col ? '+' : '-'} max(1.5vw, 22px) - 18px)`
+        : `calc(${x}% - 18px)`;
+      zone.style.top = `${y}%`; zone.style.width = '36px'; zone.style.height = '42px';
+      return;
+    }
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const scale = Math.max(vw / BASE_W, vh / BASE_H);
@@ -176,9 +208,23 @@
     const oy = (vh - BASE_H * scale) / 2;
     const cx = ox + sw.px * scale;
     const cy = oy + sw.py * scale;
-    const s  = 32; // click target size px
-    zone.style.left   = (cx - s / 2) + 'px';
-    zone.style.top    = (cy - s / 2) + 'px';
+    // switch patch 1: round targets sized to 95% of the nearest neighbour's distance (16-32px), so
+    // neighbouring switches never overlap when the artwork is scaled down (L3/L4 are 29px apart at 1536px).
+    const nearest = Math.min(...SWITCHES.filter(o => o !== sw).map(o => Math.hypot(o.px - sw.px, o.py - sw.py)));
+    // switch patch 2b (Bob 6723/6728): aim for 24-32px; where neighbours are too close, push this centre away from
+    // each of them by half the shortfall (+2px gap), capped at 4px in total. Over the cap, fall back to the
+    // patch-1 shrink-to-fit size with no displacement.
+    let s  = Math.max(24, Math.min(32, Math.floor(nearest * scale * 0.95)));
+    let dx = 0, dy = 0;
+    SWITCHES.forEach(o => {
+      if (o === sw) return;
+      const vx = (sw.px - o.px) * scale, vy = (sw.py - o.py) * scale, d = Math.hypot(vx, vy);
+      if (d > 0 && d < s + 2) { const k = (s + 2 - d) / 2 / d; dx += vx * k; dy += vy * k; }
+    });
+    if (Math.hypot(dx, dy) > 4) { s = Math.max(16, Math.min(32, Math.floor(nearest * scale * 0.95))); dx = 0; dy = 0; }
+    zone.dataset.offsetPx = Math.hypot(dx, dy).toFixed(1);
+    zone.style.left   = (cx + dx - s / 2) + 'px';
+    zone.style.top    = (cy + dy - s / 2) + 'px';
     zone.style.width  = s + 'px';
     zone.style.height = s + 'px';
   }
@@ -190,9 +236,10 @@
   function buildClickZones() {
     const wrap = document.createElement('div');
     wrap.className = 'cockpit-click-zones';
-    wrap.setAttribute('aria-hidden', 'true');
+    // switch patch 1: real buttons in every theme so the switches are reachable and operable by keyboard
     SWITCHES.forEach(sw => {
-      const z = document.createElement('div');
+      const z = document.createElement('button');
+      z.type = 'button'; z.dataset.label = sw.bank + sw.step;
       z.id = 'zone-' + sw.id;
       z.className = 'cockpit-click-zone';
       z.addEventListener('click', () => handleSwitchClick(sw));
@@ -225,6 +272,7 @@
     buildClickZones();
     indicator = document.getElementById('radar-content');
     restoreState();
+    updateSwitchVisuals();
     window.addEventListener('resize', repositionAll, { passive: true });
   }
 

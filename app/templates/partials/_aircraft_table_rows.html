@@ -9,19 +9,19 @@
     {% if filtered_aircraft %}
         {% for a in filtered_aircraft %}
         <tr>
-            <td title="{{ a['AirlineName'] or '—' }}">{{ a['AirlineName'] or '—' }}</td>
+            <td class="ac-airline" tabindex="0"><span class="ac-airline-name">{{ a['AirlineName'] or '—' }}</span></td>
             <td title="{{ a['FlightNumber'] or '—' }}">{{ a['FlightNumber'] or '—' }}</td>
             <td title="{{ a['Registration'] or '—' }}">{{ a['Registration'] or '—' }}</td>
             <td title="{{ a['Aircraft_Type'] or '—' }}">{{ a['Aircraft_Type'] or '—' }}</td>
 
             <!-- Departure -->
-            <td title="{{ a['Departure'] | airport if a['Departure'] else '—' }}">
-                {{ a['Departure'] | airport if a['Departure'] else "—" }}
+            <td class="ac-airport" tabindex="0">
+                <span class="ac-airport-name">{{ a['Departure'] | airport if a['Departure'] else "—" }}</span>
             </td>
 
             <!-- Arrival -->
-            <td title="{{ a['Arrival'] | airport if a['Arrival'] else '—' }}">
-                {{ a['Arrival'] | airport if a['Arrival'] else "—" }}
+            <td class="ac-airport" tabindex="0">
+                <span class="ac-airport-name">{{ a['Arrival'] | airport if a['Arrival'] else "—" }}</span>
             </td>
 
             <!-- First Sighted -->

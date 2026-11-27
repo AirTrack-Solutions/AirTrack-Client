@@ -9,6 +9,14 @@
 <head>
     <meta charset="UTF-8">
     <title>Orphaned Aircraft</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- T2 (Bob 6756): long unbroken values wrap inside cells; any remaining width scrolls inside the table region, not the page -->
+    <style>
+      .orphaned-scroll { overflow-x: auto; max-width: 100%; }
+      .orphaned-scroll:focus-visible { outline: 2px solid #0d6efd; outline-offset: 2px; }
+      #orphanedTable th, #orphanedTable td { overflow-wrap: anywhere; }
+      .orphaned-scroll .row { --bs-gutter-x: 0; }  /* DataTables .row gutters otherwise add 12px of stray scroll */
+    </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/datatables.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ cache_bust }}">
@@ -21,6 +29,7 @@
         <h2 class="mb-4">Orphaned Aircraft</h2>
         
         {% if orphaned_aircraft %}
+        <div class="orphaned-scroll" role="region" aria-label="Orphaned aircraft table" tabindex="0">
         <table id="orphanedTable" class="table table-striped table-bordered">
             <thead>
                 <tr>
@@ -47,6 +56,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
         {% else %}
             <p>No orphaned aircraft found.</p>
         {% endif %}
@@ -59,7 +69,7 @@
     <script src="{{ url_for('static', filename='js/datatables.min.js') }}"></script>
     <script>
         $(document).ready(function () {
-            $('#orphanedTable').DataTable(); // Initialize the DataTable
+            $('#orphanedTable').DataTable({ autoWidth: false }); // Initialize the DataTable (T2: no fixed pixel column widths)
         });
     </script>
 <script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>

@@ -114,6 +114,9 @@
 
 {% if is_server %}
 <style>
+  /* T2b (Bob 6756): keep each header link in one piece; an inline link wrapping across two lines broke its label
+     and gave it a hit box spanning the whole row (Vintage Brass at 768/1024). Here because not every page links header.css. */
+  .header-links a { display: inline-block; white-space: nowrap; }
 @keyframes briefing-nav-pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.45; color: #f39c12; }

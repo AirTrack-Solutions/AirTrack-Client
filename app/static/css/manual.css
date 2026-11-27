@@ -105,3 +105,7 @@
         padding: 20px;
     }
 }
+/* T4 (Bob 6769): body is a 100vh flex column (footer.css), so this page block was allowed to shrink
+   to the viewport height while the form overflowed it; the footer then sat on top of the form fields.
+   Keep the block at its content height so the footer follows the form. */
+.manual-entry-page { flex-shrink: 0; }

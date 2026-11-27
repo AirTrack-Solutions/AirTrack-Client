@@ -317,3 +317,11 @@
 .smart-ask-notice a:hover {
     color: #007070;
 }
+/* R1 (Bob 6789): a centred flex card clips wide tables on BOTH sides (the left part cannot be scrolled to).
+   "safe center" keeps narrow tables centred and lets wide ones overflow to the right, scrollable in the card. */
+.report-table-card { justify-content: safe center; }
+.report-table-card:focus-visible { outline: 2px solid #0d6efd; outline-offset: 2px; }
+
+/* R1b (Bob 6795): body is a flex column (footer.css) and margin:auto stops this item stretching, so it shrank to its
+   content (card max 95vw + 40px padding), 769.6px at 768px wide. Fill the row instead; the 1200px cap still centres it. */
+.report-results-area { width: 100%; }

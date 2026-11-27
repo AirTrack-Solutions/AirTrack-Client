@@ -70,7 +70,7 @@ DB_CONFIG = {
     "host": "192.168.0.200",
     "port": 3306,
     "user": "SirBob",
-    "password": "ofAirTrack",
+    "password": os.getenv("DB_PASSWORD", ""),
     "database": "airtrack",
 }
 

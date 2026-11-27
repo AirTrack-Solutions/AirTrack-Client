@@ -51,7 +51,7 @@ First aircraft Country_Flag: "{{ aircraft_list[0].get('Country_Flag', 'NOT_FOUND
   {% set aircraft_list = filtered_aircraft %}
 
   <!-- Aircraft Table Wrapper -->
-  <div class="aircraft-table-wrapper">
+  <div class="aircraft-table-wrapper" role="region" aria-label="Aircraft table" tabindex="0">
     <table class="table aircraft-table w-100">
       <thead>
         <tr>
@@ -71,12 +71,12 @@ First aircraft Country_Flag: "{{ aircraft_list[0].get('Country_Flag', 'NOT_FOUND
         {% if aircraft_list %}
           {% for a in aircraft_list %}
           <tr>
-            <td>{{ a["AirlineName"] }}</td>
+            <td class="ac-airline" tabindex="0"><span class="ac-airline-name">{{ a["AirlineName"] }}</span></td>
             <td>{{ a["FlightNumber"] }}</td>
             <td>{{ a["Registration"] }}</td>
             <td>{{ a["Aircraft_Type"] }}</td>
-            <td title="{{ a['Departure'] | airport if a['Departure'] else '—' }}">{{ a['Departure'] | airport if a['Departure'] else "—" }}</td>
-            <td title="{{ a['Arrival']   | airport if a['Arrival']   else '—' }}">{{ a['Arrival']   | airport if a['Arrival']   else "—" }}</td>
+            <td class="ac-airport" tabindex="0"><span class="ac-airport-name">{{ a['Departure'] | airport if a['Departure'] else "—" }}</span></td>
+            <td class="ac-airport" tabindex="0"><span class="ac-airport-name">{{ a['Arrival']   | airport if a['Arrival']   else "—" }}</span></td>
             <td>{{ a["Category"] or "N/A" }}</td>
             <td>{{ a.get("Country_of_Reg", "Unknown") }}</td>
             <td>
@@ -137,5 +137,6 @@ total_pages %}
   </div>
   {% endif %}
 <script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+<script src="{{ url_for('static', filename='js/airport_tooltip.js') }}"></script>
 </body>
 </html>

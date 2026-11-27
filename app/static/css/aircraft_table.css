@@ -271,3 +271,79 @@ body {
     color: white;
     border-color: #007777;
 }
+
+/* A1 (Trevor 6830 / Bob 6831): full values, every row and every row action reachable.
+   - body is a 100vh flex column (footer.css): the overflow:auto wrapper was allowed to shrink into a short inner
+     scroll box, clipping rows; keep it at content height so the page scrolls instead.
+   - fixed layout + nowrap + hidden overflow cut values to ellipses and clipped Edit/Delete (fixed layout ignores
+     min-width). Auto layout sizes columns to content; text wraps at word boundaries; the three actions stay on one
+     line; anything wider than the wrapper scrolls horizontally inside it. */
+.aircraft-table-wrapper { flex-shrink: 0; }
+.aircraft-table { table-layout: auto; }
+.aircraft-table th, .aircraft-table td { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
+.aircraft-table th:nth-child(10), .aircraft-table td:nth-child(10) { white-space: nowrap; }
+.aircraft-table-wrapper:focus-visible { outline: 2px solid #0d6efd; outline-offset: 2px; }
+
+/* A2 (Trevor 6851 / Bob 6852): reclaim width below 1366 px so less sideways scrolling is needed. Full values stay
+   visible (wrapping, no truncation); every row and action stays reachable. Desktop (>=1366) is unchanged. */
+@media (max-width: 1365px) {
+    .aircraft-table-wrapper { width: calc(100% - 24px); padding: 4px; }
+    .aircraft-table-wrapper .aircraft-table :is(th, td) { padding: 6px 5px; font-size: 13px; } /* beats footer.css table.table th/td */
+    body.theme-vintage_brass .aircraft-table :is(th, td) { font-size: 14px; }
+    .aircraft-table th { height: auto; line-height: 1.2; }
+    .aircraft-table th:nth-child(1), .aircraft-table td:nth-child(1) { min-width: 90px; max-width: 140px; }
+    .aircraft-table th:nth-child(2), .aircraft-table td:nth-child(2) { min-width: 44px; max-width: 56px; }
+    .aircraft-table th:nth-child(3), .aircraft-table td:nth-child(3) { min-width: 56px; max-width: 70px; }
+    .aircraft-table th:nth-child(4), .aircraft-table td:nth-child(4) { min-width: 90px; max-width: 120px; }
+    .aircraft-table th:nth-child(5), .aircraft-table td:nth-child(5),
+    .aircraft-table th:nth-child(6), .aircraft-table td:nth-child(6) { min-width: 90px; max-width: 130px; }
+    .aircraft-table th:nth-child(7), .aircraft-table td:nth-child(7),
+    .aircraft-table th:nth-child(8), .aircraft-table td:nth-child(8) { min-width: 78px; max-width: 90px; }
+    .aircraft-table th:nth-child(9), .aircraft-table td:nth-child(9) { width: 48px; }
+    .aircraft-table td img.flag-img { width: 40px; height: 24px; }
+    .aircraft-table th:nth-child(10), .aircraft-table td:nth-child(10) { min-width: 0; max-width: none; }
+    .aircraft-table td:nth-child(10) .btn { padding: 2px 6px; margin: 0 1px; }
+}
+
+/* A4 (Trevor 6877 / Bob 6878): compact airport names in Departure/Arrival only. One line with an ellipsis; the full
+   name is revealed in place (wraps, same column width) on hover and on keyboard focus (cells are tabindex=0), stays in
+   the title, and is always in the DOM for screen readers. Fixed span max-width (120px at every width, so 1366 keeps its no-scroll fit) so nowrap text cannot widen the column. */
+.aircraft-table td.ac-airport .ac-airport-name { display: block; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aircraft-table td.ac-airport:focus-visible { outline: 2px solid #0d6efd; outline-offset: -2px; }
+/* Option for A4 r2 (measured only): narrower compact airport names below 1366. */
+@media (max-width: 1365px) { .aircraft-table td.ac-airport .ac-airport-name { max-width: 100px; } }
+
+/* A5 (Trevor 6892 / Bob 6895): never split Flight or Registration identifiers or column headings mid-word. A1 lets
+   cells wrap (overflow-wrap: break-word) while older rules cap Flight at 50-60px and Registration at 56-70px, so codes
+   like "QFA7304" and the "Registration" heading were broken. Headings now wrap only between words; the two identifier
+   columns stay on one line and size to their content. Any extra width is scrolled inside the focusable table region. */
+.aircraft-table th { overflow-wrap: normal; word-break: normal; }
+.aircraft-table th:nth-child(2), .aircraft-table td:nth-child(2),
+.aircraft-table th:nth-child(3), .aircraft-table td:nth-child(3) { white-space: nowrap; min-width: 0; max-width: none; }
+/* A5 r2: the desktop rule still reserves min 220px for Actions (the three buttons need about 155px); relax it at every
+   width so the identifier columns' extra width does not push 1366 into sideways scrolling. */
+.aircraft-table th:nth-child(10), .aircraft-table td:nth-child(10) { min-width: 0; }
+
+/* A7 (Trevor 6924 / Bob 6925): the cell no longer expands on hover/focus (it made the table jump). The full airport
+   name is shown in one floating tooltip (static/js/airport_tooltip.js), position:fixed outside the table's layout, so
+   row and column geometry never change. The native title tooltip was removed so the name is not shown twice. */
+.ac-airport-tip { position: fixed; z-index: 2000; max-width: min(360px, calc(100vw - 8px)); padding: 4px 8px;
+    background: #1f2933; color: #fff; border-radius: 4px; font: 13px/1.3 "Times New Roman", Times, serif;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .35); overflow-wrap: break-word; }
+.ac-airport-tip[hidden] { display: none; }
+
+/* A6 trial (Trevor 6910 / Bob 6913), Aircraft table only: vintage-brass.css forces every table th/td to 1rem (16px),
+   so VB text was larger than the other themes (14px wide, 13px compact) and needed extra width near 1366px. Match the
+   other themes' sizes here; VB colours and borders are unchanged. The global VB rules stay in place for other tables. */
+body.theme-vintage_brass .aircraft-table :is(th, td) { font-size: 14px; }
+@media (max-width: 1365px) {
+    body.theme-vintage_brass .aircraft-table :is(th, td) { font-size: 13px; }
+}
+
+/* A8 (Trevor 6938 / Bob 6939): Airline names on one line with an ellipsis; the full name is shown by the same single
+   A7 tooltip (hover and keyboard focus; cells are tabindex=0). Fixed span max-width so nowrap text cannot widen the column. */
+.aircraft-table td.ac-airline .ac-airline-name { display: block; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0 auto; }
+.aircraft-table td.ac-airline:focus-visible { outline: 2px solid #0d6efd; outline-offset: -2px; }
+@media (max-width: 1365px) {
+    .aircraft-table td.ac-airline .ac-airline-name { max-width: 120px; }
+}

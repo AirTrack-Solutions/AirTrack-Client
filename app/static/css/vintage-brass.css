@@ -166,3 +166,275 @@ body.theme-vintage_brass .theme-name { color: #30261b; }
 @media (max-width: 767px) {
   body.theme-vintage_brass .callsign-banner { margin: 8px 0; font-size: 1.6rem; }
 }
+
+/* Complete page-specific surfaces; leave operational severity colours intact. */
+body.theme-vintage_brass {
+ --teal:#624213; --text-muted:#766448;
+ --ops-bg:#252725; --ops-panel:#30312d; --ops-panel-2:#3c3c33;
+ --ops-border:#947746; --ops-bright:#e1bd76; --ops-text:#f8ecd5; --ops-muted:#c6b58f;
+}
+body.theme-vintage_brass a { color:#e2bf7b; }
+body.theme-vintage_brass :is(h1,h2,h3,.airtrack-section-title,.add-airline-title,.report-title) { color:#f8ecd5; text-shadow:none; }
+body.theme-vintage_brass :is(.add-airline-card,.report-table-card,.airport-card,.link-box) {
+ background:#f8ecd5; color:#30261b; border:1px solid #b9914d;
+}
+body.theme-vintage_brass :is(.add-airline-card,.report-table-card,.airport-card,.link-box) :is(h1,h2,h3,label,a) {color:#624213;text-shadow:none;}
+body.theme-vintage_brass :is(.teal-button,.btn-ghost,.report-link,.smart-ask-btn,.cockpit-hud-button,button:not(.btn-close)) {
+ background:linear-gradient(#d4b675,#ad8037); color:#241c12; border:1px solid #987136; text-shadow:none; box-shadow:inset 0 1px #edd8a6,0 2px 3px #0005;
+}
+body.theme-vintage_brass :is(.report-link,.cockpit-hud-button):hover {background:#e3c78b;color:#241c12;}
+body.theme-vintage_brass :is(.card-header,.icao-badge,.metar-sidebar-count) {background:#b9914d;color:#241c12;}
+body.theme-vintage_brass :is(.report-table-card,.airport-card) a {color:#624213;}
+body.theme-vintage_brass #notam-report-root {
+ display:block; width:100%; max-width:1200px; box-sizing:border-box;
+ --text-primary:#30261b; --text-secondary:#67563d;
+}
+body.theme-vintage_brass #notam-report-root :is(.icao-badge,.airport-name,.notam-count) {color:#30261b;background:transparent;}
+body.theme-vintage_brass #notam-report-root .notam-airport-header {background:#e5cfa5;}
+body.theme-vintage_brass :is(.notam-title,.notam-subtitle,.notam-stats,.last-updated,.card-icao,.card-summary,.card-valid,.notam-row-detail,.notam-raw,.notam-full-list,.safety-footer) {color:#f8ecd5;}
+body.theme-vintage_brass :is(.notam-page .airport-card,.notam-full-list,.notam-row) {background:#30312d;color:#f8ecd5;border-color:#947746;}
+body.theme-vintage_brass :is(.metar-card,.metar-raw) {background:#30312d !important;color:#f8ecd5; border-color:#947746;}
+body.theme-vintage_brass :is(.metar-heading,.metar-section-title,.metar-stat-value,.metar-sidebar a) {color:#e1bd76;}
+body.theme-vintage_brass :is(input:not([type=checkbox]):not([type=radio]):not([type=color]),select,textarea) {background:#fbf2e1;color:#30261b;border-color:#ad8b50;}
+/* Instruments retain their original coordinates, values and needle animation. */
+body.theme-vintage_brass .gauge {
+ background:radial-gradient(circle at 40% 30%,#fff5db,#d9c59a);
+ border:3px solid #b9914d;
+ box-shadow:0 0 0 2px #4d3b20,inset 0 0 0 2px #715b36,inset 0 1px 8px #765a3355,0 3px 6px #0008;
+}
+body.theme-vintage_brass .gauge .tick {background:#493821;}
+body.theme-vintage_brass .gauge .needle {background:#813827;box-shadow:1px 1px 1px #0005;}
+body.theme-vintage_brass .gauge-value {color:#30261b;font-weight:bold;font-family:Georgia,serif;}
+body.theme-vintage_brass .gauge-label {color:#eddbb8;font-family:Georgia,serif;}
+body.theme-vintage_brass #cockpit-center-display {background:linear-gradient(#d4b675,#ad8037);border:2px solid #987136;box-shadow:inset 0 0 0 1px #ead3a0,0 2px 5px #0008;}
+body.theme-vintage_brass :is(#radar-content,#action-confirmation) {color:#30261b;text-shadow:none;}
+body.theme-vintage_brass.community-utility {max-width:1100px;}
+body.theme-vintage_brass.community-utility :is(article,section) {background:#30312d;border-color:#947746;color:#f8ecd5;}
+
+/* The Cockpit alone has a panel; keep shutdown's existing dimming/layer order. */
+body.theme-vintage_brass .admin-background {
+ display:block !important; background-image:none !important;
+ background:linear-gradient(135deg,#4c493c,#34352e 45%,#4a4332);
+ border:3px solid #a4864c; border-radius:24px;
+ inset:12px 12px auto; width:calc(100% - 24px); height:55vh;
+ box-sizing:border-box;
+ clip-path:polygon(0 0,100% 0,100% 73%,83% 100%,17% 100%,0 73%);
+ box-shadow:inset 0 0 0 4px #25261f,inset 0 0 0 6px #8d7448,inset 0 -20px 35px #0006;
+ pointer-events:none;
+}
+body.theme-vintage_brass .admin-background::after {
+ content:'';position:absolute;left:17%;right:17%;top:70%;bottom:5%;
+ background:#252822;border:2px solid #a4864c;border-radius:22px;
+ box-shadow:inset 0 3px 12px #0009,0 1px #c0a56d;
+}
+body.theme-vintage_brass .cockpit-hangar-plate {
+ display:block !important; background-image:url('/static/themes/hangar2.png') !important;
+}
+body.theme-vintage_brass #briefing-reset::after {
+ content:'REPORT';display:block;font:9px Georgia,serif;color:#30261b;
+}
+body.theme-vintage_brass:is(.cockpit--stage-4,.cockpit--secured) #briefing-reset {opacity:0;pointer-events:none;}
+
+/* Cockpit artwork only; existing stage filters and hangar crossfade remain. */
+body.theme-vintage_brass .admin-background {
+ inset:0; width:100%; height:100%; border:0; border-radius:0;
+ clip-path:none; box-shadow:none;
+ background-image:url('/static/images/vintage-steampunk-cockpit-controls.png') !important;
+ background-size:100% 100%; background-position:center; background-repeat:no-repeat;
+}
+body.theme-vintage_brass .admin-background::after {display:none;}
+body.theme-vintage_brass #briefing-reset {
+ background:linear-gradient(#e1c584,#ac813b) !important;
+ border:1px solid #725322;box-shadow:inset 0 1px #f8e4ae,0 2px 4px #0009;
+}
+body.theme-vintage_brass #briefing-reset::after {color:#241b0d;font-weight:bold;}
+
+/* Match the live instruments to the generated panel rather than its upper rim. */
+body.theme-vintage_brass .gauge {top:52% !important;}
+body.theme-vintage_brass #cockpit-center-display {top:53% !important;}
+body.theme-vintage_brass #briefing-reset {
+ left:62.4% !important;top:38.1% !important;width:7.2% !important;height:4.4% !important;
+ background:transparent !important;border:0;box-shadow:none;
+}
+body.theme-vintage_brass #briefing-reset::after {color:#efdab0;font-size:12px;letter-spacing:.12em;text-shadow:0 1px 2px #000;}
+
+/* Lift instrument faces only; compensate labels to hold their screen position. */
+body.theme-vintage_brass .gauge {top:50.8% !important;}
+body.theme-vintage_brass .gauge-label {bottom:calc(-12px - 1.2vh);}
+/* Consistent engraved switch banks aligned with the sloping side panels. */
+body.theme-vintage_brass .cockpit-hud-column {
+ top:5%;bottom:auto;gap:6px;width:clamp(125px,10vw,192px);
+}
+body.theme-vintage_brass .hud-left {left:2.8%;transform:rotate(-10deg);transform-origin:top left;align-items:stretch;}
+body.theme-vintage_brass .hud-right {right:2.8%;transform:rotate(10deg);transform-origin:top right;align-items:stretch;}
+body.theme-vintage_brass .cockpit-hud-column :is(a,form) {display:block;width:100%;margin:0;}
+body.theme-vintage_brass .cockpit-hud-button {
+ display:block;box-sizing:border-box;width:100%;min-height:26px;
+ padding:5px 7px;font-size:clamp(11px,.72vw,14px);line-height:1.15;
+ border:1px solid #76582c;border-radius:4px;
+ background:linear-gradient(100deg,#97703b,#d5b879 48%,#a67b3f);
+ color:#271d10;text-align:center;box-shadow:inset 0 0 0 1px #d9be86,0 2px 3px #0008;
+}
+
+/* Receding switch-bank perspective: upper rows progressively smaller. */
+
+/* Fit panel edges by width only: constant text size and button height. */
+body.theme-vintage_brass .hud-left > * {align-self:flex-start;}
+body.theme-vintage_brass .hud-right > * {align-self:flex-end;}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(1) {transform:none;width:calc(100.0% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(2) {transform:none;width:calc(98.4% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(3) {transform:none;width:calc(96.8% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(4) {transform:none;width:calc(95.2% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(5) {transform:none;width:calc(93.6% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(6) {transform:none;width:calc(92.0% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(7) {transform:none;width:calc(90.4% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(8) {transform:none;width:calc(88.8% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(9) {transform:none;width:calc(87.2% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(10) {transform:none;width:calc(85.6% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(11) {transform:none;width:calc(84.0% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-column > :nth-last-child(12) {transform:none;width:calc(82.4% - .65vw);}
+body.theme-vintage_brass .cockpit-hud-button {height:26px;min-height:26px;font-size:13px;white-space:nowrap;}
+
+/* Match the approved inner clearance on the outer panel edge as well. */
+body.theme-vintage_brass .hud-left > :is(a,form,button) {margin-left:.65vw;}
+body.theme-vintage_brass .hud-right > :is(a,form,button) {margin-right:.65vw;}
+
+/* Right-hand artwork has a different slope; fit independently of left bank. */
+body.theme-vintage_brass .hud-right {right:2.8%;transform:rotate(9deg);width:clamp(125px,10vw,192px);}
+body.theme-vintage_brass .hud-right .cockpit-hud-button {
+ background:linear-gradient(100deg,#97703b,#d5b879 48%,#a67b3f) !important;
+ color:#271d10 !important;opacity:1;text-shadow:none;
+}
+body.theme-vintage_brass .hud-right .cockpit-hud-button:hover {background:#e3c78b !important;}
+
+/* Live shutdown switches: decorative levers share the real click targets. */
+body.theme-vintage_brass .cockpit-click-zone {
+ cursor:pointer;border:2px solid #806030;border-radius:7px;
+ background:linear-gradient(110deg,#8d6836,#cfb77c,#96703c);
+ box-shadow:inset 0 0 0 1px #e1ca91,0 3px 5px #0009;
+ padding:0; color:#f5e1b4;
+}
+body.theme-vintage_brass .cockpit-click-zone::before {
+ content:'';position:absolute;width:8px;height:22px;left:12px;top:5px;
+ background:linear-gradient(90deg,#7d7159,#eee4cd,#978565);border:1px solid #403626;
+ border-radius:5px;transform-origin:50% 100%;transform:rotate(-20deg);
+ box-shadow:1px 2px 3px #0008;transition:transform .2s,top .2s;
+}
+body.theme-vintage_brass .cockpit-click-zone.is-off::before {transform:rotate(160deg);top:-1px;}
+body.theme-vintage_brass .cockpit-click-zone::after {
+ content:attr(data-label);position:absolute;top:-20px;left:-4px;width:40px;
+ font:bold 11px Georgia,serif;color:#f5e1b4;text-shadow:0 1px 3px #000;
+}
+body.theme-vintage_brass .cockpit-click-zone:focus-visible {outline:3px solid #f5d383;outline-offset:3px;}
+
+/* Secured view uses the same vintage airframe, at matching image coordinates. */
+body.theme-vintage_brass {--hangar-opacity:1;}
+body.theme-vintage_brass .cockpit-hangar-plate {
+ background-image:url('/static/images/vintage-steampunk-cockpit-secured.png') !important;
+ background-size:100% 100%;background-position:center;
+ filter:brightness(.9);
+}
+
+/* Keep the real instruments and HUD present over the matching secured cockpit. */
+body.theme-vintage_brass :is(.gauge,.cockpit-hud-column) {z-index:2;}
+body.theme-vintage_brass:is(.cockpit--stage-4,.cockpit--secured) :is(.gauge,.cockpit-hud-column,#briefing-reset) {
+ opacity:1;pointer-events:auto;
+}
+
+/* Balance the instrument panel around its central lower brass screw (50.2%). */
+body.theme-vintage_brass #cockpit-center-display {left:50.2%;}
+body.theme-vintage_brass .gauge-airlines {left:21.2% !important;transform:translateX(-50%);}
+body.theme-vintage_brass .gauge-aircraft {left:27.2% !important;transform:translateX(-50%);}
+body.theme-vintage_brass .gauge-flights {left:33.2% !important;transform:translateX(-50%);}
+body.theme-vintage_brass .gauge-models {left:39.2% !important;transform:translateX(-50%);}
+body.theme-vintage_brass .gauge-photos {left:61.2% !important;transform:translateX(-50%);}
+body.theme-vintage_brass .gauge-orphaned {left:67.2% !important;transform:translateX(-50%);}
+body.theme-vintage_brass .gauge-countries {left:73.2% !important;transform:translateX(-50%);}
+body.theme-vintage_brass .gauge-airports {left:79.2% !important;transform:translateX(-50%);}
+
+/* One vertical centreline for the radar plaque and all instrument faces. */
+body.theme-vintage_brass #cockpit-center-display {height:32px;box-sizing:border-box;}
+body.theme-vintage_brass .gauge {
+ width:61px;height:61px;box-sizing:border-box;
+ top:calc(53% - 14.5px) !important;
+}
+body.theme-vintage_brass .gauge-label {bottom:calc(1vh - 26.5px);}
+
+/* Keep approved left faces; compensate the right faces by one outer diameter. */
+body.theme-vintage_brass .gauge-photos {left:calc(61.2% - 61px) !important;}
+body.theme-vintage_brass .gauge-orphaned {left:calc(67.2% - 61px) !important;}
+body.theme-vintage_brass .gauge-countries {left:calc(73.2% - 61px) !important;}
+body.theme-vintage_brass .gauge-airports {left:calc(79.2% - 61px) !important;}
+
+/* Match the live admin.js cover crop in both operating and secured states. */
+body.theme-vintage_brass :is(.admin-background,.cockpit-hangar-plate) {
+ background-size:cover !important;background-position:center center !important;
+}
+
+/* Cockpit-linked local pages share the selected brass palette. */
+body.theme-vintage_brass.hud-utility {background:#252725 !important;color:#f8ecd5 !important;}
+body.theme-vintage_brass.hud-utility :is(.page-header,.manual-entry-header,.manual-entry-panel,.registry-card,.filter-bar,.tally-bar,.progress-section,.legend,.quota-bar,pre) {
+ background:#30312d !important;color:#f8ecd5 !important;border-color:#947746 !important;
+}
+body.theme-vintage_brass.hud-utility :is(h1,h2,h3,.page-title,.card-name,.tally-value,.critter-name) {color:#e1bd76 !important;}
+body.theme-vintage_brass.hud-utility :is(a,.back-link,.country-name,.card-meta,.subtitle,.hint,.manual-status,.tally-label,.quota-label) {color:#e1bd76;}
+body.theme-vintage_brass.hud-utility :is(.btn,.filter-btn,.nav-link,.manual-form-actions button) {background:#b9914d;color:#241c12;border-color:#806030;}
+body.theme-vintage_brass.hud-utility :is(.nav-link.active,.filter-btn.active) {background:#eed8a7;color:#241c12;}
+body.theme-vintage_brass.hud-utility .manual-form-group label {color:#f8ecd5;text-shadow:none;}
+body.theme-vintage_brass :is(.settings-card,.settings-header,.settings-tabs,.settings-body,.modal-message) {background:#30312d;color:#f8ecd5;border-color:#947746;box-shadow:0 3px 12px #0008;}
+body.theme-vintage_brass :is(.tab-btn,.settings-close) {background:#b9914d;color:#241c12;border-color:#806030;}
+body.theme-vintage_brass .tab-btn.active {background:#eed8a7;color:#241c12;}
+
+/* Compact brass header: preserve readable type and recover the tenth table row. */
+body.theme-vintage_brass .header-container {padding:8px 25px;}
+body.theme-vintage_brass .callsign-banner {
+ flex:0 1 330px;padding:5px 22px;font-size:clamp(1.35rem,2.3vw,2.2rem);
+}
+body.theme-vintage_brass .callsign-banner::before,
+body.theme-vintage_brass .callsign-banner::after {top:5px;box-shadow:0 24px 0 -1px #5a4930;}
+body.theme-vintage_brass .header-second-row {margin-top:6px;}
+body.theme-vintage_brass .header-links {padding-top:3px;gap:5px 12px;}
+body.theme-vintage_brass .header-links a {padding:2px 6px;}
+
+/* Equal side tracks centre the plaque independently of title/link widths. */
+@media (min-width: 900px) {
+ body.theme-vintage_brass .header-top {display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;}
+ body.theme-vintage_brass .header-top .callsign-banner {width:330px;max-width:100%;margin:0;justify-self:center;}
+ body.theme-vintage_brass .header-right {justify-self:end;}
+}
+
+/* ── Responsive patch 1 (C1+C2, Bob 6697) — isolated fixture only ─────────────────────────────────
+   C1: the centre plaque and the right-face compensation scale with the viewport instead of fixed
+   pixels; both equal their tuned values at 1920 (10.4vw = 200px, 3.18vw = 61px).
+   C2: gauge labels keep a 10px floor and wrap at word boundaries inside the face spacing; anchored by
+   top so a second line grows downward, away from the face. */
+body.theme-vintage_brass #cockpit-center-display {width:min(200px,10.4vw);}
+body.theme-vintage_brass .gauge-photos {left:calc(61.2% - 3.18vw) !important;}
+body.theme-vintage_brass .gauge-orphaned {left:calc(67.2% - 3.18vw) !important;}
+body.theme-vintage_brass .gauge-countries {left:calc(73.2% - 3.18vw) !important;}
+body.theme-vintage_brass .gauge-airports {left:calc(79.2% - 3.18vw) !important;}
+body.theme-vintage_brass .gauge-label {
+ font-size:max(10px,0.55em) !important;line-height:1.05;white-space:normal;overflow-wrap:normal;
+ width:max(46px,5.6vw);left:50%;transform:translateX(-50%);text-align:center;
+ top:calc(100% + 16.5px - 1vh);bottom:auto !important;
+}
+
+/* ── Responsive patch 1b (Bob 6704) — isolated fixture only ─────────────────────────────────────
+   At a true tablet width (viewport meta present) the plaque and faces need more room: narrower
+   plaque (with 11px plaque text so SECURED still fits), slightly smaller faces. Only applies at ≤900px; wider layouts are untouched. */
+@media (max-width:900px) {
+ body.theme-vintage_brass #cockpit-center-display {width:9vw;}
+ body.theme-vintage_brass .gauge {width:40px !important;height:40px !important;}
+ body.theme-vintage_brass #cockpit-center-display :is(#radar-content,#action-confirmation) {font-size:11px;letter-spacing:0;}
+}
+
+/* Aircraft detail cards have white backgrounds. */
+body.theme-vintage_brass .aircraft-notes,
+body.theme-vintage_brass .aircraft-flight-history > h2 {
+  color: var(--vb-ink);
+}
+
+body.theme-vintage_brass .aircraft-notes a {
+  color: #624213;
+  text-decoration: underline;
+}

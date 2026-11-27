@@ -49,7 +49,7 @@ def _mysql_config() -> dict:
     return {
         "host": host,
         "user": os.getenv("DB_USER", "SirBob"),
-        "password": os.getenv("DB_PASSWORD", "ofAirTrack"),
+        "password": os.getenv("DB_PASSWORD", ""),
         "database": os.getenv("DB_NAME", "airtrack"),
         "port": int(port_str),
     }

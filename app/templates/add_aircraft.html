@@ -8,6 +8,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Add Aircraft</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
@@ -411,5 +412,15 @@ document.getElementById('btn-now').addEventListener('click', function() {
 })();
 </script>
 {% include 'footer.html' %}
+<script>
+  // M4a (Bob 6785): body is its own scroll container (footer.css), and Chrome does not scroll a focused field that is
+  // only partly visible (seen with Notes at 768px). Bring a focused form field fully into view; focus is not moved.
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !t.matches || !t.matches('form input, form select, form textarea, form button')) return;
+    var r = t.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight) t.scrollIntoView({ block: 'nearest' });
+  });
+</script>
 </body>
 </html>

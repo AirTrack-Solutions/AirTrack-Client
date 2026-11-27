@@ -36,7 +36,7 @@
            />
 </div>
 
-<div class="aircraft-table-wrapper">
+<div class="aircraft-table-wrapper" role="region" aria-label="Aircraft table" tabindex="0">
     <table class="table aircraft-table w-100">
         <thead>
             <tr>
@@ -57,12 +57,12 @@
         {% if aircraft_list %}
             {% for a in aircraft_list %}
             <tr>
-                <td title="{{ a['AirlineName'] or '' }}">{{ a['AirlineName'] or '—' }}</td>
+                <td class="ac-airline" tabindex="0"><span class="ac-airline-name">{{ a['AirlineName'] or '—' }}</span></td>
                 <td title="{{ a['FlightNumber'] or '' }}">{{ a['FlightNumber'] or '—' }}</td>
                 <td title="{{ a['Registration'] or '' }}">{{ a['Registration'] or '—' }}</td>
                 <td title="{{ a['Aircraft_Type'] or '' }}">{{ a['Aircraft_Type'] or '—' }}</td>
-                <td title="{{ a['Departure'] | airport if a['Departure'] else '' }}">{{ a['Departure'] | airport if a['Departure'] else '—' }}</td>
-                <td title="{{ a['Arrival'] | airport if a['Arrival'] else '' }}">{{ a['Arrival'] | airport if a['Arrival'] else '—' }}</td>
+                <td class="ac-airport" tabindex="0"><span class="ac-airport-name">{{ a['Departure'] | airport if a['Departure'] else '—' }}</span></td>
+                <td class="ac-airport" tabindex="0"><span class="ac-airport-name">{{ a['Arrival'] | airport if a['Arrival'] else '—' }}</span></td>
                 <td>{{ a['First_Sighted_Display'] or '—' }}</td>
                 <td>{{ a['Aircraft_Updated_Display'] or '—' }}</td>
 
@@ -221,6 +221,7 @@ $(document).ready(function () {
 
 {% include 'footer.html' %}
 <script src="{{ url_for('static', filename='js/theme_loader.js') }}"></script>
+<script src="{{ url_for('static', filename='js/airport_tooltip.js') }}"></script>
 
 </body>
 </html>
