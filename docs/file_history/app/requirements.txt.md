@@ -1,8 +1,10 @@
 # File History: app/requirements.txt
 Journal Revision: 1
-Last Updated: 2026-11-01
+Last Updated: 2026-11-28
 
 ## Current State
+
+Include the already-used scheduler dependencies during image build.
 Before repair: dependency manifest allows a Dependabot-reported vulnerable Werkzeug version; Logbook also excludes patched Pillow13.
 
 ## Known Issues
@@ -22,3 +24,5 @@ Validate minimal security dependency bumps in isolation; retain proof gaps rathe
 - 2026-10-30 active-workspace integration: Apply only the tested dependency constraints to this existing checkout, preserving its other branch-specific requirements and unrelated edits. Canonical default-branch security changes are already published; existing installed binaries/images have not been rebuilt. Patched package and full-manifest resolver checks are documented above.
 
 - 2026-11-01: Integrated the already-published dependency repair from the remote branch rather than making a duplicate source fix. Retained local validation/provenance notes; branch-specific client pins preserved. This is repository reconciliation only, not a package/image/installer rollout. Recovery uses backup/pre-reconcile-20261101 and saved source snapshot.
+
+- 2026-11-28 — Include the already-used scheduler dependencies during image build. Shell and Compose static checks passed. Native fresh install/retained volume checks pending. Revert source and use the previous matching image to recover.

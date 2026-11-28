@@ -26,7 +26,14 @@ services:
       ]
     restart: unless-stopped
     depends_on:
-      - airtrack-db
+      airtrack-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:5000/static/css/vintage-brass.css"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
     ports:
       - "${AIRTRACK_PORT:-5001}:5000"
     env_file: .env
@@ -54,10 +61,14 @@ services:
     image: airtrack:client
     working_dir: /app
     entrypoint: ["/bin/sh", "/app/wait-for-mariadb.sh"]
-    command: ["/bin/sh", "-c", "/venv/bin/pip install -q 'APScheduler>=3.10,<4' beautifulsoup4 docker && exec /venv/bin/python /app/scheduler.py"]
+    command: [
+        "/bin/sh", "-ec",
+        "/venv/bin/python -c 'import apscheduler, bs4, docker' || /venv/bin/pip install -q 'APScheduler>=3.10,<4' beautifulsoup4 docker; exec /venv/bin/python /app/scheduler.py"
+      ]
     restart: unless-stopped
     depends_on:
-      - airtrack-db
+      airtrack-db:
+        condition: service_healthy
     env_file: .env
     environment:
       PYTHONUNBUFFERED: "1"
@@ -87,12 +98,18 @@ services:
     image: mariadb:11.4
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: "${DB_PASSWORD:-airtrack}"
+      MARIADB_ROOT_PASSWORD: "${MARIADB_ROOT_PASSWORD:-${DB_PASSWORD:-airtrack}}"
       MARIADB_DATABASE: "${DB_NAME:-airtrack}"
       MARIADB_USER: "${DB_USER:-airtrack}"
       MARIADB_PASSWORD: "${DB_PASSWORD:-airtrack}"
     volumes:
       - db_data:/var/lib/mysql
+      - ./app/db/schema.sql:/docker-entrypoint-initdb.d/10-logbook-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
 
 volumes:
   db_data:

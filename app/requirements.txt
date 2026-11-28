@@ -29,4 +29,6 @@ paramiko==5.0.0
 
 # Prod server
 gunicorn==26.0.0
-apscheduler>=3.10
+apscheduler>=3.10,<4
+beautifulsoup4
+docker
