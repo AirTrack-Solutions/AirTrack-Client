@@ -4,6 +4,8 @@ Last Updated: 2026-11-28
 
 ## Current State
 
+Photo-capable bundles passed native installation, upload and backup verification.
+
 The Linux AMD64 and native Pi ARM64 customer bundles passed clean install and retention checks.
 
 Include the already-used scheduler dependencies during image build.
@@ -32,3 +34,5 @@ Validate minimal security dependency bumps in isolation; retain proof gaps rathe
 - 2026-11-28 — Final customer bundle source fcdb4b1, application images 826d826 (identical app tree). The exact AMD64 and native Pi ARM64 archives passed first-run install with disposable MariaDB, licensed ATP/ATF fixtures, stock request gates and served CSS/JS. Reruns preserved the SQL marker, .env and licence. Existing-volume/wrong-folder test refused to create a new .env. Package contents and SHA-256 sums verified. Bundle names and hashes: AirTrack-Logbook-V1-Linux-AMD64.tar.gz a77473c0187949090be2dcb95715966527a63e41da395e8f7052c7cd3b6e2c7f and AirTrack-Logbook-V1-Raspberry-Pi-ARM64.tar.gz e4263fc34d90af64768b5e22e968cc1e377e3777ca8c7748080cafb9c86c2987. Use the previous matching image/source and established database backup for rollback.
 
 - 2026-11-28 — Customer bundle verification found Pillow missing from the Linux/Pi runtime, blocking the existing aircraft photo upload path. Pin the previously qualified Pillow 13.0.0. Rebuild both images and repeat native photo and backup checks before public publication. Keep prior private artifacts for rollback.
+
+- 2026-11-28 — Rebuilt Linux AMD64 and native Pi ARM64 customer bundles from 4d69bd4 with Pillow 13.0.0 after the photo upload dependency gap was found. On disposable native deployments, exercised the normal first-run setup, real JPEG upload, HTTP photo response and Cockpit backup. Verified completed SQL marker and the photo manifest/blob checksum. Both install reruns preserved the database marker, .env and licence; a wrong folder still refused to create credentials over an existing volume. Previous bundles remain private. New archive SHA-256: AMD64 666a0f719cb1ed13eb2de5fa5439eefc56847dc05e4e7af61b77e342f113ad78, ARM64 32bbfafd9ec24532ca768337b3b82fb40fe3e877854fdcf1c2e6ab1ab26d2e0f. Native logs and packages under artifacts/photo-qualified-20261128 in the distribution workspace; protected web rollout copies on node153 /home/airtrack/logbook-client-photo-qualified-20261128. No installation on existing customer systems. Roll back by restoring the previous image/source and keeping the original .env, licence and database.
