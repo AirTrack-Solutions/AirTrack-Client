@@ -4,6 +4,8 @@ Last Updated: 2026-11-28
 
 ## Current State
 
+The Linux AMD64 and native Pi ARM64 customer bundles passed clean install and retention checks.
+
 Release source b14bbf7 is pushed on release/logbook-v1-20261127. The Linux AMD64 and Raspberry Pi ARM64 package and matching deployment source archive are built. The .158 production
 browser sign-off accepted the live Chromium hover coverage gap and deferred
 user-selectable data text size to V2.
@@ -22,3 +24,5 @@ user-selectable data text size to V2.
 - 2026-11-27 — Both platforms started with an isolated MariaDB 11.4 schema, served tooltip and Vintage Brass assets with HTTP 200, and returned HTTP 302 from the protected Aircraft and Airlines routes. The ARM64 build and smoke ran natively on .163. Client-side flag styling and the Linux CSRF input explain the two source hash differences from .158. Theme generator tests, Jinja parsing, JavaScript syntax, git diff checks and credential-pattern checks passed. Removed bundled legacy database password fallbacks and kept runtime DB_PASSWORD as the credential source. Configure that variable for direct legacy utility runs. Smoke used standard request gates. The finished packages were not installed on production. Distribution artifacts and SHA256SUMS are under /home/trevor/docker/AirTrack/worktrees/logbook-v1-dist-20261127/artifacts. Use the previous app tree and image tag to recover an existing deployment.
 
 - 2026-11-28 — Prepare customer-installable Linux/ARM64 bundles. Fix GHCR latest overriding packaged image, fresh-volume schema provisioning and scheduler dependency placement. Full native verification is pending. Live fulfillment remains on the old archive until verified.
+
+- 2026-11-28 — Final customer bundle source fcdb4b1, application images 826d826 (identical app tree). The exact AMD64 and native Pi ARM64 archives passed first-run install with disposable MariaDB, licensed ATP/ATF fixtures, stock request gates and served CSS/JS. Reruns preserved the SQL marker, .env and licence. Existing-volume/wrong-folder test refused to create a new .env. Package contents and SHA-256 sums verified. Bundle names and hashes: AirTrack-Logbook-V1-Linux-AMD64.tar.gz a77473c0187949090be2dcb95715966527a63e41da395e8f7052c7cd3b6e2c7f and AirTrack-Logbook-V1-Raspberry-Pi-ARM64.tar.gz e4263fc34d90af64768b5e22e968cc1e377e3777ca8c7748080cafb9c86c2987. Use the previous matching image/source and established database backup for rollback.
