@@ -1,0 +1,51 @@
+AirTrack Logbook V1 — Linux and Raspberry Pi
+
+1. Choose the right archive
+   Linux AMD64: 64-bit Intel or AMD Linux (uname -m prints x86_64).
+   Raspberry Pi ARM64: a Pi running a 64-bit OS (aarch64 or arm64).
+   A 64-bit Pi with a 32-bit OS needs a 64-bit OS before using this bundle.
+
+2. Check Docker and free space
+   Install Docker Engine and the Docker Compose plugin for your OS first.
+   Run these from your normal terminal:
+       docker info
+       docker compose version
+   Both should succeed. Start Docker or correct permissions if either fails.
+   Setup loads the Logbook image from the archive. First startup needs
+   internet to pull MariaDB 11.4 if it is not already on your machine.
+   Keep several GB free for the archive, images, database and photos.
+
+3. Extract, add your licence, then run the installer
+   Extract the entire .tar.gz. Open a terminal in the airtrack-linux folder:
+       cd airtrack-linux
+       mkdir -p keys
+   Copy the licence attachment from your purchase email to keys/license.lic.
+   Without this file, Logbook starts in Lite mode.
+       bash install.sh
+   The installer creates .env on a new installation and waits for Logbook
+   and MariaDB to start. Keep this file private.
+
+4. Open Logbook and complete setup
+   Use the URL printed by the installer, normally http://localhost:5000.
+   On a headless Pi, open http://<Pi-LAN-IP>:5000 from another computer on
+   the same trusted network. Use the printed port if it differs. Complete
+   the disclaimer and first-run setup before opening the Cockpit.
+   If port 5000 is in use, set AIRTRACK_PORT to an unused port in .env
+   and run bash install.sh again from the same folder.
+
+5. Registry delivery, if included with your purchase
+   Set WOMBAT_URL and AIRTRACK_CUSTOMER_ID in .env to the values in your
+   purchase email. Run bash install.sh again so Compose applies changes.
+   This delivery needs internet access.
+
+6. Keep your data when stopping or updating
+   Start and stop from this same folder using bash start.sh and bash stop.sh.
+   In Cockpit, Backup DB creates the SQL backup and companion photo manifest
+   in app/backups/ on a standard install. Keep the SQL file, its .photos.json
+   and photo_store/ together and copy them somewhere safe.
+   For an existing installation, keep its original .env, keys/, data/,
+   app/static/uploads/ and Docker database volume. Make a backup first.
+   Use your existing installation folder. Do not start a second extracted
+   copy or run docker compose down -v against a database you want to keep.
+
+Support: https://airtracksolutions.com

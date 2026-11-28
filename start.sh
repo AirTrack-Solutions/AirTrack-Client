@@ -1,23 +1,10 @@
-#!/bin/bash
-echo ""
-echo " ================================================"
-echo "  AirTrack Solutions - Starting AirTrack"
-echo " ================================================"
-echo ""
-echo " Please wait while AirTrack starts up..."
-echo ""
-docker compose --env-file .env.client -f docker-compose.client.yml up -d --build
-if [ $? -ne 0 ]; then
-    echo ""
-    echo " ERROR: AirTrack failed to start."
-    echo " Make sure Docker is running and try again."
-    echo ""
+#!/usr/bin/env bash
+set -euo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+if [[ ! -f .env ]]; then
+    echo "No .env found here. Run bash install.sh for a new installation or open your existing AirTrack folder." >&2
     exit 1
 fi
-echo ""
-echo " ================================================"
-echo "  AirTrack is running!"
-echo "  Open your browser and go to:"
-echo "  http://localhost:5000"
-echo " ================================================"
-echo ""
+docker compose -f docker-compose.client.yml up -d --no-build --wait --wait-timeout 180
+endpoint=$(docker compose -f docker-compose.client.yml port airtrack 5000)
+printf 'AirTrack is running at http://localhost:%s\n' "${endpoint##*:}"

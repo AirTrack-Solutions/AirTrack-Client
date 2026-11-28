@@ -11,9 +11,9 @@
 
 ![AirTrack Cockpit](docs/screenshots/cockpit.png)
 
-AirTrack is a locally-installed, offline-first aircraft tracking suite built for planespotters, aviation enthusiasts, and serious aircraft data collectors. It runs entirely on your own hardware — Linux desktop or Raspberry Pi — with no cloud, no subscriptions, and no external servers of any kind.
+AirTrack is a locally-installed, offline-first aircraft tracking suite built for planespotters, aviation enthusiasts, and serious aircraft data collectors. It runs on your own hardware. First installation can need an internet connection, and optional services such as registry delivery use network access.
 
-Your data never leaves your machine. You are the Captain.
+Logbook records and photos are stored on your machine.
 
 ---
 
@@ -29,15 +29,8 @@ It answers that question from your own database, on your own hardware, with no A
 
 ## What's included
 
-**A registration database you can actually use offline.**
-AirTrack ships with civil aircraft registrations for 78 countries — over 417,000 aircraft records — bundled and ready to query the moment you install. No external lookups. No API keys. When you see a registration, AirTrack already knows it.
-
-| Stat | Value |
-|:-----|:------|
-| Countries covered | 78 |
-| Total registration records | 417,958+ |
-| Data source | Official civil aviation authorities |
-| Requires internet | No |
+**Aircraft registry lookup.**
+Availability depends on the registry data installed on your machine. For licensed registry delivery, follow the customer ID and Wombat instructions in your purchase email.
 
 **A full sightings and flights logbook.**
 Every aircraft you log, every sighting, every image — all stored locally in MariaDB. Search by registration, airline, type, country, ICAO or IATA code. Build a personal history of everything you've spotted.
@@ -69,46 +62,25 @@ Run a fleet of Raspberry Pis — one as the server, others as field units and ki
 
 ---
 
-## System requirements
+## Installation on Linux or Raspberry Pi
 
-| Component | Requirement |
-|:----------|:------------|
-| OS | Linux Desktop (Ubuntu / Pop!_OS / Mint) or Raspberry Pi OS 64-bit |
-| Docker | Required (installer will install if missing) |
-| Docker Compose | Required (installer will install if missing) |
-| RAM | 2 GB minimum |
-| Storage | SSD recommended; SD card works on Pi |
-| Browser | Chrome, Firefox, Edge, or Safari |
+Read [READ-ME-FIRST.txt](READ-ME-FIRST.txt) for prerequisites, first-run setup, backups and safe reinstall steps. Docker Engine and the Docker Compose plugin must already be installed and accessible from your terminal. See the [Docker Engine installation guide](https://docs.docker.com/engine/install/) and the [Compose plugin installation guide](https://docs.docker.com/compose/install/linux/).
 
-For Aria (AI assistant): Ollama with phi4-mini installed on the same machine or reachable on the local network.
-
----
-
-## Installation
+Use the Linux AMD64 archive on a 64-bit Intel or AMD machine. Use the Raspberry Pi ARM64 archive on a Pi with a 64-bit OS. Extract the whole archive, enter the `airtrack-linux` folder, place the licence from your purchase email at `keys/license.lic`, and run:
 
 ```bash
-# 1. Download and unzip the AirTrack package
-# 2. Open a terminal in the extracted folder
-
-chmod +x install_airtrack.sh
-./install_airtrack.sh
+bash install.sh
 ```
 
-When installation completes:
-
-```
-http://localhost:5000
-```
-
-That's it. AirTrack is running.
-
----
+Open the URL printed by the installer. For a headless Pi, use its LAN address and the same port from another computer on your local network.
 
 ## Starting and stopping
 
+From your original installation folder:
+
 ```bash
-./start.sh    # Start AirTrack
-./stop.sh     # Stop AirTrack
+bash start.sh
+bash stop.sh
 ```
 
 ---
@@ -117,7 +89,7 @@ That's it. AirTrack is running.
 
 Not ready to commit? **AirTrack Lite** is a free, fully functional build with a 100-aircraft cap. Same installer, same interface, same database — just limited in scale. Download it, run it, see if it's for you.
 
-👉 [Download AirTrack Lite 1.0.0 "Wilbur"](https://airtracksolutions.com.au)
+👉 [Download AirTrack Lite 1.0.0 "Wilbur"](https://airtracksolutions.com)
 
 ---
 
@@ -158,12 +130,11 @@ AirTrack is built on a simple principle: **your data belongs to you.**
 
 - No cloud accounts required
 - No telemetry or usage tracking
-- No dependency on AirTrack Solutions' servers
-- No subscriptions
-- Works completely offline
+- Local logbook use after installation
+- Optional online registry delivery and other connected services
 - Runs on hardware you already own
 
-If AirTrack Solutions disappeared tomorrow, every installation would keep running exactly as it does today.
+
 
 ---
 
@@ -197,4 +168,4 @@ AirTrack Lite is provided free of charge for personal, non-commercial use.
 *Built by aviation enthusiasts, for aviation enthusiasts.*
 *Clear skies and smooth landings.*
 
-**[airtracksolutions.com.au](https://airtracksolutions.com.au) · [Discord](https://discord.gg/NsmUxZmuY) · [GitHub](https://github.com/Subhuti/AirTrack-Logbook)**
+**[airtracksolutions.com](https://airtracksolutions.com) · [Discord](https://discord.gg/NsmUxZmuY) · [GitHub](https://github.com/Subhuti/AirTrack-Logbook)**
