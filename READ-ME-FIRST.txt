@@ -16,7 +16,7 @@ AirTrack Logbook V1 — Linux and Raspberry Pi
    Keep several GB free for the archive, images, database and photos.
 
 3. Extract, add your licence, then run the installer
-   Extract the entire .tar.gz. Open a terminal in the airtrack-linux folder:
+   Extract the entire .tar.gz. Open a terminal in the extraction folder:
        cd airtrack-linux
        mkdir -p keys
    Copy the licence attachment from your purchase email to keys/license.lic.
