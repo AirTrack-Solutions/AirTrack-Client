@@ -34,6 +34,10 @@ echo "  ✓  Created data/, logs/, keys/ directories"
 
 # ── .env setup ────────────────────────────────────────────────────────────────
 if [ ! -f .env ]; then
+    if docker volume inspect "${COMPOSE_PROJECT_NAME:-airtrack-client}_db_data" >/dev/null 2>&1; then
+        echo "An AirTrack database volume already exists. Run this from your current install folder with its .env file." >&2
+        exit 1
+    fi
     (umask 077; cp .env.example .env)
 
     DB_PASS=$(od -An -N24 -tx1 /dev/urandom | tr -d '[:space:]')
@@ -41,7 +45,7 @@ if [ ! -f .env ]; then
     SESSION_KEY=$(od -An -N32 -tx1 /dev/urandom | tr -d '[:space:]')
 
     sed -i "s/CHANGE_ME_ROOT/${ROOT_PASS}/g; s/CHANGE_ME/${DB_PASS}/g" .env
-    printf '\nSECRET_KEY=%s\n' "$SESSION_KEY" >> .env
+    printf '\nSECRET_KEY=%s\nAIRTRACK_DB_BOOTSTRAP_ROOT_PASSWORD=%s\n' "$SESSION_KEY" "$ROOT_PASS" >> .env
 
     echo "  ✓  .env created with a random database password"
 else

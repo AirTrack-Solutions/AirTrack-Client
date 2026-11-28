@@ -98,7 +98,7 @@ services:
     image: mariadb:11.4
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: "${MARIADB_ROOT_PASSWORD:-${DB_PASSWORD:-airtrack}}"
+      MARIADB_ROOT_PASSWORD: "${AIRTRACK_DB_BOOTSTRAP_ROOT_PASSWORD:-${DB_PASSWORD:-airtrack}}"
       MARIADB_DATABASE: "${DB_NAME:-airtrack}"
       MARIADB_USER: "${DB_USER:-airtrack}"
       MARIADB_PASSWORD: "${DB_PASSWORD:-airtrack}"
