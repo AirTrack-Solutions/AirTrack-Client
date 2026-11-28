@@ -42,7 +42,8 @@ AirTrack Logbook V1 — Linux and Raspberry Pi
    Start and stop from this same folder using bash start.sh and bash stop.sh.
    In Cockpit, Backup DB creates the SQL backup and companion photo manifest
    in app/backups/ on a standard install. Keep the SQL file, its .photos.json
-   and photo_store/ together and copy them somewhere safe.
+   and photo_store/ together and copy them somewhere safe. The container
+   keeps photo backups private, so copying them may need administrator access.
    For an existing installation, keep its original .env, keys/, data/,
    app/static/uploads/ and Docker database volume. Make a backup first.
    Use your existing installation folder. Do not start a second extracted
