@@ -32,3 +32,6 @@ gunicorn==26.0.0
 apscheduler>=3.10,<4
 beautifulsoup4
 docker
+
+# Aircraft photo upload and metadata
+Pillow==13.0.0
